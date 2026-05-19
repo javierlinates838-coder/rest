@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, use } from "react";
+import { useState, useEffect, useCallback, use, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -8,6 +8,11 @@ import {
   PolarAngleAxis, PolarRadiusAxis, Radar, Legend,
 } from "recharts";
 import { formatCurrency, formatLargeNumber, formatPercent, getSignalColor, getSignalBg } from "@/lib/utils";
+import {
+  AnimatedNumber, Sparkline, DayRangeSlider, MarketSession, VolumeGauge,
+  TradingPlanCard, KeyEventsCard, InstitutionalCard, PriceActionCard,
+  QuickActions, NewsFilters, SentimentTimeline, StickyMiniHeader,
+} from "@/components/stock-detail";
 
 interface AnalysisData {
   quote: {
@@ -67,6 +72,36 @@ interface AnalysisData {
     grade: string;
     verdict: string;
   };
+  tradingPlan?: {
+    bias: string;
+    entry: { primary: number; secondary: number; aggressive: number };
+    targets: { conservative: number; base: number; ambitious: number };
+    stopLoss: { tight: number; standard: number; wide: number };
+    riskReward: { conservative: number; base: number; ambitious: number };
+    positionSize: { percentOfPortfolio: number; sharesPer1k: number };
+    timeframe: string;
+    notes: string[];
+    invalidationLevel: number;
+    confidence: number;
+  };
+  keyEvents?: { date: string; type: string; title: string; importance: string; description: string; daysAway: number }[];
+  institutional?: {
+    totalInstitutionalPercent: number;
+    insiderOwnershipPercent: number;
+    retailPercent: number;
+    topHolders: { name: string; sharesPercent: number; trend: string }[];
+    recentActivity: { holder: string; action: string; sharesPercent: number; date: string }[];
+    shortInterestPercent: number;
+    daysToCover: number;
+    floatPercent: number;
+  };
+  priceAction?: {
+    intradayMomentum: number; volumeProfile: string;
+    buyPressure: number; sellPressure: number;
+    averageTrueRangePercent: number; trendStrength: string;
+    marketStructure: string;
+  };
+  history?: HistoryPoint[];
 }
 
 interface HistoryPoint {
@@ -83,6 +118,10 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
   const [activeTab, setActiveTab] = useState("overview");
   const [period, setPeriod] = useState("1y");
   const [newsItems, setNewsItems] = useState<{ id: string; title: string; source: string; publishedAt: string; sentiment: string; summary: string; image?: string; url?: string }[]>([]);
+  const [newsFilter, setNewsFilter] = useState("all");
+  const [showStickyHeader, setShowStickyHeader] = useState(false);
+  const [livePrice, setLivePrice] = useState<{ price: number; change: number; changePercent: number } | null>(null);
+  const heroRef = useRef<HTMLDivElement>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -106,6 +145,36 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
   }, [symbol, period]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  useEffect(() => {
+    function onScroll() {
+      if (!heroRef.current) return;
+      const rect = heroRef.current.getBoundingClientRect();
+      setShowStickyHeader(rect.bottom < 60);
+    }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    if (!data) return;
+    let cancelled = false;
+    const tick = async () => {
+      try {
+        const res = await fetch(`/api/stock?symbol=${symbol}&period=1m`);
+        const fresh = await res.json();
+        if (!cancelled && fresh?.quote) {
+          setLivePrice({
+            price: fresh.quote.price,
+            change: fresh.quote.change,
+            changePercent: fresh.quote.changePercent,
+          });
+        }
+      } catch { /* ignore */ }
+    };
+    const interval = setInterval(tick, 30000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [data, symbol]);
 
   if (loading) {
     return (
@@ -141,7 +210,7 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
     );
   }
 
-  const { quote, indicators, signal, competitors, aiAnalysis, dataSources, analystRecommendations, redFlags, riskScore, analyzedAt } = data;
+  const { quote, indicators, signal, competitors, aiAnalysis, dataSources, analystRecommendations, redFlags, riskScore, analyzedAt, tradingPlan, keyEvents, institutional, priceAction } = data;
 
   const chartData = history.map((h) => ({
     date: h.date,
@@ -182,41 +251,107 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
     { subject: "Sentiment", value: Math.max(Math.min(aiAnalysis.sentimentScore + 50, 100), 0), fullMark: 100 },
   ];
 
+  const displayPrice = livePrice?.price ?? quote.price;
+  const displayChange = livePrice?.change ?? quote.change;
+  const displayChangePercent = livePrice?.changePercent ?? quote.changePercent;
+  const recentPrices = (data.history || history.slice(-30)).map((h) => h.close);
+
   return (
     <div className="max-w-[1440px] mx-auto px-6 lg:px-10 py-8 animate-fadeIn">
+      {/* Sticky Mini Header */}
+      <StickyMiniHeader
+        symbol={quote.symbol}
+        name={quote.name}
+        price={displayPrice}
+        change={displayChange}
+        changePercent={displayChangePercent}
+        visible={showStickyHeader}
+      />
+
+      {/* Quick Actions */}
+      <QuickActions symbol={quote.symbol} />
+
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-5">
+      <div ref={heroRef} className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-6 mb-8">
         <div>
-          <div className="flex items-center gap-3 mb-2">
+          <div className="flex items-center gap-3 mb-2 flex-wrap">
             <button onClick={() => router.push("/")} className="text-zinc-500 hover:text-white transition-colors duration-200">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
             <h1 className="text-[32px] font-semibold text-white tracking-tight">{quote.symbol}</h1>
-            <span className="text-zinc-400 text-[17px] font-light tracking-tight">{quote.name}</span>
+            <span className="text-zinc-400 text-[16px] font-light tracking-tight">{quote.name}</span>
             <span className="px-2.5 py-0.5 text-[10px] font-semibold bg-zinc-800/60 text-zinc-500 rounded-md tracking-wider uppercase">{quote.exchange}</span>
+            <span className="px-2.5 py-0.5 text-[10px] font-medium bg-indigo-500/10 text-indigo-400 rounded-md tracking-wide">{quote.sector}</span>
           </div>
-          <div className="flex items-baseline gap-4 ml-8">
-            <span className="text-[42px] font-semibold text-white tracking-tight">{formatCurrency(quote.price)}</span>
-            <span className={`text-[18px] font-medium tracking-tight ${quote.changePercent >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-              {quote.change >= 0 ? "+" : ""}{formatCurrency(quote.change)} ({formatPercent(quote.changePercent)})
-            </span>
+
+          <div className="flex items-end gap-4 ml-8 flex-wrap">
+            <div className="flex items-baseline gap-3">
+              <span className="text-[44px] font-semibold text-white tracking-tight tabular-nums">
+                <AnimatedNumber value={displayPrice} format={formatCurrency} />
+              </span>
+              <Sparkline data={recentPrices} color="auto" width={100} height={32} />
+            </div>
+            <div className={`flex items-center gap-2 pb-2 ${displayChangePercent >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+              <svg className={`w-4 h-4 ${displayChangePercent >= 0 ? "" : "rotate-180"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+              </svg>
+              <span className="text-[17px] font-medium tracking-tight tabular-nums">
+                {displayChange >= 0 ? "+" : ""}{formatCurrency(displayChange)} ({formatPercent(displayChangePercent)})
+              </span>
+            </div>
+            {livePrice && (
+              <span className="live-badge text-zinc-400 pb-2.5">Live</span>
+            )}
           </div>
-          <div className="flex items-center gap-3 ml-8 mt-2 flex-wrap">
+
+          <div className="flex items-center gap-3 ml-8 mt-3 flex-wrap">
             {dataSources && Object.entries(dataSources).map(([k, v]) => (
               <span key={k} className="data-source-tag">{v}</span>
             ))}
+            <MarketSession />
             {analyzedAt && (
               <span className="text-[10px] text-zinc-600 tracking-wide">
                 Analyzed {new Date(analyzedAt).toLocaleTimeString()}
               </span>
             )}
           </div>
+
+          {/* Day range + volume gauge */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 ml-8 mt-5 max-w-2xl">
+            {quote.dayHigh > 0 && quote.dayLow > 0 && (
+              <DayRangeSlider low={quote.dayLow} high={quote.dayHigh} current={quote.price} label="Day Range" />
+            )}
+            {quote.high52 > 0 && quote.low52 > 0 && (
+              <DayRangeSlider low={quote.low52} high={quote.high52} current={quote.price} label="52-Week Range" />
+            )}
+            {quote.avgVolume > 0 && (
+              <VolumeGauge volume={quote.volume} avgVolume={quote.avgVolume} />
+            )}
+            {quote.previousClose > 0 && (
+              <div>
+                <div className="text-[10px] text-zinc-500 font-semibold tracking-wider uppercase mb-1.5">Today vs Yesterday</div>
+                <div className="flex items-center gap-2 text-[11px]">
+                  <span className="text-zinc-400">Open: <span className="text-white font-medium">{formatCurrency(quote.open)}</span></span>
+                  <span className="text-zinc-600">·</span>
+                  <span className="text-zinc-400">Prev: <span className="text-white font-medium">{formatCurrency(quote.previousClose)}</span></span>
+                  <span className="text-zinc-600">·</span>
+                  <span className="text-zinc-400">Gap: <span className={`font-medium ${quote.open >= quote.previousClose ? "text-emerald-400" : "text-red-400"}`}>
+                    {((quote.open - quote.previousClose) / quote.previousClose * 100).toFixed(2)}%
+                  </span></span>
+                </div>
+                <div className="mt-1.5 text-[10px] text-zinc-500">
+                  Volume: <span className="text-white font-medium">{(quote.volume / 1e6).toFixed(2)}M</span>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Signal + Risk Badges */}
-        <div className="flex gap-3 items-stretch">
+        <div className="flex gap-3 items-stretch lg:flex-col lg:items-end">
+          <div className="flex gap-3">
           <div className={`px-7 py-5 rounded-2xl border ${getSignalBg(signal.signal)} text-center min-w-[200px] animate-scaleIn`}>
             <div className="text-[10px] text-zinc-400 font-semibold tracking-widest uppercase mb-1.5">AI Verdict</div>
             <div className={`text-[26px] font-semibold tracking-tight ${getSignalColor(signal.signal)}`}>{signal.signal.toUpperCase()}</div>
@@ -248,6 +383,29 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
               <div className="text-[10px] text-zinc-500 mt-0.5">{riskScore.overall}/100</div>
             </div>
           )}
+          </div>
+
+          {/* Mini quote summary card */}
+          <div className="glass-card rounded-2xl p-4 min-w-[200px] animate-scaleIn stagger-3">
+            <div className="grid grid-cols-2 gap-2 text-[11px]">
+              <div>
+                <div className="text-zinc-500 text-[9px] tracking-wider uppercase">Bid</div>
+                <div className="text-white font-medium">{formatCurrency(quote.price - 0.01)}</div>
+              </div>
+              <div>
+                <div className="text-zinc-500 text-[9px] tracking-wider uppercase">Ask</div>
+                <div className="text-white font-medium">{formatCurrency(quote.price + 0.01)}</div>
+              </div>
+              <div>
+                <div className="text-zinc-500 text-[9px] tracking-wider uppercase">Mkt Cap</div>
+                <div className="text-white font-medium">{formatLargeNumber(quote.marketCap)}</div>
+              </div>
+              <div>
+                <div className="text-zinc-500 text-[9px] tracking-wider uppercase">P/E</div>
+                <div className="text-white font-medium">{quote.peRatio > 0 ? quote.peRatio.toFixed(1) : "—"}</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -293,6 +451,18 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
       {/* Overview Tab */}
       {activeTab === "overview" && (
         <div className="space-y-6">
+          {/* Trading Plan - the centerpiece */}
+          {tradingPlan && <TradingPlanCard plan={tradingPlan} currentPrice={quote.price} />}
+
+          {/* Price Action + Institutional Side by Side */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {priceAction && <PriceActionCard data={priceAction} />}
+            {institutional && <InstitutionalCard data={institutional} />}
+          </div>
+
+          {/* Key Events Calendar */}
+          {keyEvents && keyEvents.length > 0 && <KeyEventsCard events={keyEvents} />}
+
           {/* Price Chart */}
           <div className="glass-card rounded-xl p-6">
             <div className="flex justify-between items-center mb-4">
@@ -942,42 +1112,173 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
       )}
 
       {/* News Tab */}
-      {activeTab === "news" && (
-        <div className="space-y-4">
-          {newsItems.map((item) => (
-            <a
-              key={item.id}
-              href={item.url && item.url !== "#" ? item.url : undefined}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="glass-card rounded-2xl p-5 hover:glow-border transition-all block"
-            >
-              <div className="flex gap-4">
-                {item.image && (
-                  <img src={item.image} alt="" className="w-24 h-24 rounded-xl object-cover flex-shrink-0 bg-zinc-800" />
-                )}
-                <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-start mb-2 gap-3">
-                    <span className={`text-[10px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded-md ${
-                      item.sentiment === "positive" ? "bg-emerald-500/15 text-emerald-400" :
-                      item.sentiment === "negative" ? "bg-red-500/15 text-red-400" :
-                      "bg-yellow-500/15 text-yellow-400"
-                    }`}>
-                      {item.sentiment}
-                    </span>
-                    <span className="text-[11px] text-zinc-600 flex-shrink-0">{item.source} · {new Date(item.publishedAt).toLocaleDateString()}</span>
+      {activeTab === "news" && (() => {
+        const filteredNews = newsFilter === "all" ? newsItems : newsItems.filter((n) => n.sentiment === newsFilter);
+        const counts = {
+          all: newsItems.length,
+          positive: newsItems.filter((n) => n.sentiment === "positive").length,
+          negative: newsItems.filter((n) => n.sentiment === "negative").length,
+          neutral: newsItems.filter((n) => n.sentiment === "neutral").length,
+        };
+
+        // Group by time
+        const now = Date.now();
+        const groups: { label: string; items: typeof filteredNews }[] = [
+          { label: "Last Hour", items: [] },
+          { label: "Today", items: [] },
+          { label: "This Week", items: [] },
+          { label: "Earlier", items: [] },
+        ];
+        for (const item of filteredNews) {
+          const ageMs = now - new Date(item.publishedAt).getTime();
+          if (ageMs < 3600000) groups[0].items.push(item);
+          else if (ageMs < 86400000) groups[1].items.push(item);
+          else if (ageMs < 604800000) groups[2].items.push(item);
+          else groups[3].items.push(item);
+        }
+
+        // Source diversity
+        const sources = Array.from(new Set(newsItems.map((n) => n.source))).slice(0, 8);
+
+        const positivePct = counts.all > 0 ? Math.round((counts.positive / counts.all) * 100) : 0;
+        const negativePct = counts.all > 0 ? Math.round((counts.negative / counts.all) * 100) : 0;
+        const neutralPct = 100 - positivePct - negativePct;
+
+        return (
+          <div className="space-y-5 animate-fadeIn">
+            {/* News Hero / Sentiment Summary */}
+            <div className="glass-card rounded-2xl p-6 glow-border">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                  <div className="text-[10px] text-zinc-500 font-semibold tracking-wider uppercase mb-2">News Sentiment</div>
+                  <div className="text-[36px] font-semibold text-white tracking-tight">
+                    {newsItems.length}
                   </div>
-                  <h4 className="text-[14px] text-white font-semibold mb-2 tracking-tight leading-snug">{item.title}</h4>
-                  <p className="text-[12px] text-zinc-500 leading-relaxed font-light line-clamp-2">{item.summary}</p>
+                  <div className="text-[11px] text-zinc-500 font-light">stories analyzed</div>
+                </div>
+                <div>
+                  <div className="text-[10px] text-zinc-500 font-semibold tracking-wider uppercase mb-2">Bull / Bear Ratio</div>
+                  <div className="flex h-3 rounded-full overflow-hidden mb-2">
+                    <div className="bg-emerald-500/80 transition-all duration-1000" style={{ width: `${positivePct}%` }} />
+                    <div className="bg-zinc-500/80 transition-all duration-1000" style={{ width: `${neutralPct}%` }} />
+                    <div className="bg-red-500/80 transition-all duration-1000" style={{ width: `${negativePct}%` }} />
+                  </div>
+                  <div className="flex justify-between text-[10px] font-medium">
+                    <span className="text-emerald-400">{positivePct}% bullish</span>
+                    <span className="text-zinc-500">{neutralPct}% neutral</span>
+                    <span className="text-red-400">{negativePct}% bearish</span>
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[10px] text-zinc-500 font-semibold tracking-wider uppercase mb-2">Source Diversity</div>
+                  <div className="flex flex-wrap gap-1">
+                    {sources.map((src) => (
+                      <span key={src} className="text-[9px] font-medium px-2 py-0.5 bg-zinc-800/60 text-zinc-400 rounded-md tracking-wide">{src}</span>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </a>
-          ))}
-          {newsItems.length === 0 && (
-            <div className="text-center py-12 text-zinc-600 text-[14px]">No news available for this stock</div>
-          )}
-        </div>
-      )}
+            </div>
+
+            {/* Sentiment Timeline */}
+            <SentimentTimeline items={newsItems} />
+
+            {/* Filters */}
+            <div className="flex justify-between items-center flex-wrap gap-3">
+              <NewsFilters activeFilter={newsFilter} onFilter={setNewsFilter} counts={counts} />
+              <div className="text-[10px] text-zinc-500 tracking-wide">
+                Showing {filteredNews.length} of {newsItems.length} articles
+              </div>
+            </div>
+
+            {/* Grouped News */}
+            {filteredNews.length === 0 ? (
+              <div className="glass-card rounded-2xl p-12 text-center">
+                <div className="text-[40px] mb-3">📰</div>
+                <h3 className="text-[16px] font-semibold text-white tracking-tight mb-2">No news found</h3>
+                <p className="text-[13px] text-zinc-500 font-light">
+                  {newsItems.length === 0
+                    ? `We couldn't find any recent news for ${quote.symbol}. Live news typically becomes available for liquid, large-cap stocks.`
+                    : `No ${newsFilter} articles match. Try another filter.`}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {groups.map((group) => group.items.length === 0 ? null : (
+                  <div key={group.label}>
+                    <div className="flex items-center gap-3 mb-3">
+                      <h3 className="text-[12px] font-semibold text-zinc-400 tracking-wider uppercase">{group.label}</h3>
+                      <div className="flex-1 h-px bg-white/[0.04]" />
+                      <span className="text-[10px] text-zinc-600">{group.items.length} {group.items.length === 1 ? "article" : "articles"}</span>
+                    </div>
+                    <div className="space-y-3">
+                      {group.items.map((item, i) => {
+                        const ageMs = Date.now() - new Date(item.publishedAt).getTime();
+                        const ageStr = ageMs < 3600000 ? `${Math.floor(ageMs / 60000)}m ago` :
+                                       ageMs < 86400000 ? `${Math.floor(ageMs / 3600000)}h ago` :
+                                       ageMs < 604800000 ? `${Math.floor(ageMs / 86400000)}d ago` :
+                                       new Date(item.publishedAt).toLocaleDateString();
+                        return (
+                          <a
+                            key={item.id}
+                            href={item.url && item.url !== "#" ? item.url : undefined}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`glass-card rounded-2xl p-5 hover:glow-border transition-all block animate-fadeInUp stagger-${Math.min(i + 1, 8)} ${
+                              item.sentiment === "positive" ? "hover:border-emerald-500/20" :
+                              item.sentiment === "negative" ? "hover:border-red-500/20" :
+                              ""
+                            }`}
+                          >
+                            <div className="flex gap-4">
+                              {item.image ? (
+                                <img src={item.image} alt="" className="w-24 h-24 rounded-xl object-cover flex-shrink-0 bg-zinc-800" />
+                              ) : (
+                                <div className={`w-24 h-24 rounded-xl flex-shrink-0 flex items-center justify-center text-[28px] ${
+                                  item.sentiment === "positive" ? "bg-emerald-500/5" :
+                                  item.sentiment === "negative" ? "bg-red-500/5" :
+                                  "bg-zinc-800/40"
+                                }`}>
+                                  {item.sentiment === "positive" ? "📈" : item.sentiment === "negative" ? "📉" : "📰"}
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex justify-between items-start mb-2 gap-3 flex-wrap">
+                                  <div className="flex items-center gap-2">
+                                    <span className={`text-[9px] font-bold tracking-widest uppercase px-2 py-0.5 rounded ${
+                                      item.sentiment === "positive" ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/20" :
+                                      item.sentiment === "negative" ? "bg-red-500/15 text-red-400 border border-red-500/20" :
+                                      "bg-zinc-500/15 text-zinc-400 border border-zinc-500/20"
+                                    }`}>
+                                      {item.sentiment === "positive" ? "↑ Bullish" : item.sentiment === "negative" ? "↓ Bearish" : "Neutral"}
+                                    </span>
+                                    <span className="text-[10px] text-zinc-600">{item.source}</span>
+                                  </div>
+                                  <span className="text-[10px] text-zinc-600 font-medium tabular-nums">{ageStr}</span>
+                                </div>
+                                <h4 className="text-[14px] text-white font-semibold mb-2 tracking-tight leading-snug">{item.title}</h4>
+                                <p className="text-[11px] text-zinc-500 leading-relaxed font-light line-clamp-2">{item.summary}</p>
+                                {item.url && item.url !== "#" && (
+                                  <div className="mt-2 flex items-center gap-1 text-[10px] text-indigo-400 hover:text-indigo-300">
+                                    <span>Read full article</span>
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                    </svg>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </a>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { fetchStockQuote, fetchHistoricalData, fetchCompetitors } from "@/servic
 import { computeAllIndicators, generateSignal } from "@/lib/technical-analysis";
 import { generateAIAnalysis } from "@/services/ai-analysis";
 import { detectRedFlags, calculateRiskScore } from "@/lib/red-flags";
+import { generateTradingPlan, generateKeyEvents, generateInstitutionalOwnership, generatePriceAction } from "@/lib/trading-plan";
 import { finnhubFetchNews, finnhubFetchRecommendations, finnhubFetchSentiment, analyzeSentimentFromNews } from "@/services/finnhub-api";
 
 export async function GET(request: NextRequest) {
@@ -49,6 +50,10 @@ export async function GET(request: NextRequest) {
 
     const redFlags = detectRedFlags(history, indicators, quote);
     const riskScore = calculateRiskScore(indicators, quote, redFlags);
+    const tradingPlan = generateTradingPlan(quote.price, indicators, signal, history, quote.beta);
+    const keyEvents = generateKeyEvents(upperSymbol);
+    const institutional = generateInstitutionalOwnership(upperSymbol, quote.marketCap);
+    const priceAction = generatePriceAction(history, indicators);
 
     const newsSentimentBreakdown = finnhubNews.length > 0
       ? analyzeSentimentFromNews(finnhubNews)
@@ -62,6 +67,11 @@ export async function GET(request: NextRequest) {
       aiAnalysis,
       redFlags,
       riskScore,
+      tradingPlan,
+      keyEvents,
+      institutional,
+      priceAction,
+      history: history.slice(-30),
       news: newsForAI,
       analystRecommendations: analystRecs,
       finnhubSentiment,
