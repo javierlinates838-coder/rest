@@ -34,6 +34,11 @@ On the import screen, open **Root Directory** → **Edit** → select or type:
 stock-analysis
 ```
 
+**Can't select or change Root Directory?** Use either fix:
+
+1. **Type it manually** (not a file picker): Project → **Settings** → **Build and Deployment** → **Root Directory** → enter `stock-analysis` → **Save** → **Redeploy**.
+2. **Skip Root Directory entirely**: the repo root now has `package.json` + `vercel.json` that build `stock-analysis` for you. Import `rest`, leave Root Directory as `./`, add env vars, Deploy.
+
 Confirm. Vercel should detect:
 
 | Setting        | Value              |
