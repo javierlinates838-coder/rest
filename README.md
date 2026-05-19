@@ -84,6 +84,10 @@ npm run build
 npm start
 ```
 
+### Deploy to Vercel
+
+See **[stock-analysis/DEPLOY.md](stock-analysis/DEPLOY.md)** for step-by-step hosting (root directory `stock-analysis`, API keys, custom domain, troubleshooting).
+
 ## How It Works
 
 1. **Search any stock** by entering a ticker symbol (e.g., AAPL, TSLA, NVDA)

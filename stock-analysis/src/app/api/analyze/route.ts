@@ -6,6 +6,9 @@ import { detectRedFlags, calculateRiskScore } from "@/lib/red-flags";
 import { generateTradingPlan, generateKeyEvents, generateInstitutionalOwnership, generatePriceAction } from "@/lib/trading-plan";
 import { finnhubFetchNews, finnhubFetchRecommendations, finnhubFetchSentiment, analyzeSentimentFromNews } from "@/services/finnhub-api";
 
+// Vercel Pro allows up to 60s; Hobby caps at 10s regardless of this value.
+export const maxDuration = 60;
+
 export async function GET(request: NextRequest) {
   const symbol = request.nextUrl.searchParams.get("symbol");
 
