@@ -1,0 +1,8 @@
+# StockPulse AI — Netlify (Next.js App Router + API routes)
+# Requires @netlify/plugin-nextjs (installed automatically on Netlify)
+
+[build]
+  command = "npm run build"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"

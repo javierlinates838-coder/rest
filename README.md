@@ -88,6 +88,11 @@ npm start
 
 See **[stock-analysis/DEPLOY.md](stock-analysis/DEPLOY.md)** for step-by-step hosting (root directory `stock-analysis`, API keys, custom domain, troubleshooting).
 
+### Deploy to Netlify
+
+- **Zip bundle** (source): run `./scripts/build-netlify-zip.sh` → `stock-analysis-netlify.zip`
+- **Instructions**: [stock-analysis/NETLIFY-DEPLOY.md](stock-analysis/NETLIFY-DEPLOY.md)
+
 ## How It Works
 
 1. **Search any stock** by entering a ticker symbol (e.g., AAPL, TSLA, NVDA)
