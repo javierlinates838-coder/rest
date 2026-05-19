@@ -13,6 +13,11 @@ import {
   TradingPlanCard, KeyEventsCard, InstitutionalCard, PriceActionCard,
   QuickActions, NewsFilters, SentimentTimeline, StickyMiniHeader,
 } from "@/components/stock-detail";
+import {
+  IconTechnical, IconFundamental, IconSentiment, IconManipulation, IconVolatility,
+  IconCheck, IconInsider, IconVolume, IconPumpDump, IconPriceGap, IconDivergence,
+  IconVolatilitySpike, IconShield, IconAlert, IconBullish, IconBearish, IconNews, IconPattern,
+} from "@/components/icons";
 
 interface AnalysisData {
   quote: {
@@ -871,20 +876,25 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
           {riskScore && (
             <div className="glass-card rounded-2xl p-7 glow-border animate-fadeInUp">
               <div className="flex items-center gap-4 mb-6">
-                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-[28px] font-bold ${
-                  riskScore.grade === "A" ? "bg-emerald-500/15 text-emerald-400" :
-                  riskScore.grade === "B" ? "bg-green-500/15 text-green-400" :
-                  riskScore.grade === "C" ? "bg-yellow-500/15 text-yellow-400" :
-                  riskScore.grade === "D" ? "bg-orange-500/15 text-orange-400" :
-                  "bg-red-500/15 text-red-400"
-                }`}>{riskScore.grade}</div>
+                <div className={`relative w-16 h-16 rounded-2xl flex items-center justify-center font-semibold tracking-tight border ${
+                  riskScore.grade === "A" ? "bg-emerald-500/8 text-emerald-400 border-emerald-500/25" :
+                  riskScore.grade === "B" ? "bg-green-500/8 text-green-400 border-green-500/25" :
+                  riskScore.grade === "C" ? "bg-amber-500/8 text-amber-400 border-amber-500/25" :
+                  riskScore.grade === "D" ? "bg-orange-500/8 text-orange-400 border-orange-500/25" :
+                  "bg-red-500/8 text-red-400 border-red-500/25"
+                }`}>
+                  <span className="text-[30px]">{riskScore.grade}</span>
+                  <span className="absolute bottom-1.5 right-1.5 text-[8px] font-bold tracking-widest opacity-60">RISK</span>
+                </div>
                 <div>
                   <h3 className="text-[18px] font-semibold text-white tracking-tight">Risk Assessment</h3>
-                  <p className="text-[13px] text-zinc-400 font-light">{riskScore.verdict}</p>
+                  <p className="text-[12px] text-zinc-400 font-light tracking-tight">{riskScore.verdict}</p>
                 </div>
                 <div className="ml-auto text-right">
-                  <div className="text-[28px] font-bold text-white tracking-tight">{riskScore.overall}<span className="text-[14px] text-zinc-500 font-light">/100</span></div>
-                  <div className="text-[10px] text-zinc-500 tracking-wider uppercase">Overall Risk</div>
+                  <div className="text-[30px] font-semibold text-white tracking-tight tabular-nums">
+                    {riskScore.overall}<span className="text-[14px] text-zinc-500 font-light">/100</span>
+                  </div>
+                  <div className="text-[9px] text-zinc-500 font-semibold tracking-widest uppercase">Overall Score</div>
                 </div>
               </div>
 
@@ -896,34 +906,38 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
               {/* Risk Breakdown */}
               <div className="grid grid-cols-5 gap-3">
                 {[
-                  { label: "Technical", value: riskScore.technical, icon: "📊" },
-                  { label: "Fundamental", value: riskScore.fundamental, icon: "📈" },
-                  { label: "Sentiment", value: riskScore.sentiment, icon: "🧠" },
-                  { label: "Manipulation", value: riskScore.manipulation, icon: "🚨" },
-                  { label: "Volatility", value: riskScore.volatility, icon: "⚡" },
-                ].map((item, i) => (
-                  <div key={item.label} className={`text-center p-3 rounded-xl bg-zinc-900/50 animate-fadeInUp stagger-${i + 1}`}>
-                    <div className="text-lg mb-1">{item.icon}</div>
-                    <div className={`text-[18px] font-bold tracking-tight ${
-                      item.value <= 30 ? "text-emerald-400" :
-                      item.value <= 50 ? "text-yellow-400" :
-                      item.value <= 70 ? "text-orange-400" :
-                      "text-red-400"
-                    }`}>{item.value}</div>
-                    <div className="text-[10px] text-zinc-500 font-medium tracking-wider uppercase mt-0.5">{item.label}</div>
-                    <div className="w-full bg-zinc-800 rounded-full h-1 mt-2">
-                      <div
-                        className={`h-1 rounded-full transition-all duration-1000 ${
-                          item.value <= 30 ? "bg-emerald-500" :
-                          item.value <= 50 ? "bg-yellow-500" :
-                          item.value <= 70 ? "bg-orange-500" :
-                          "bg-red-500"
-                        }`}
-                        style={{ width: `${item.value}%` }}
-                      />
+                  { label: "Technical", value: riskScore.technical, Icon: IconTechnical },
+                  { label: "Fundamental", value: riskScore.fundamental, Icon: IconFundamental },
+                  { label: "Sentiment", value: riskScore.sentiment, Icon: IconSentiment },
+                  { label: "Manipulation", value: riskScore.manipulation, Icon: IconManipulation },
+                  { label: "Volatility", value: riskScore.volatility, Icon: IconVolatility },
+                ].map((item, i) => {
+                  const colorClass =
+                    item.value <= 30 ? "text-emerald-400" :
+                    item.value <= 50 ? "text-yellow-400" :
+                    item.value <= 70 ? "text-orange-400" :
+                    "text-red-400";
+                  const bgClass =
+                    item.value <= 30 ? "bg-emerald-500" :
+                    item.value <= 50 ? "bg-yellow-500" :
+                    item.value <= 70 ? "bg-orange-500" :
+                    "bg-red-500";
+                  return (
+                    <div key={item.label} className={`relative text-center p-4 rounded-xl bg-zinc-900/50 border border-white/[0.02] animate-fadeInUp stagger-${i + 1}`}>
+                      <div className={`flex justify-center mb-1.5 ${colorClass} opacity-90`}>
+                        <item.Icon size={18} />
+                      </div>
+                      <div className={`text-[20px] font-semibold tracking-tight ${colorClass}`}>{item.value}</div>
+                      <div className="text-[9px] text-zinc-500 font-semibold tracking-widest uppercase mt-0.5">{item.label}</div>
+                      <div className="w-full bg-zinc-800/80 rounded-full h-1 mt-2.5 overflow-hidden">
+                        <div
+                          className={`h-1 rounded-full transition-all duration-[1200ms] ease-out ${bgClass}`}
+                          style={{ width: `${item.value}%` }}
+                        />
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -931,11 +945,24 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
           {/* Red Flags List */}
           {redFlags && redFlags.length > 0 ? (
             <div className="space-y-3">
-              <h3 className="text-[16px] font-semibold text-white tracking-tight flex items-center gap-2">
-                <span className="text-red-400">⚠</span>
-                Detected Alerts ({redFlags.length})
+              <h3 className="text-[16px] font-semibold text-white tracking-tight flex items-center gap-2.5">
+                <span className="text-red-400"><IconAlert size={18} /></span>
+                Detected Alerts <span className="text-zinc-500 font-light">({redFlags.length})</span>
               </h3>
-              {redFlags.map((flag, i) => (
+              {redFlags.map((flag, i) => {
+                const CategoryIcon =
+                  flag.category === "insider" ? IconInsider :
+                  flag.category === "volume" ? IconVolume :
+                  flag.category === "price" ? IconPriceGap :
+                  flag.category === "manipulation" ? IconManipulation :
+                  flag.category === "fundamental" ? IconBearish :
+                  flag.category === "pattern" ? IconPattern :
+                  IconAlert;
+                const sevColor =
+                  flag.severity === "critical" ? "text-red-400" :
+                  flag.severity === "warning" ? "text-amber-400" :
+                  "text-blue-400";
+                return (
                 <div
                   key={flag.id}
                   className={`glass-card rounded-2xl p-5 animate-fadeInUp stagger-${Math.min(i + 1, 8)} ${
@@ -945,17 +972,12 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
                   }`}
                 >
                   <div className="flex items-start gap-4">
-                    <div className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-[18px] ${
+                    <div className={`flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center ${
                       flag.severity === "critical" ? "bg-red-500/10" :
-                      flag.severity === "warning" ? "bg-yellow-500/10" :
+                      flag.severity === "warning" ? "bg-amber-500/10" :
                       "bg-blue-500/10"
-                    }`}>
-                      {flag.category === "insider" ? "🕵️" :
-                       flag.category === "volume" ? "📊" :
-                       flag.category === "price" ? "💰" :
-                       flag.category === "manipulation" ? "🚨" :
-                       flag.category === "fundamental" ? "📉" :
-                       flag.category === "pattern" ? "🔍" : "⚠️"}
+                    } ${sevColor}`}>
+                      <CategoryIcon size={20} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1.5">
@@ -980,34 +1002,51 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
                     </div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
-            <div className="glass-card rounded-2xl p-12 text-center animate-fadeIn">
-              <div className="text-[40px] mb-3">✅</div>
-              <h3 className="text-[16px] font-semibold text-white tracking-tight mb-2">No Red Flags Detected</h3>
-              <p className="text-[13px] text-zinc-500 font-light max-w-md mx-auto">
+            <div className="glass-card rounded-2xl p-14 text-center animate-fadeIn">
+              <div className="flex justify-center mb-4">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-emerald-500/20 blur-2xl rounded-full" />
+                  <div className="relative w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                    <IconShield size={32} />
+                  </div>
+                </div>
+              </div>
+              <h3 className="text-[17px] font-semibold text-white tracking-tight mb-2">All Clear — No Red Flags Detected</h3>
+              <p className="text-[12px] text-zinc-500 font-light max-w-md mx-auto leading-relaxed">
                 Our automated scanning system has not detected any unusual activity, manipulation patterns, or insider trading signals for this stock at this time.
               </p>
+              <div className="mt-5 flex items-center justify-center gap-2 text-[10px] text-zinc-600">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="tracking-wider uppercase">Continuous Monitoring Active</span>
+              </div>
             </div>
           )}
 
           {/* What We Monitor */}
           <div className="glass-card rounded-2xl p-6">
-            <h3 className="text-[14px] font-semibold text-white tracking-tight mb-4">What Our Scanner Monitors</h3>
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-[14px] font-semibold text-white tracking-tight">What Our Scanner Monitors</h3>
+              <span className="text-[10px] text-zinc-600 tracking-wider uppercase">24/7 Auto-Detection</span>
+            </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {[
-                { icon: "🕵️", label: "Insider Trading", desc: "SEC filing anomalies & insider sell patterns" },
-                { icon: "📊", label: "Volume Spikes", desc: "Unusual volume that exceeds 2x+ average" },
-                { icon: "🚨", label: "Pump & Dump", desc: "RSI + volume combos indicating manipulation" },
-                { icon: "💰", label: "Price Gaps", desc: "After-hours moves and opening gaps" },
-                { icon: "📉", label: "Divergences", desc: "MACD/price bearish and bullish divergences" },
-                { icon: "⚡", label: "Volatility Spikes", desc: "Bollinger squeeze & ATR anomalies" },
-              ].map((item) => (
-                <div key={item.label} className="p-3 rounded-xl bg-zinc-900/40 border border-white/[0.02]">
-                  <div className="text-lg mb-1.5">{item.icon}</div>
-                  <div className="text-[12px] font-semibold text-white tracking-tight">{item.label}</div>
-                  <div className="text-[10px] text-zinc-500 font-light mt-0.5">{item.desc}</div>
+                { Icon: IconInsider, label: "Insider Trading", desc: "SEC filing anomalies & unusual insider selling patterns", color: "text-rose-400 bg-rose-500/8" },
+                { Icon: IconVolume, label: "Volume Spikes", desc: "Detects volume exceeding 2x+ rolling average", color: "text-amber-400 bg-amber-500/8" },
+                { Icon: IconPumpDump, label: "Pump & Dump", desc: "Combined RSI + volume signatures of manipulation", color: "text-red-400 bg-red-500/8" },
+                { Icon: IconPriceGap, label: "Price Gaps", desc: "After-hours moves and opening gap anomalies", color: "text-indigo-400 bg-indigo-500/8" },
+                { Icon: IconDivergence, label: "Divergences", desc: "MACD/price bearish and bullish divergence", color: "text-purple-400 bg-purple-500/8" },
+                { Icon: IconVolatilitySpike, label: "Volatility Spikes", desc: "Bollinger squeeze and ATR anomaly detection", color: "text-cyan-400 bg-cyan-500/8" },
+              ].map((item, i) => (
+                <div key={item.label} className={`group p-4 rounded-xl bg-zinc-900/40 border border-white/[0.02] hover:border-white/[0.06] transition-all duration-300 animate-fadeInUp stagger-${i + 1}`}>
+                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-2.5 transition-all duration-300 group-hover:scale-110 ${item.color}`}>
+                    <item.Icon size={18} />
+                  </div>
+                  <div className="text-[12px] font-semibold text-white tracking-tight mb-1">{item.label}</div>
+                  <div className="text-[10px] text-zinc-500 font-light leading-relaxed">{item.desc}</div>
                 </div>
               ))}
             </div>
@@ -1193,10 +1232,17 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
 
             {/* Grouped News */}
             {filteredNews.length === 0 ? (
-              <div className="glass-card rounded-2xl p-12 text-center">
-                <div className="text-[40px] mb-3">📰</div>
+              <div className="glass-card rounded-2xl p-14 text-center">
+                <div className="flex justify-center mb-4">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-indigo-500/15 blur-2xl rounded-full" />
+                    <div className="relative w-16 h-16 rounded-2xl bg-indigo-500/8 border border-indigo-500/15 flex items-center justify-center text-indigo-400">
+                      <IconNews size={28} />
+                    </div>
+                  </div>
+                </div>
                 <h3 className="text-[16px] font-semibold text-white tracking-tight mb-2">No news found</h3>
-                <p className="text-[13px] text-zinc-500 font-light">
+                <p className="text-[12px] text-zinc-500 font-light max-w-md mx-auto leading-relaxed">
                   {newsItems.length === 0
                     ? `We couldn't find any recent news for ${quote.symbol}. Live news typically becomes available for liquid, large-cap stocks.`
                     : `No ${newsFilter} articles match. Try another filter.`}
@@ -1234,12 +1280,14 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
                               {item.image ? (
                                 <img src={item.image} alt="" className="w-24 h-24 rounded-xl object-cover flex-shrink-0 bg-zinc-800" />
                               ) : (
-                                <div className={`w-24 h-24 rounded-xl flex-shrink-0 flex items-center justify-center text-[28px] ${
-                                  item.sentiment === "positive" ? "bg-emerald-500/5" :
-                                  item.sentiment === "negative" ? "bg-red-500/5" :
-                                  "bg-zinc-800/40"
+                                <div className={`w-24 h-24 rounded-xl flex-shrink-0 flex items-center justify-center relative overflow-hidden ${
+                                  item.sentiment === "positive" ? "bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 text-emerald-400" :
+                                  item.sentiment === "negative" ? "bg-gradient-to-br from-red-500/10 to-red-500/5 text-red-400" :
+                                  "bg-gradient-to-br from-zinc-800/60 to-zinc-800/30 text-zinc-500"
                                 }`}>
-                                  {item.sentiment === "positive" ? "📈" : item.sentiment === "negative" ? "📉" : "📰"}
+                                  {item.sentiment === "positive" ? <IconBullish size={28} /> :
+                                   item.sentiment === "negative" ? <IconBearish size={28} /> :
+                                   <IconNews size={28} />}
                                 </div>
                               )}
                               <div className="flex-1 min-w-0">

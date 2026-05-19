@@ -2,6 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { formatCurrency, formatPercent } from "@/lib/utils";
+import {
+  IconEarnings, IconDividend, IconFed, IconEconomic, IconSplit, IconGuidance, IconCalendar,
+  IconTarget, IconStop, IconBuy, IconArrowUp, IconArrowDown, IconArrowRight, IconNews,
+  IconBullish, IconBearish,
+} from "./icons";
 
 export function AnimatedNumber({ value, format, duration = 800 }: { value: number; format: (n: number) => string; duration?: number }) {
   const [display, setDisplay] = useState(value);
@@ -296,9 +301,9 @@ export function TradingPlanCard({ plan, currentPrice }: {
 
       {/* Visual range bar */}
       <div className="mb-5">
-        <div className="text-[10px] text-zinc-500 font-semibold tracking-wider uppercase mb-2">Plan Visualization</div>
-        <div className="relative h-2 bg-zinc-800/50 rounded-full overflow-hidden">
-          <div className="absolute h-full bg-gradient-to-r from-red-500/40 via-zinc-700/40 to-emerald-500/40" style={{ left: 0, right: 0 }} />
+        <div className="text-[10px] text-zinc-500 font-semibold tracking-wider uppercase mb-2.5">Plan Visualization</div>
+        <div className="relative h-2.5 bg-zinc-800/50 rounded-full overflow-hidden">
+          <div className="absolute h-full bg-gradient-to-r from-red-500/30 via-zinc-700/40 to-emerald-500/30" style={{ left: 0, right: 0 }} />
           {(() => {
             const allPrices = [plan.stopLoss.wide, plan.stopLoss.standard, plan.entry.primary, currentPrice, plan.targets.conservative, plan.targets.base, plan.targets.ambitious];
             const min = Math.min(...allPrices) * 0.99;
@@ -307,34 +312,47 @@ export function TradingPlanCard({ plan, currentPrice }: {
             const pos = (price: number) => ((price - min) / range) * 100;
             return (
               <>
-                <div className="absolute top-0 w-0.5 h-full bg-red-500" style={{ left: `${pos(plan.stopLoss.standard)}%` }} title="Stop Loss" />
-                <div className="absolute top-0 w-0.5 h-full bg-emerald-500" style={{ left: `${pos(plan.entry.primary)}%` }} title="Entry" />
-                <div className="absolute top-0 w-0.5 h-full bg-indigo-400" style={{ left: `${pos(plan.targets.base)}%` }} title="Target" />
+                <div className="absolute top-0 w-[2px] h-full bg-red-500" style={{ left: `${pos(plan.stopLoss.standard)}%` }} title="Stop Loss" />
+                <div className="absolute top-0 w-[2px] h-full bg-emerald-500" style={{ left: `${pos(plan.entry.primary)}%` }} title="Entry" />
+                <div className="absolute top-0 w-[2px] h-full bg-indigo-400" style={{ left: `${pos(plan.targets.base)}%` }} title="Target" />
                 <div
-                  className="absolute -top-1 w-1 h-4 bg-white rounded-full shadow-lg"
-                  style={{ left: `calc(${pos(currentPrice)}% - 2px)` }}
+                  className="absolute -top-1 w-3 h-4.5 bg-white rounded-sm shadow-lg shadow-black/60 border border-zinc-900"
+                  style={{ left: `calc(${pos(currentPrice)}% - 6px)`, height: "18px" }}
                   title="Current Price"
                 />
               </>
             );
           })()}
         </div>
-        <div className="flex justify-between text-[9px] text-zinc-600 mt-2">
-          <span>🛑 Stop ${plan.stopLoss.standard.toFixed(2)}</span>
-          <span>📍 Now ${currentPrice.toFixed(2)}</span>
-          <span>🎯 Target ${plan.targets.base.toFixed(2)}</span>
+        <div className="flex justify-between text-[10px] text-zinc-500 mt-2.5">
+          <span className="flex items-center gap-1.5"><IconStop size={11} className="text-red-400" /> Stop ${plan.stopLoss.standard.toFixed(2)}</span>
+          <span className="flex items-center gap-1.5"><IconArrowRight size={11} className="text-white" /> Now ${currentPrice.toFixed(2)}</span>
+          <span className="flex items-center gap-1.5"><IconTarget size={11} className="text-indigo-400" /> Target ${plan.targets.base.toFixed(2)}</span>
         </div>
       </div>
 
       {/* Notes */}
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         <div className="text-[10px] text-zinc-500 font-semibold tracking-wider uppercase mb-2">Trader Notes</div>
-        {plan.notes.map((note, i) => (
-          <div key={i} className="text-[11px] text-zinc-300 font-light tracking-tight leading-relaxed flex items-start gap-2">
-            <span className="text-zinc-600">→</span>
-            <span>{note}</span>
-          </div>
-        ))}
+        {plan.notes.map((note, i) => {
+          const [type, text] = note.includes("|") ? note.split("|") : ["info", note];
+          const color =
+            type === "warning" ? "text-amber-400 bg-amber-500/10" :
+            type === "positive" ? "text-emerald-400 bg-emerald-500/10" :
+            type === "lightning" ? "text-yellow-400 bg-yellow-500/10" :
+            "text-zinc-500 bg-zinc-800/40";
+          return (
+            <div key={i} className="text-[11px] text-zinc-300 font-light tracking-tight leading-relaxed flex items-start gap-2.5">
+              <span className={`flex-shrink-0 mt-0.5 w-4 h-4 rounded-md flex items-center justify-center ${color}`}>
+                {type === "warning" ? <IconArrowDown size={10} /> :
+                 type === "positive" ? <IconBuy size={10} /> :
+                 type === "lightning" ? <IconArrowUp size={10} /> :
+                 <IconArrowRight size={10} />}
+              </span>
+              <span>{text}</span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -347,24 +365,37 @@ export function KeyEventsCard({ events }: { events: { date: string; type: string
         <h3 className="text-[15px] font-semibold text-white tracking-tight">Upcoming Key Events</h3>
         <span className="text-[10px] text-zinc-500 tracking-wide">Next {events.length} events</span>
       </div>
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         {events.slice(0, 5).map((event, i) => {
-          const icons: Record<string, string> = { earnings: "📊", dividend: "💰", fed: "🏛️", economic: "📈", split: "🔀", guidance: "🎯" };
-          const importanceColors = { high: "bg-red-500/10 text-red-400 border-red-500/20", medium: "bg-amber-500/10 text-amber-400 border-amber-500/20", low: "bg-blue-500/10 text-blue-400 border-blue-500/20" };
-          const colorClass = importanceColors[event.importance as keyof typeof importanceColors];
+          const Icon =
+            event.type === "earnings" ? IconEarnings :
+            event.type === "dividend" ? IconDividend :
+            event.type === "fed" ? IconFed :
+            event.type === "economic" ? IconEconomic :
+            event.type === "split" ? IconSplit :
+            event.type === "guidance" ? IconGuidance :
+            IconCalendar;
+          const importanceColors = {
+            high: { bg: "bg-red-500/10", text: "text-red-400", border: "border-red-500/20", iconBg: "bg-red-500/10 text-red-400" },
+            medium: { bg: "bg-amber-500/10", text: "text-amber-400", border: "border-amber-500/20", iconBg: "bg-amber-500/10 text-amber-400" },
+            low: { bg: "bg-blue-500/10", text: "text-blue-400", border: "border-blue-500/20", iconBg: "bg-blue-500/10 text-blue-400" },
+          };
+          const c = importanceColors[event.importance as keyof typeof importanceColors];
           return (
-            <div key={i} className={`flex items-start gap-3 p-3 rounded-xl bg-zinc-900/40 border border-white/[0.02] animate-fadeInUp stagger-${i + 1}`}>
-              <div className="text-xl flex-shrink-0">{icons[event.type] || "📅"}</div>
+            <div key={i} className={`flex items-start gap-3 p-3.5 rounded-xl bg-zinc-900/40 border border-white/[0.02] hover:border-white/[0.05] transition-colors animate-fadeInUp stagger-${i + 1}`}>
+              <div className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${c.iconBg}`}>
+                <Icon size={16} />
+              </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
                   <span className="text-[13px] font-semibold text-white tracking-tight">{event.title}</span>
-                  <span className={`text-[9px] font-bold tracking-widest uppercase px-1.5 py-0.5 rounded ${colorClass} border`}>{event.importance}</span>
+                  <span className={`text-[9px] font-bold tracking-widest uppercase px-1.5 py-0.5 rounded ${c.bg} ${c.text} border ${c.border}`}>{event.importance}</span>
                 </div>
                 <div className="flex items-center gap-2 text-[11px] text-zinc-500">
                   <span className="font-mono">{event.date}</span>
-                  <span>•</span>
+                  <span className="text-zinc-700">·</span>
                   <span className={event.daysAway < 7 ? "text-amber-400 font-semibold" : "text-zinc-500"}>
-                    {event.daysAway === 0 ? "Today" : event.daysAway === 1 ? "Tomorrow" : `${event.daysAway} days away`}
+                    {event.daysAway === 0 ? "Today" : event.daysAway === 1 ? "Tomorrow" : `In ${event.daysAway} days`}
                   </span>
                 </div>
                 <p className="text-[10px] text-zinc-500 font-light leading-relaxed mt-1 line-clamp-2">{event.description}</p>
@@ -441,18 +472,22 @@ export function InstitutionalCard({ data }: {
       <div className="mb-5">
         <div className="text-[10px] text-zinc-500 font-semibold tracking-wider uppercase mb-2">Top Institutional Holders</div>
         <div className="space-y-1.5">
-          {data.topHolders.map((h, i) => (
-            <div key={i} className="flex items-center justify-between py-1.5 border-b border-white/[0.02] last:border-0">
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] text-zinc-400 font-mono w-4">{i + 1}.</span>
-                <span className="text-[12px] text-zinc-200 font-medium">{h.name}</span>
-                <span className={`text-[10px] ${h.trend === "up" ? "text-emerald-400" : h.trend === "down" ? "text-red-400" : "text-zinc-500"}`}>
-                  {h.trend === "up" ? "↑" : h.trend === "down" ? "↓" : "→"}
-                </span>
+          {data.topHolders.map((h, i) => {
+            const TrendIcon = h.trend === "up" ? IconArrowUp : h.trend === "down" ? IconArrowDown : IconArrowRight;
+            const trendColor = h.trend === "up" ? "text-emerald-400" : h.trend === "down" ? "text-red-400" : "text-zinc-500";
+            return (
+              <div key={i} className="flex items-center justify-between py-1.5 border-b border-white/[0.02] last:border-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] text-zinc-500 font-mono w-4">{i + 1}.</span>
+                  <span className="text-[12px] text-zinc-200 font-medium">{h.name}</span>
+                  <span className={trendColor}>
+                    <TrendIcon size={11} />
+                  </span>
+                </div>
+                <span className="text-[12px] font-semibold text-white tracking-tight tabular-nums">{h.sharesPercent}%</span>
               </div>
-              <span className="text-[12px] font-semibold text-white tracking-tight">{h.sharesPercent}%</span>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 

@@ -131,24 +131,24 @@ export function generateTradingPlan(
   const timeframe = signal.confidence > 75 ? "1–3 weeks (Short-term)" : signal.confidence > 50 ? "1–3 months (Swing)" : "3–6+ months (Position)";
 
   const notes: string[] = [];
-  if (indicators.rsi > 70) notes.push("⚠️ RSI in overbought territory — wait for pullback to primary entry");
-  if (indicators.rsi < 30) notes.push("✓ RSI in oversold zone — favorable risk/reward on long entries");
-  if (indicators.adx > 25) notes.push(`✓ ADX ${indicators.adx.toFixed(0)} confirms strong trend — momentum strategies favored`);
-  if (indicators.adx < 20) notes.push("⚠️ ADX indicates ranging market — use tighter stops, smaller positions");
-  if (Math.abs(indicators.macd.histogram) > 1) notes.push("✓ MACD divergence is significant — momentum is accelerating");
+  if (indicators.rsi > 70) notes.push("warning|RSI in overbought territory — wait for pullback to primary entry");
+  if (indicators.rsi < 30) notes.push("positive|RSI in oversold zone — favorable risk/reward on long entries");
+  if (indicators.adx > 25) notes.push(`positive|ADX ${indicators.adx.toFixed(0)} confirms strong trend — momentum strategies favored`);
+  if (indicators.adx < 20) notes.push("warning|ADX indicates ranging market — use tighter stops, smaller positions");
+  if (Math.abs(indicators.macd.histogram) > 1) notes.push("positive|MACD divergence is significant — momentum is accelerating");
 
   const bbWidth = (indicators.bollingerBands.upper - indicators.bollingerBands.lower) / indicators.bollingerBands.middle;
-  if (bbWidth < 0.04) notes.push("⚡ Bollinger Squeeze active — expect explosive breakout soon, watch for direction");
+  if (bbWidth < 0.04) notes.push("lightning|Bollinger Squeeze active — expect explosive breakout soon, watch for direction");
 
   if (history.length > 5) {
     const recent5 = history.slice(-5);
     const avgVol = recent5.reduce((s, d) => s + d.volume, 0) / 5;
     const lastVol = history[history.length - 1].volume;
-    if (lastVol > avgVol * 1.5) notes.push("✓ Volume surge confirms recent price action");
+    if (lastVol > avgVol * 1.5) notes.push("positive|Volume surge confirms recent price action");
   }
 
-  notes.push(`Risk per share at primary entry: $${Math.abs(entry.primary - stopLoss.standard).toFixed(2)}`);
-  notes.push(`Maximum suggested position: ${portfolioPercent}% of total portfolio`);
+  notes.push(`info|Risk per share at primary entry: $${Math.abs(entry.primary - stopLoss.standard).toFixed(2)}`);
+  notes.push(`info|Maximum suggested position: ${portfolioPercent}% of total portfolio`);
 
   const invalidationLevel = bias === "long" ? stopLoss.wide : bias === "short" ? stopLoss.wide : stopLoss.standard;
 
