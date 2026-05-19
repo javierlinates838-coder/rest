@@ -24,17 +24,123 @@ export async function generateAIAnalysis(
   competitors: CompetitorData[],
   news: { title: string; sentiment: string }[]
 ): Promise<AIAnalysis> {
-  const apiKey = process.env.OPENAI_API_KEY;
-
-  if (apiKey) {
+  // Try Gemini first, then OpenAI, then built-in
+  const geminiKey = process.env.GEMINI_API_KEY;
+  if (geminiKey) {
     try {
-      return await callOpenAIAnalysis(quote, indicators, signal, competitors, news, apiKey);
+      return await callGeminiAnalysis(quote, indicators, signal, competitors, news, geminiKey);
     } catch (e) {
-      console.error("OpenAI API call failed, using built-in analysis:", e);
+      console.error("Gemini API failed, trying fallback:", e);
+    }
+  }
+
+  const openaiKey = process.env.OPENAI_API_KEY;
+  if (openaiKey) {
+    try {
+      return await callOpenAIAnalysis(quote, indicators, signal, competitors, news, openaiKey);
+    } catch (e) {
+      console.error("OpenAI API failed, using built-in:", e);
     }
   }
 
   return generateBuiltInAnalysis(quote, indicators, signal, competitors, news);
+}
+
+function buildAnalysisPrompt(
+  quote: StockQuote,
+  indicators: TechnicalIndicators,
+  signal: { signal: string; confidence: number; reasons: string[] },
+  competitors: CompetitorData[],
+  news: { title: string; sentiment: string }[]
+): string {
+  const financialsBlock = quote.financials
+    ? `\nFINANCIALS:
+- Revenue: $${(quote.financials.revenue / 1e9).toFixed(2)}B
+- Net Income: $${(quote.financials.netIncome / 1e9).toFixed(2)}B
+- Profit Margin: ${(quote.financials.profitMargin * 100).toFixed(1)}%
+- Operating Margin: ${(quote.financials.operatingMargin * 100).toFixed(1)}%
+- ROE: ${(quote.financials.returnOnEquity * 100).toFixed(1)}%
+- Debt/Equity: ${quote.financials.debtToEquity.toFixed(2)}
+- Current Ratio: ${quote.financials.currentRatio.toFixed(2)}
+- Free Cash Flow: $${(quote.financials.freeCashFlow / 1e9).toFixed(2)}B
+- Revenue Growth: ${(quote.financials.revenueGrowth * 100).toFixed(1)}%`
+    : "";
+
+  return `You are an elite Wall Street quantitative analyst. Provide a comprehensive, data-driven analysis of ${quote.symbol} (${quote.name}).
+
+CURRENT DATA:
+- Price: $${quote.price.toFixed(2)} | Change: ${quote.changePercent.toFixed(2)}%
+- Market Cap: $${(quote.marketCap / 1e9).toFixed(2)}B | P/E: ${quote.peRatio.toFixed(2)} | EPS: $${quote.eps.toFixed(2)}
+- Beta: ${quote.beta.toFixed(2)} | Sector: ${quote.sector} | Industry: ${quote.industry}
+- 52W High: $${quote.high52.toFixed(2)} | 52W Low: $${quote.low52.toFixed(2)}
+- Dividend Yield: ${quote.dividendYield.toFixed(2)}%
+- Volume: ${(quote.volume / 1e6).toFixed(1)}M | Avg Volume: ${(quote.avgVolume / 1e6).toFixed(1)}M
+${financialsBlock}
+
+TECHNICAL INDICATORS:
+- SMA20: $${indicators.sma20.toFixed(2)} | SMA50: $${indicators.sma50.toFixed(2)} | SMA200: $${indicators.sma200.toFixed(2)}
+- EMA12: $${indicators.ema12.toFixed(2)} | EMA26: $${indicators.ema26.toFixed(2)} | VWAP: $${indicators.vwap.toFixed(2)}
+- RSI(14): ${indicators.rsi.toFixed(1)} | Stochastic K: ${indicators.stochastic.k.toFixed(1)} D: ${indicators.stochastic.d.toFixed(1)}
+- MACD: ${indicators.macd.macd.toFixed(3)} | Signal: ${indicators.macd.signal.toFixed(3)} | Histogram: ${indicators.macd.histogram.toFixed(3)}
+- Bollinger: Upper $${indicators.bollingerBands.upper.toFixed(2)} | Mid $${indicators.bollingerBands.middle.toFixed(2)} | Lower $${indicators.bollingerBands.lower.toFixed(2)}
+- ADX: ${indicators.adx.toFixed(1)} | ATR: $${indicators.atr.toFixed(2)}
+
+ALGORITHM SIGNAL: ${signal.signal} (${signal.confidence}% confidence)
+KEY REASONS: ${signal.reasons.slice(0, 8).join("; ")}
+
+PEER COMPARISON: ${competitors.map((c) => `${c.symbol} ($${c.price.toFixed(2)}, P/E: ${c.peRatio.toFixed(1)}, MCap: $${(c.marketCap / 1e9).toFixed(1)}B, Chg: ${c.changePercent.toFixed(1)}%)`).join(" | ")}
+
+NEWS: ${news.slice(0, 6).map((n) => `[${n.sentiment.toUpperCase()}] ${n.title}`).join(" | ")}
+
+Respond with ONLY valid JSON (no markdown, no code fences):
+{
+  "summary": "3-4 sentence executive summary with specific numbers",
+  "recommendation": "Strong Buy|Buy|Hold|Sell|Strong Sell",
+  "confidence": 0-100,
+  "priceTarget": {"low": number, "mid": number, "high": number},
+  "riskLevel": "Low|Medium|High|Very High",
+  "timeHorizon": "Short-term (1-3 months)|Medium-term (3-12 months)|Long-term (1-3 years)",
+  "keyFactors": ["5-6 specific data-driven factors"],
+  "technicalOutlook": "detailed technical paragraph",
+  "fundamentalOutlook": "detailed fundamental paragraph",
+  "competitorAnalysis": "detailed peer comparison paragraph",
+  "catalysts": ["4-5 specific upside catalysts"],
+  "risks": ["4-5 specific downside risks"],
+  "sentimentScore": -100 to 100
+}`;
+}
+
+async function callGeminiAnalysis(
+  quote: StockQuote,
+  indicators: TechnicalIndicators,
+  signal: { signal: string; confidence: number; reasons: string[] },
+  competitors: CompetitorData[],
+  news: { title: string; sentiment: string }[],
+  apiKey: string
+): Promise<AIAnalysis> {
+  const { GoogleGenerativeAI } = await import("@google/generative-ai");
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({
+    model: "gemini-2.0-flash",
+    generationConfig: {
+      temperature: 0.3,
+      topP: 0.8,
+      maxOutputTokens: 4096,
+      responseMimeType: "application/json",
+    },
+  });
+
+  const prompt = buildAnalysisPrompt(quote, indicators, signal, competitors, news);
+  const result = await model.generateContent(prompt);
+  const text = result.response.text();
+  const parsed = JSON.parse(text);
+
+  // Validate required fields
+  if (!parsed.summary || !parsed.recommendation) {
+    throw new Error("Incomplete Gemini response");
+  }
+
+  return parsed as AIAnalysis;
 }
 
 async function callOpenAIAnalysis(
@@ -48,52 +154,7 @@ async function callOpenAIAnalysis(
   const { default: OpenAI } = await import("openai");
   const openai = new OpenAI({ apiKey });
 
-  const prompt = `You are an expert stock analyst. Analyze ${quote.symbol} (${quote.name}) with the following data and provide a detailed analysis.
-
-CURRENT PRICE: $${quote.price.toFixed(2)}
-CHANGE: ${quote.changePercent.toFixed(2)}%
-MARKET CAP: $${(quote.marketCap / 1e9).toFixed(2)}B
-P/E RATIO: ${quote.peRatio.toFixed(2)}
-EPS: $${quote.eps.toFixed(2)}
-BETA: ${quote.beta.toFixed(2)}
-SECTOR: ${quote.sector}
-52W HIGH: $${quote.high52.toFixed(2)} | 52W LOW: $${quote.low52.toFixed(2)}
-DIVIDEND YIELD: ${quote.dividendYield.toFixed(2)}%
-
-TECHNICAL INDICATORS:
-- SMA20: $${indicators.sma20.toFixed(2)} | SMA50: $${indicators.sma50.toFixed(2)} | SMA200: $${indicators.sma200.toFixed(2)}
-- RSI(14): ${indicators.rsi.toFixed(1)}
-- MACD: ${indicators.macd.macd.toFixed(3)} (Signal: ${indicators.macd.signal.toFixed(3)})
-- Bollinger Bands: $${indicators.bollingerBands.lower.toFixed(2)} - $${indicators.bollingerBands.upper.toFixed(2)}
-- Stochastic: K=${indicators.stochastic.k.toFixed(1)} D=${indicators.stochastic.d.toFixed(1)}
-- ADX: ${indicators.adx.toFixed(1)}
-- ATR: ${indicators.atr.toFixed(2)}
-- VWAP: $${indicators.vwap.toFixed(2)}
-
-TECHNICAL SIGNAL: ${signal.signal} (${signal.confidence}% confidence)
-SIGNAL REASONS: ${signal.reasons.join("; ")}
-
-COMPETITORS: ${competitors.map((c) => `${c.symbol} ($${c.price.toFixed(2)}, P/E: ${c.peRatio.toFixed(1)}, MCap: $${(c.marketCap / 1e9).toFixed(1)}B)`).join("; ")}
-
-RECENT NEWS SENTIMENT: ${news.map((n) => `"${n.title}" [${n.sentiment}]`).join("; ")}
-
-Respond in this JSON format:
-{
-  "summary": "2-3 sentence executive summary",
-  "recommendation": "Strong Buy|Buy|Hold|Sell|Strong Sell",
-  "confidence": 0-100,
-  "priceTarget": {"low": number, "mid": number, "high": number},
-  "riskLevel": "Low|Medium|High|Very High",
-  "timeHorizon": "Short-term (1-3 months)|Medium-term (3-12 months)|Long-term (1-3 years)",
-  "keyFactors": ["factor1", "factor2", ...],
-  "technicalOutlook": "paragraph",
-  "fundamentalOutlook": "paragraph",
-  "competitorAnalysis": "paragraph comparing to competitors",
-  "catalysts": ["catalyst1", "catalyst2", ...],
-  "risks": ["risk1", "risk2", ...],
-  "sentimentScore": -100 to 100
-}`;
-
+  const prompt = buildAnalysisPrompt(quote, indicators, signal, competitors, news);
   const response = await openai.chat.completions.create({
     model: "gpt-4o-mini",
     messages: [{ role: "user", content: prompt }],
@@ -103,7 +164,6 @@ Respond in this JSON format:
 
   const content = response.choices[0]?.message?.content;
   if (!content) throw new Error("No response from OpenAI");
-
   return JSON.parse(content) as AIAnalysis;
 }
 
@@ -117,15 +177,8 @@ function generateBuiltInAnalysis(
   const bullishCount = signal.reasons.filter((r) => r.includes("bullish") || r.includes("buy") || r.includes("oversold")).length;
   const bearishCount = signal.reasons.filter((r) => r.includes("bearish") || r.includes("sell") || r.includes("overbought")).length;
   const sentimentScore = ((bullishCount - bearishCount) / Math.max(signal.reasons.length, 1)) * 100;
-
-  const newsSentiment = news.reduce((acc, n) => {
-    if (n.sentiment === "positive") return acc + 1;
-    if (n.sentiment === "negative") return acc - 1;
-    return acc;
-  }, 0);
-
+  const newsSentiment = news.reduce((acc, n) => n.sentiment === "positive" ? acc + 1 : n.sentiment === "negative" ? acc - 1 : acc, 0);
   const priceFromSMA200 = ((quote.price - indicators.sma200) / indicators.sma200) * 100;
-  const priceMomentum = quote.changePercent;
 
   let riskLevel = "Medium";
   if (quote.beta > 1.5 || indicators.atr / quote.price > 0.03) riskLevel = "High";
@@ -133,62 +186,63 @@ function generateBuiltInAnalysis(
   if (quote.beta < 0.8 && indicators.atr / quote.price < 0.015) riskLevel = "Low";
 
   const avgCompetitorPE = competitors.length > 0
-    ? competitors.reduce((sum, c) => sum + c.peRatio, 0) / competitors.length
-    : quote.peRatio;
-
-  const isUndervalued = quote.peRatio < avgCompetitorPE * 0.8;
+    ? competitors.reduce((sum, c) => sum + c.peRatio, 0) / competitors.length : quote.peRatio;
+  const isUndervalued = quote.peRatio > 0 && quote.peRatio < avgCompetitorPE * 0.8;
   const isOvervalued = quote.peRatio > avgCompetitorPE * 1.3;
 
-  const priceTargetBase = quote.price;
   const targetMultiplier = signal.signal.includes("Buy") ? 1.15 : signal.signal.includes("Sell") ? 0.9 : 1.05;
 
+  const financialsInfo = quote.financials
+    ? ` Revenue is $${(quote.financials.revenue / 1e9).toFixed(1)}B with a ${(quote.financials.profitMargin * 100).toFixed(1)}% profit margin and ${(quote.financials.returnOnEquity * 100).toFixed(1)}% ROE.`
+    : "";
+
   return {
-    summary: `${quote.name} (${quote.symbol}) is currently trading at $${quote.price.toFixed(2)} with a ${signal.signal} signal at ${signal.confidence}% confidence. ${priceFromSMA200 > 0 ? `The stock is ${priceFromSMA200.toFixed(1)}% above` : `The stock is ${Math.abs(priceFromSMA200).toFixed(1)}% below`} its 200-day moving average. ${isUndervalued ? "The stock appears undervalued relative to peers." : isOvervalued ? "The stock appears overvalued relative to peers." : "Valuation is in line with peers."} ${newsSentiment > 0 ? "Recent news sentiment is positive." : newsSentiment < 0 ? "Recent news sentiment is concerning." : "News sentiment is mixed."}`,
+    summary: `${quote.name} (${quote.symbol}) trades at $${quote.price.toFixed(2)} with a ${signal.signal} signal at ${signal.confidence}% confidence. The stock is ${priceFromSMA200 > 0 ? `${priceFromSMA200.toFixed(1)}% above` : `${Math.abs(priceFromSMA200).toFixed(1)}% below`} its 200-day moving average. ${isUndervalued ? "Valuation appears attractive relative to peers." : isOvervalued ? "Premium valuation relative to peers." : "Valuation is in line with peers."}${financialsInfo} ${newsSentiment > 0 ? "News sentiment is positive." : newsSentiment < 0 ? "News sentiment is concerning." : "Sentiment is mixed."}`,
 
     recommendation: signal.signal,
     confidence: signal.confidence,
 
     priceTarget: {
-      low: Number((priceTargetBase * (targetMultiplier - 0.1)).toFixed(2)),
-      mid: Number((priceTargetBase * targetMultiplier).toFixed(2)),
-      high: Number((priceTargetBase * (targetMultiplier + 0.1)).toFixed(2)),
+      low: Number((quote.price * (targetMultiplier - 0.1)).toFixed(2)),
+      mid: Number((quote.price * targetMultiplier).toFixed(2)),
+      high: Number((quote.price * (targetMultiplier + 0.1)).toFixed(2)),
     },
 
     riskLevel,
-
     timeHorizon: signal.confidence > 70 ? "Short-term (1-3 months)" : signal.confidence > 40 ? "Medium-term (3-12 months)" : "Long-term (1-3 years)",
 
     keyFactors: [
       `Technical signal: ${signal.signal} with ${signal.confidence}% confidence`,
-      `RSI at ${indicators.rsi.toFixed(1)} - ${indicators.rsi < 30 ? "oversold territory" : indicators.rsi > 70 ? "overbought territory" : "neutral zone"}`,
-      `${priceFromSMA200 > 0 ? "Trading above" : "Trading below"} the 200-day moving average by ${Math.abs(priceFromSMA200).toFixed(1)}%`,
-      `P/E ratio of ${quote.peRatio.toFixed(1)} vs sector average of ${avgCompetitorPE.toFixed(1)}`,
-      `Market cap: $${(quote.marketCap / 1e9).toFixed(1)}B in the ${quote.sector} sector`,
-      `Beta of ${quote.beta.toFixed(2)} indicates ${quote.beta > 1.2 ? "higher" : quote.beta < 0.8 ? "lower" : "average"} volatility`,
+      `RSI at ${indicators.rsi.toFixed(1)} — ${indicators.rsi < 30 ? "oversold territory" : indicators.rsi > 70 ? "overbought territory" : "neutral zone"}`,
+      `${priceFromSMA200 > 0 ? "Trading above" : "Trading below"} 200-day MA by ${Math.abs(priceFromSMA200).toFixed(1)}%`,
+      `P/E of ${quote.peRatio.toFixed(1)} vs peer avg of ${avgCompetitorPE.toFixed(1)}`,
+      `Market cap $${(quote.marketCap / 1e9).toFixed(1)}B in ${quote.sector}`,
+      `Beta ${quote.beta.toFixed(2)} — ${quote.beta > 1.2 ? "higher" : quote.beta < 0.8 ? "lower" : "average"} volatility`,
+      ...(quote.financials ? [`Profit margin: ${(quote.financials.profitMargin * 100).toFixed(1)}%, ROE: ${(quote.financials.returnOnEquity * 100).toFixed(1)}%`] : []),
     ],
 
-    technicalOutlook: `The technical picture for ${quote.symbol} shows ${signal.signal.includes("Buy") ? "bullish" : signal.signal.includes("Sell") ? "bearish" : "mixed"} conditions. The RSI is at ${indicators.rsi.toFixed(1)}, ${indicators.rsi < 30 ? "indicating oversold conditions which often precede a bounce" : indicators.rsi > 70 ? "indicating overbought conditions suggesting a potential pullback" : "in neutral territory"}. MACD ${indicators.macd.histogram > 0 ? "is showing positive momentum with the histogram above zero" : "is showing weakening momentum with the histogram below zero"}. The stock is trading ${quote.price > indicators.bollingerBands.middle ? "above" : "below"} the middle Bollinger Band, and the ATR of $${indicators.atr.toFixed(2)} suggests ${indicators.atr / quote.price > 0.02 ? "elevated" : "moderate"} daily volatility. ${indicators.adx > 25 ? `The ADX at ${indicators.adx.toFixed(1)} confirms a strong trend is in place.` : `The ADX at ${indicators.adx.toFixed(1)} suggests the market is ranging without a clear trend.`} Support levels are near $${indicators.supportLevels[0]?.toFixed(2) || (quote.price * 0.95).toFixed(2)} and resistance near $${indicators.resistanceLevels[0]?.toFixed(2) || (quote.price * 1.05).toFixed(2)}.`,
+    technicalOutlook: `${quote.symbol} shows ${signal.signal.includes("Buy") ? "bullish" : signal.signal.includes("Sell") ? "bearish" : "mixed"} technical conditions. RSI at ${indicators.rsi.toFixed(1)} ${indicators.rsi < 30 ? "signals oversold conditions" : indicators.rsi > 70 ? "signals overbought conditions" : "is neutral"}. MACD histogram is ${indicators.macd.histogram > 0 ? "positive, indicating bullish momentum" : "negative, suggesting weakening momentum"}. Price trades ${quote.price > indicators.bollingerBands.middle ? "above" : "below"} the Bollinger midline with ATR of $${indicators.atr.toFixed(2)} (${((indicators.atr / quote.price) * 100).toFixed(1)}% volatility). ${indicators.adx > 25 ? `ADX at ${indicators.adx.toFixed(1)} confirms a strong trend.` : `ADX at ${indicators.adx.toFixed(1)} suggests a ranging market.`} Key support near $${indicators.supportLevels[0]?.toFixed(2) || (quote.price * 0.95).toFixed(2)}, resistance near $${indicators.resistanceLevels[0]?.toFixed(2) || (quote.price * 1.05).toFixed(2)}.`,
 
-    fundamentalOutlook: `From a fundamental perspective, ${quote.symbol} has a P/E ratio of ${quote.peRatio.toFixed(1)}, which is ${isUndervalued ? "below" : isOvervalued ? "above" : "in line with"} the peer average of ${avgCompetitorPE.toFixed(1)}. ${isUndervalued ? "This suggests potential undervaluation and room for upside." : isOvervalued ? "This premium valuation needs to be justified by superior growth." : "The valuation appears fair relative to competitors."} The company has an EPS of $${quote.eps.toFixed(2)} and a market capitalization of $${(quote.marketCap / 1e9).toFixed(1)}B. ${quote.dividendYield > 0 ? `The dividend yield of ${quote.dividendYield.toFixed(2)}% provides additional returns for investors.` : "The company does not currently pay a dividend, focusing on growth reinvestment."} With a beta of ${quote.beta.toFixed(2)}, the stock ${quote.beta > 1.2 ? "tends to amplify market movements" : quote.beta < 0.8 ? "offers defensive characteristics" : "moves roughly in line with the broader market"}.`,
+    fundamentalOutlook: `${quote.symbol} has a P/E of ${quote.peRatio.toFixed(1)}, ${isUndervalued ? "below" : isOvervalued ? "above" : "in line with"} the peer average of ${avgCompetitorPE.toFixed(1)}. ${isUndervalued ? "This discount suggests potential upside." : isOvervalued ? "Premium pricing requires sustained growth." : "Fair valuation relative to peers."}${quote.financials ? ` Revenue stands at $${(quote.financials.revenue / 1e9).toFixed(1)}B with ${(quote.financials.profitMargin * 100).toFixed(1)}% profit margin and ${(quote.financials.returnOnEquity * 100).toFixed(1)}% ROE. Free cash flow of $${(quote.financials.freeCashFlow / 1e9).toFixed(1)}B supports ongoing operations. Debt-to-equity ratio is ${quote.financials.debtToEquity.toFixed(2)}.` : ` EPS of $${quote.eps.toFixed(2)} with market cap of $${(quote.marketCap / 1e9).toFixed(1)}B.`} ${quote.dividendYield > 0 ? `Dividend yield of ${quote.dividendYield.toFixed(2)}% provides income.` : "No dividend — growth-focused."} Beta of ${quote.beta.toFixed(2)} indicates ${quote.beta > 1.2 ? "amplified market sensitivity" : quote.beta < 0.8 ? "defensive characteristics" : "market-aligned volatility"}.`,
 
     competitorAnalysis: competitors.length > 0
-      ? `In the ${quote.sector} sector, ${quote.symbol} faces competition from ${competitors.map((c) => c.symbol).join(", ")}. ${competitors.filter((c) => c.marketCap > quote.marketCap).length > 0 ? `Larger competitors include ${competitors.filter((c) => c.marketCap > quote.marketCap).map((c) => `${c.symbol} ($${(c.marketCap / 1e9).toFixed(1)}B)`).join(", ")}. ` : `${quote.symbol} is the market cap leader among its peer group. `}Comparing valuations, ${quote.symbol}'s P/E of ${quote.peRatio.toFixed(1)} ${quote.peRatio < avgCompetitorPE ? "is more attractive than" : "commands a premium over"} the peer average of ${avgCompetitorPE.toFixed(1)}. In terms of recent performance, ${competitors.filter((c) => c.changePercent > quote.changePercent).length > Math.floor(competitors.length / 2) ? `${quote.symbol} has underperformed most peers recently` : `${quote.symbol} has outperformed most peers recently`}, suggesting ${priceMomentum > 0 ? "relative strength" : "potential catch-up opportunity"}.`
-      : "Competitor data is currently unavailable for deeper peer comparison.",
+      ? `In ${quote.sector}, ${quote.symbol} competes with ${competitors.map((c) => c.symbol).join(", ")}. ${competitors.filter((c) => c.marketCap > quote.marketCap).length > 0 ? `Larger peers: ${competitors.filter((c) => c.marketCap > quote.marketCap).map((c) => `${c.symbol} ($${(c.marketCap / 1e9).toFixed(1)}B)`).join(", ")}. ` : `${quote.symbol} leads its peer group by market cap. `}${quote.symbol}'s P/E of ${quote.peRatio.toFixed(1)} ${quote.peRatio < avgCompetitorPE ? "undercuts" : "exceeds"} the peer avg of ${avgCompetitorPE.toFixed(1)}. Recent performance: ${competitors.filter((c) => c.changePercent > quote.changePercent).length > Math.floor(competitors.length / 2) ? `${quote.symbol} trails most peers` : `${quote.symbol} outpaces most peers`}.`
+      : "Peer data unavailable for comparison.",
 
     catalysts: [
-      signal.signal.includes("Buy") ? "Technical momentum supporting further upside" : "Potential for mean reversion if oversold",
-      isUndervalued ? "Undervaluation relative to peers could drive re-rating" : "Market position justifies current valuation",
-      newsSentiment > 0 ? "Positive news flow could attract more buyers" : "Improving sentiment could provide a tailwind",
-      `${quote.sector} sector ${priceMomentum > 0 ? "tailwinds" : "rotation potential"}`,
-      "Upcoming earnings could serve as a catalyst",
+      signal.signal.includes("Buy") ? "Technical momentum supports further upside" : "Potential mean reversion from oversold levels",
+      isUndervalued ? "Undervaluation vs peers could drive re-rating" : "Market position justifies premium",
+      newsSentiment > 0 ? "Positive news flow building buying interest" : "Improving sentiment could become tailwind",
+      `${quote.sector} sector ${quote.changePercent > 0 ? "momentum" : "rotation potential"}`,
+      "Upcoming earnings as potential catalyst",
     ],
 
     risks: [
-      riskLevel === "High" || riskLevel === "Very High" ? "Elevated volatility increases downside risk" : "Market-wide selloff could drag the stock lower",
-      isOvervalued ? "Premium valuation leaves little room for disappointing results" : "Sector rotation could impact relative performance",
-      `Beta of ${quote.beta.toFixed(2)} means ${quote.beta > 1 ? "amplified losses in market downturns" : "limited upside in strong rallies"}`,
-      "Macroeconomic headwinds (interest rates, inflation) remain a concern",
-      `Key support at $${(quote.price * 0.92).toFixed(2)} - a break below could accelerate selling`,
+      riskLevel === "High" || riskLevel === "Very High" ? "Elevated volatility amplifies downside" : "Broad market selloff risk",
+      isOvervalued ? "Premium valuation vulnerable to disappointment" : "Sector rotation could weigh on shares",
+      `Beta of ${quote.beta.toFixed(2)} means ${quote.beta > 1 ? "amplified losses in downturns" : "limited rally participation"}`,
+      "Macro headwinds (rates, inflation) remain",
+      `Key support at $${(quote.price * 0.92).toFixed(2)} — a break accelerates selling`,
     ],
 
     sentimentScore: Math.round(sentimentScore + newsSentiment * 10),

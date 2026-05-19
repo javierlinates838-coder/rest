@@ -41,7 +41,12 @@ interface AnalysisData {
     competitorAnalysis: string; catalysts: string[]; risks: string[];
     sentimentScore: number;
   };
+  analystRecommendations?: {
+    buy: number; hold: number; sell: number;
+    strongBuy: number; strongSell: number; period: string;
+  }[];
   news: { title: string; sentiment: string }[];
+  dataSources?: { quotes: string; news: string; ai: string };
 }
 
 interface HistoryPoint {
@@ -57,7 +62,7 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
   const [period, setPeriod] = useState("1y");
-  const [newsItems, setNewsItems] = useState<{ id: string; title: string; source: string; publishedAt: string; sentiment: string; summary: string }[]>([]);
+  const [newsItems, setNewsItems] = useState<{ id: string; title: string; source: string; publishedAt: string; sentiment: string; summary: string; image?: string; url?: string }[]>([]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -107,7 +112,7 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
     );
   }
 
-  const { quote, indicators, signal, competitors, aiAnalysis } = data;
+  const { quote, indicators, signal, competitors, aiAnalysis, dataSources, analystRecommendations } = data;
 
   const chartData = history.map((h) => ({
     date: h.date,
@@ -146,36 +151,43 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
   ];
 
   return (
-    <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 animate-fadeIn">
+    <div className="max-w-[1440px] mx-auto px-6 lg:px-10 py-8 animate-fadeIn">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 gap-4">
+      <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-5">
         <div>
-          <div className="flex items-center gap-3 mb-1">
-            <button onClick={() => router.push("/")} className="text-zinc-500 hover:text-white transition-colors">
+          <div className="flex items-center gap-3 mb-2">
+            <button onClick={() => router.push("/")} className="text-zinc-500 hover:text-white transition-colors duration-200">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
-            <h1 className="text-3xl font-bold text-white">{quote.symbol}</h1>
-            <span className="text-zinc-400 text-lg">{quote.name}</span>
-            <span className="px-2 py-0.5 text-xs bg-zinc-800 text-zinc-400 rounded-full">{quote.exchange}</span>
+            <h1 className="text-[32px] font-semibold text-white tracking-tight">{quote.symbol}</h1>
+            <span className="text-zinc-400 text-[17px] font-light tracking-tight">{quote.name}</span>
+            <span className="px-2.5 py-0.5 text-[10px] font-semibold bg-zinc-800/60 text-zinc-500 rounded-md tracking-wider uppercase">{quote.exchange}</span>
           </div>
           <div className="flex items-baseline gap-4 ml-8">
-            <span className="text-4xl font-bold text-white">{formatCurrency(quote.price)}</span>
-            <span className={`text-xl font-semibold ${quote.changePercent >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+            <span className="text-[42px] font-semibold text-white tracking-tight">{formatCurrency(quote.price)}</span>
+            <span className={`text-[18px] font-medium tracking-tight ${quote.changePercent >= 0 ? "text-emerald-400" : "text-red-400"}`}>
               {quote.change >= 0 ? "+" : ""}{formatCurrency(quote.change)} ({formatPercent(quote.changePercent)})
             </span>
           </div>
+          {dataSources && (
+            <div className="flex gap-2 ml-8 mt-2">
+              {Object.entries(dataSources).map(([k, v]) => (
+                <span key={k} className="data-source-tag">{v}</span>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Signal Badge */}
-        <div className={`px-6 py-4 rounded-2xl border ${getSignalBg(signal.signal)} text-center min-w-[200px]`}>
-          <div className="text-xs text-zinc-400 mb-1">AI RECOMMENDATION</div>
-          <div className={`text-2xl font-bold ${getSignalColor(signal.signal)}`}>{signal.signal.toUpperCase()}</div>
-          <div className="text-sm text-zinc-400 mt-1">Confidence: {signal.confidence}%</div>
-          <div className="w-full bg-zinc-800/50 rounded-full h-2 mt-2">
+        <div className={`px-7 py-5 rounded-2xl border ${getSignalBg(signal.signal)} text-center min-w-[210px]`}>
+          <div className="text-[10px] text-zinc-400 font-semibold tracking-widest uppercase mb-1.5">AI Recommendation</div>
+          <div className={`text-[26px] font-semibold tracking-tight ${getSignalColor(signal.signal)}`}>{signal.signal.toUpperCase()}</div>
+          <div className="text-[12px] text-zinc-400 mt-1 font-light">Confidence: {signal.confidence}%</div>
+          <div className="w-full bg-zinc-800/50 rounded-full h-1.5 mt-2.5">
             <div
-              className={`h-2 rounded-full ${signal.signal.includes("Buy") ? "bg-emerald-500" : signal.signal.includes("Sell") ? "bg-red-500" : "bg-yellow-500"}`}
+              className={`h-1.5 rounded-full transition-all ${signal.signal.includes("Buy") ? "bg-emerald-500" : signal.signal.includes("Sell") ? "bg-red-500" : "bg-yellow-500"}`}
               style={{ width: `${signal.confidence}%` }}
             />
           </div>
@@ -183,21 +195,43 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex gap-1 mb-6 bg-zinc-900/50 p-1 rounded-xl w-fit">
+      <div className="flex gap-0.5 mb-8 bg-zinc-900/40 p-1 rounded-xl w-fit border border-white/[0.03]">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${
+            className={`px-5 py-2 rounded-lg text-[13px] font-medium tracking-tight transition-all duration-200 ${
               activeTab === tab.id
-                ? "bg-indigo-600 text-white"
-                : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
+                ? "bg-indigo-500/90 text-white shadow-lg shadow-indigo-500/20"
+                : "text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.03]"
             }`}
           >
             {tab.label}
           </button>
         ))}
       </div>
+
+      {/* Analyst Recommendations (if available) */}
+      {activeTab === "overview" && analystRecommendations && analystRecommendations.length > 0 && (
+        <div className="glass-card rounded-2xl p-6 mb-6 glow-border">
+          <h3 className="text-[15px] font-semibold text-white mb-4 tracking-tight">Wall Street Analyst Consensus</h3>
+          <div className="grid grid-cols-5 gap-3 text-center">
+            {[
+              { label: "Strong Buy", value: analystRecommendations[0].strongBuy, color: "text-emerald-400 bg-emerald-500/10" },
+              { label: "Buy", value: analystRecommendations[0].buy, color: "text-green-400 bg-green-500/10" },
+              { label: "Hold", value: analystRecommendations[0].hold, color: "text-yellow-400 bg-yellow-500/10" },
+              { label: "Sell", value: analystRecommendations[0].sell, color: "text-orange-400 bg-orange-500/10" },
+              { label: "Strong Sell", value: analystRecommendations[0].strongSell, color: "text-red-400 bg-red-500/10" },
+            ].map((rec) => (
+              <div key={rec.label} className={`rounded-xl py-3 ${rec.color}`}>
+                <div className="text-[22px] font-semibold tracking-tight">{rec.value}</div>
+                <div className="text-[10px] font-medium tracking-wider uppercase mt-0.5 opacity-70">{rec.label}</div>
+              </div>
+            ))}
+          </div>
+          <div className="text-[10px] text-zinc-600 mt-3 text-right tracking-wide">Period: {analystRecommendations[0].period}</div>
+        </div>
+      )}
 
       {/* Overview Tab */}
       {activeTab === "overview" && (
@@ -695,21 +729,37 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
       {activeTab === "news" && (
         <div className="space-y-4">
           {newsItems.map((item) => (
-            <div key={item.id} className="glass-card rounded-xl p-5 hover:glow-border transition-all">
-              <div className="flex justify-between items-start mb-2">
-                <span className={`text-xs px-2 py-0.5 rounded-full ${
-                  item.sentiment === "positive" ? "bg-emerald-500/20 text-emerald-400" :
-                  item.sentiment === "negative" ? "bg-red-500/20 text-red-400" :
-                  "bg-yellow-500/20 text-yellow-400"
-                }`}>
-                  {item.sentiment.toUpperCase()}
-                </span>
-                <span className="text-xs text-zinc-500">{item.source} &middot; {new Date(item.publishedAt).toLocaleDateString()}</span>
+            <a
+              key={item.id}
+              href={item.url && item.url !== "#" ? item.url : undefined}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="glass-card rounded-2xl p-5 hover:glow-border transition-all block"
+            >
+              <div className="flex gap-4">
+                {item.image && (
+                  <img src={item.image} alt="" className="w-24 h-24 rounded-xl object-cover flex-shrink-0 bg-zinc-800" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-start mb-2 gap-3">
+                    <span className={`text-[10px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded-md ${
+                      item.sentiment === "positive" ? "bg-emerald-500/15 text-emerald-400" :
+                      item.sentiment === "negative" ? "bg-red-500/15 text-red-400" :
+                      "bg-yellow-500/15 text-yellow-400"
+                    }`}>
+                      {item.sentiment}
+                    </span>
+                    <span className="text-[11px] text-zinc-600 flex-shrink-0">{item.source} · {new Date(item.publishedAt).toLocaleDateString()}</span>
+                  </div>
+                  <h4 className="text-[14px] text-white font-semibold mb-2 tracking-tight leading-snug">{item.title}</h4>
+                  <p className="text-[12px] text-zinc-500 leading-relaxed font-light line-clamp-2">{item.summary}</p>
+                </div>
               </div>
-              <h4 className="text-white font-semibold mb-2">{item.title}</h4>
-              <p className="text-sm text-zinc-400 leading-relaxed">{item.summary}</p>
-            </div>
+            </a>
           ))}
+          {newsItems.length === 0 && (
+            <div className="text-center py-12 text-zinc-600 text-[14px]">No news available for this stock</div>
+          )}
         </div>
       )}
     </div>

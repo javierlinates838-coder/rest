@@ -1,4 +1,6 @@
 import type { PriceData } from "@/lib/technical-analysis";
+import { fmpFetchQuote, fmpFetchProfile, fmpFetchHistorical, fmpFetchPeers, fmpFetchFinancials, type FMPFinancials } from "./fmp-api";
+import { finnhubFetchQuote, finnhubFetchPeers } from "./finnhub-api";
 
 export interface StockQuote {
   symbol: string;
@@ -23,6 +25,7 @@ export interface StockQuote {
   industry: string;
   exchange: string;
   description: string;
+  financials?: FMPFinancials;
 }
 
 export interface CompetitorData {
@@ -57,11 +60,77 @@ const POPULAR_STOCKS: Record<string, { name: string; sector: string; competitors
 export async function fetchStockQuote(symbol: string): Promise<StockQuote> {
   const upperSymbol = symbol.toUpperCase();
 
+  // Strategy 1: FMP API (primary — most complete data)
+  const [fmpQuote, fmpProfile, fmpFinancials] = await Promise.all([
+    fmpFetchQuote(upperSymbol),
+    fmpFetchProfile(upperSymbol),
+    fmpFetchFinancials(upperSymbol),
+  ]);
+
+  if (fmpQuote && fmpQuote.price > 0) {
+    return {
+      symbol: upperSymbol,
+      name: fmpQuote.name || fmpProfile?.companyName || upperSymbol,
+      price: fmpQuote.price,
+      change: fmpQuote.change,
+      changePercent: fmpQuote.changesPercentage,
+      volume: fmpQuote.volume,
+      avgVolume: fmpQuote.avgVolume,
+      marketCap: fmpQuote.marketCap,
+      peRatio: fmpQuote.pe || 0,
+      eps: fmpQuote.eps || 0,
+      high52: fmpQuote.yearHigh,
+      low52: fmpQuote.yearLow,
+      dayHigh: fmpQuote.dayHigh,
+      dayLow: fmpQuote.dayLow,
+      open: fmpQuote.open,
+      previousClose: fmpQuote.previousClose,
+      dividendYield: fmpProfile?.lastDiv ? (fmpProfile.lastDiv / fmpQuote.price) * 100 : 0,
+      beta: fmpProfile?.beta || 0,
+      sector: fmpProfile?.sector || POPULAR_STOCKS[upperSymbol]?.sector || "Unknown",
+      industry: fmpProfile?.industry || "Unknown",
+      exchange: fmpQuote.exchange || fmpProfile?.exchange || "NASDAQ",
+      description: fmpProfile?.description || "",
+      financials: fmpFinancials || undefined,
+    };
+  }
+
+  // Strategy 2: Finnhub real-time quote + FMP profile
+  const finnhubQuote = await finnhubFetchQuote(upperSymbol);
+  if (finnhubQuote && finnhubQuote.c > 0) {
+    return {
+      symbol: upperSymbol,
+      name: fmpProfile?.companyName || POPULAR_STOCKS[upperSymbol]?.name || upperSymbol,
+      price: finnhubQuote.c,
+      change: finnhubQuote.d,
+      changePercent: finnhubQuote.dp,
+      volume: 0,
+      avgVolume: 0,
+      marketCap: fmpProfile?.mktCap || 0,
+      peRatio: 0,
+      eps: 0,
+      high52: 0,
+      low52: 0,
+      dayHigh: finnhubQuote.h,
+      dayLow: finnhubQuote.l,
+      open: finnhubQuote.o,
+      previousClose: finnhubQuote.pc,
+      dividendYield: 0,
+      beta: fmpProfile?.beta || 0,
+      sector: fmpProfile?.sector || POPULAR_STOCKS[upperSymbol]?.sector || "Unknown",
+      industry: fmpProfile?.industry || "Unknown",
+      exchange: fmpProfile?.exchange || "NASDAQ",
+      description: fmpProfile?.description || "",
+      financials: fmpFinancials || undefined,
+    };
+  }
+
+  // Strategy 3: Yahoo Finance
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const yahooFinance = (await import("yahoo-finance2")).default as any;
     const quote = await yahooFinance.quote(upperSymbol);
-    const profile = await yahooFinance.quoteSummary(upperSymbol, { modules: ["assetProfile", "defaultKeyStatistics"] }).catch(() => null);
+    const profile = await yahooFinance.quoteSummary(upperSymbol, { modules: ["assetProfile"] }).catch(() => null);
 
     return {
       symbol: upperSymbol,
@@ -88,6 +157,7 @@ export async function fetchStockQuote(symbol: string): Promise<StockQuote> {
       description: profile?.assetProfile?.longBusinessSummary || "",
     };
   } catch {
+    // Strategy 4: mock fallback
     const info = POPULAR_STOCKS[upperSymbol];
     if (!info) throw new Error(`Could not fetch data for symbol: ${upperSymbol}`);
     return generateMockQuote(upperSymbol, info.name, info.sector);
@@ -95,6 +165,13 @@ export async function fetchStockQuote(symbol: string): Promise<StockQuote> {
 }
 
 export async function fetchHistoricalData(symbol: string, period: string = "1y"): Promise<PriceData[]> {
+  const upperSymbol = symbol.toUpperCase();
+
+  // Strategy 1: FMP
+  const fmpData = await fmpFetchHistorical(upperSymbol, period);
+  if (fmpData.length > 0) return fmpData;
+
+  // Strategy 2: Yahoo Finance
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const yahooFinance = (await import("yahoo-finance2")).default as any;
@@ -107,37 +184,35 @@ export async function fetchHistoricalData(symbol: string, period: string = "1y")
       "5y": { period1: new Date(Date.now() - 1825 * 86400000).toISOString().split("T")[0], interval: "1wk" },
     };
     const config = periodMap[period] || periodMap["1y"];
-    const result = await yahooFinance.chart(symbol.toUpperCase(), {
-      period1: config.period1,
-      interval: config.interval,
-    });
-
+    const result = await yahooFinance.chart(upperSymbol, { period1: config.period1, interval: config.interval });
     if (result?.quotes) {
       return result.quotes
         .filter((q: { close: number | null }) => q.close !== null)
         .map((q: { date: Date; open: number; high: number; low: number; close: number; volume: number }) => ({
           date: new Date(q.date).toISOString().split("T")[0],
-          open: q.open,
-          high: q.high,
-          low: q.low,
-          close: q.close,
-          volume: q.volume,
+          open: q.open, high: q.high, low: q.low, close: q.close, volume: q.volume,
         }));
     }
-  } catch {
-    // Fall through to mock data
-  }
+  } catch { /* fall through */ }
 
-  return generateMockHistoricalData(symbol, period);
+  return generateMockHistoricalData(upperSymbol, period);
 }
 
 export async function fetchCompetitors(symbol: string): Promise<CompetitorData[]> {
   const upperSymbol = symbol.toUpperCase();
-  const info = POPULAR_STOCKS[upperSymbol];
-  const competitorSymbols = info?.competitors || ["AAPL", "MSFT", "GOOGL", "AMZN"];
+
+  // Try FMP peers first, then Finnhub, then fallback
+  let peerSymbols = await fmpFetchPeers(upperSymbol);
+  if (peerSymbols.length === 0) {
+    peerSymbols = await finnhubFetchPeers(upperSymbol);
+  }
+  if (peerSymbols.length === 0) {
+    const info = POPULAR_STOCKS[upperSymbol];
+    peerSymbols = info?.competitors || ["AAPL", "MSFT", "GOOGL", "AMZN"];
+  }
 
   const competitors: CompetitorData[] = [];
-  for (const sym of competitorSymbols.slice(0, 4)) {
+  for (const sym of peerSymbols.slice(0, 5)) {
     try {
       const quote = await fetchStockQuote(sym);
       competitors.push({
@@ -147,7 +222,7 @@ export async function fetchCompetitors(symbol: string): Promise<CompetitorData[]
         marketCap: quote.marketCap,
         peRatio: quote.peRatio,
         changePercent: quote.changePercent,
-        revenue: quote.marketCap * 0.15,
+        revenue: quote.financials?.revenue || quote.marketCap * 0.15,
         sector: quote.sector,
       });
     } catch {
@@ -162,24 +237,19 @@ function generateMockQuote(symbol: string, name: string, sector: string): StockQ
   const change = (Math.random() - 0.5) * 10;
   return {
     symbol, name, sector,
-    price: basePrice,
-    change,
+    price: basePrice, change,
     changePercent: (change / basePrice) * 100,
     volume: Math.floor(Math.random() * 50000000) + 1000000,
     avgVolume: Math.floor(Math.random() * 30000000) + 5000000,
     marketCap: basePrice * (Math.random() * 5e9 + 1e9),
     peRatio: Math.random() * 40 + 5,
     eps: basePrice / (Math.random() * 40 + 5),
-    high52: basePrice * 1.3,
-    low52: basePrice * 0.7,
-    dayHigh: basePrice * 1.02,
-    dayLow: basePrice * 0.98,
+    high52: basePrice * 1.3, low52: basePrice * 0.7,
+    dayHigh: basePrice * 1.02, dayLow: basePrice * 0.98,
     open: basePrice * (1 + (Math.random() - 0.5) * 0.02),
     previousClose: basePrice - change,
-    dividendYield: Math.random() * 3,
-    beta: 0.5 + Math.random() * 1.5,
-    industry: "Technology",
-    exchange: "NASDAQ",
+    dividendYield: Math.random() * 3, beta: 0.5 + Math.random() * 1.5,
+    industry: "Technology", exchange: "NASDAQ",
     description: `${name} is a leading company in the ${sector} sector.`,
   };
 }
@@ -187,10 +257,8 @@ function generateMockQuote(symbol: string, name: string, sector: string): StockQ
 function generateMockCompetitor(symbol: string): CompetitorData {
   const basePrice = hashStringToRange(symbol, 50, 400);
   return {
-    symbol,
-    name: POPULAR_STOCKS[symbol]?.name || symbol,
-    price: basePrice,
-    marketCap: basePrice * 5e9,
+    symbol, name: POPULAR_STOCKS[symbol]?.name || symbol,
+    price: basePrice, marketCap: basePrice * 5e9,
     peRatio: Math.random() * 35 + 8,
     changePercent: (Math.random() - 0.5) * 6,
     revenue: basePrice * 5e9 * 0.15,
@@ -207,13 +275,11 @@ function generateMockHistoricalData(symbol: string, period: string): PriceData[]
     const date = new Date(Date.now() - i * 86400000);
     const change = (Math.random() - 0.48) * (price * 0.03);
     price = Math.max(price + change, 10);
-    const high = price * (1 + Math.random() * 0.02);
-    const low = price * (1 - Math.random() * 0.02);
     data.push({
       date: date.toISOString().split("T")[0],
       open: price + (Math.random() - 0.5) * 2,
-      high,
-      low,
+      high: price * (1 + Math.random() * 0.02),
+      low: price * (1 - Math.random() * 0.02),
       close: price,
       volume: Math.floor(Math.random() * 50000000) + 5000000,
     });
