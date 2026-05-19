@@ -1,6 +1,6 @@
 import type { PriceData } from "@/lib/technical-analysis";
 import { fmpFetchQuote, fmpFetchProfile, fmpFetchHistorical, fmpFetchPeers, fmpFetchFinancials, type FMPFinancials } from "./fmp-api";
-import { finnhubFetchQuote, finnhubFetchPeers } from "./finnhub-api";
+import { finnhubFetchQuote, finnhubFetchPeers, finnhubFetchBasicFinancials } from "./finnhub-api";
 
 export interface StockQuote {
   symbol: string;
@@ -68,6 +68,17 @@ export async function fetchStockQuote(symbol: string): Promise<StockQuote> {
   ]);
 
   if (fmpQuote && fmpQuote.price > 0) {
+    // Backfill from historical if 52W still missing
+    let h52 = fmpQuote.yearHigh;
+    let l52 = fmpQuote.yearLow;
+    if (h52 === 0 || l52 === 0) {
+      const hist = await import("./fmp-api").then((m) => m.fmpFetchHistorical(upperSymbol, "1y")).catch(() => []);
+      if (hist.length > 0) {
+        h52 = h52 || Math.max(...hist.map((d) => d.high));
+        l52 = l52 || Math.min(...hist.map((d) => d.low));
+      }
+    }
+
     return {
       symbol: upperSymbol,
       name: fmpQuote.name || fmpProfile?.companyName || upperSymbol,
@@ -79,12 +90,12 @@ export async function fetchStockQuote(symbol: string): Promise<StockQuote> {
       marketCap: fmpQuote.marketCap,
       peRatio: fmpQuote.pe || 0,
       eps: fmpQuote.eps || 0,
-      high52: fmpQuote.yearHigh,
-      low52: fmpQuote.yearLow,
+      high52: h52,
+      low52: l52,
       dayHigh: fmpQuote.dayHigh,
       dayLow: fmpQuote.dayLow,
-      open: fmpQuote.open,
-      previousClose: fmpQuote.previousClose,
+      open: fmpQuote.open || fmpQuote.previousClose,
+      previousClose: fmpQuote.previousClose || (fmpQuote.price - fmpQuote.change),
       dividendYield: fmpProfile?.lastDiv ? (fmpProfile.lastDiv / fmpQuote.price) * 100 : 0,
       beta: fmpProfile?.beta || 0,
       sector: fmpProfile?.sector || POPULAR_STOCKS[upperSymbol]?.sector || "Unknown",
@@ -95,28 +106,40 @@ export async function fetchStockQuote(symbol: string): Promise<StockQuote> {
     };
   }
 
-  // Strategy 2: Finnhub real-time quote + FMP profile
-  const finnhubQuote = await finnhubFetchQuote(upperSymbol);
+  // Strategy 2: Finnhub real-time quote + Finnhub basic financials + FMP profile
+  const [finnhubQuote, finnhubMetrics] = await Promise.all([
+    finnhubFetchQuote(upperSymbol),
+    finnhubFetchBasicFinancials(upperSymbol),
+  ]);
+
   if (finnhubQuote && finnhubQuote.c > 0) {
+    const m = finnhubMetrics || {};
+    const change = finnhubQuote.d || (finnhubQuote.c - finnhubQuote.pc);
+    const changePercent = finnhubQuote.dp || (finnhubQuote.pc > 0 ? (change / finnhubQuote.pc) * 100 : 0);
+
+    // Use 10-day avg as proxy for current day's volume when /quote doesn't give it
+    const avgVol10Day = ((m["10DayAverageTradingVolume"] as number) || 0) * 1e6;
+    const avgVol3M = ((m["3MonthAverageTradingVolume"] as number) || 0) * 1e6;
+
     return {
       symbol: upperSymbol,
       name: fmpProfile?.companyName || POPULAR_STOCKS[upperSymbol]?.name || upperSymbol,
       price: finnhubQuote.c,
-      change: finnhubQuote.d,
-      changePercent: finnhubQuote.dp,
-      volume: 0,
-      avgVolume: 0,
-      marketCap: fmpProfile?.mktCap || 0,
-      peRatio: 0,
-      eps: 0,
-      high52: 0,
-      low52: 0,
+      change,
+      changePercent,
+      volume: ((m["volumeMostRecentTradingDay"] as number) || 0) || avgVol10Day,
+      avgVolume: avgVol10Day || avgVol3M,
+      marketCap: ((m["marketCapitalization"] as number) || 0) * 1e6 || fmpProfile?.mktCap || 0,
+      peRatio: (m["peTTM"] as number) || (m["peNormalizedAnnual"] as number) || 0,
+      eps: (m["epsTTM"] as number) || (m["epsAnnual"] as number) || 0,
+      high52: (m["52WeekHigh"] as number) || 0,
+      low52: (m["52WeekLow"] as number) || 0,
       dayHigh: finnhubQuote.h,
       dayLow: finnhubQuote.l,
       open: finnhubQuote.o,
       previousClose: finnhubQuote.pc,
-      dividendYield: 0,
-      beta: fmpProfile?.beta || 0,
+      dividendYield: (m["dividendYieldIndicatedAnnual"] as number) || 0,
+      beta: (m["beta"] as number) || fmpProfile?.beta || 0,
       sector: fmpProfile?.sector || POPULAR_STOCKS[upperSymbol]?.sector || "Unknown",
       industry: fmpProfile?.industry || "Unknown",
       exchange: fmpProfile?.exchange || "NASDAQ",
@@ -211,24 +234,41 @@ export async function fetchCompetitors(symbol: string): Promise<CompetitorData[]
     peerSymbols = info?.competitors || ["AAPL", "MSFT", "GOOGL", "AMZN"];
   }
 
+  // Lightweight competitor fetch — only profile + metrics, no financials
   const competitors: CompetitorData[] = [];
-  for (const sym of peerSymbols.slice(0, 5)) {
-    try {
-      const quote = await fetchStockQuote(sym);
-      competitors.push({
-        symbol: sym,
-        name: quote.name,
-        price: quote.price,
-        marketCap: quote.marketCap,
-        peRatio: quote.peRatio,
-        changePercent: quote.changePercent,
-        revenue: quote.financials?.revenue || quote.marketCap * 0.15,
-        sector: quote.sector,
-      });
-    } catch {
-      competitors.push(generateMockCompetitor(sym));
-    }
-  }
+  await Promise.all(
+    peerSymbols.slice(0, 5).map(async (sym) => {
+      try {
+        const [profile, finnhubQ, finnhubM] = await Promise.all([
+          fmpFetchProfile(sym),
+          finnhubFetchQuote(sym),
+          finnhubFetchBasicFinancials(sym),
+        ]);
+
+        const price = profile?.mktCap ? (finnhubQ?.c || 0) : (finnhubQ?.c || 0);
+        const marketCap = profile?.mktCap || ((finnhubM?.["marketCapitalization"] as number) || 0) * 1e6 || 0;
+        const peRatio = (finnhubM?.["peTTM"] as number) || (finnhubM?.["peNormalizedAnnual"] as number) || 0;
+        const changePercent = finnhubQ?.dp || 0;
+
+        if (price > 0 || marketCap > 0) {
+          competitors.push({
+            symbol: sym,
+            name: profile?.companyName || POPULAR_STOCKS[sym]?.name || sym,
+            price: price || 0,
+            marketCap,
+            peRatio,
+            changePercent,
+            revenue: marketCap * 0.15,
+            sector: profile?.sector || POPULAR_STOCKS[sym]?.sector || "Unknown",
+          });
+        } else {
+          competitors.push(generateMockCompetitor(sym));
+        }
+      } catch {
+        competitors.push(generateMockCompetitor(sym));
+      }
+    })
+  );
   return competitors;
 }
 
