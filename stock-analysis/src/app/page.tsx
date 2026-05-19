@@ -216,17 +216,25 @@ export default function DashboardPage() {
       ) : (
         <>
           {/* Market Indices */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-10 animate-fadeIn">
-            {indices.map((index) => (
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-10">
+            {indices.map((index, i) => (
               <div
                 key={index.symbol}
-                className="glass-card rounded-2xl p-5 cursor-pointer group"
+                className={`glass-card rounded-2xl p-5 cursor-pointer group animate-fadeInUp stagger-${i + 1}`}
                 onClick={() => router.push(`/stock/${index.symbol}`)}
               >
-                <div className="text-[11px] text-zinc-500 font-semibold tracking-wider uppercase mb-1">{index.symbol}</div>
+                <div className="flex items-center justify-between mb-1">
+                  <div className="text-[11px] text-zinc-500 font-semibold tracking-wider uppercase">{index.symbol}</div>
+                  <div className={`w-1.5 h-1.5 rounded-full ${index.changePercent >= 0 ? "bg-emerald-500" : "bg-red-500"}`} />
+                </div>
                 <div className="text-[18px] font-semibold text-white tracking-tight">{formatCurrency(index.price)}</div>
-                <div className={`text-[13px] font-medium tracking-tight ${index.changePercent >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                  {formatPercent(index.changePercent)}
+                <div className="flex items-center gap-1.5">
+                  <svg className={`w-3 h-3 ${index.changePercent >= 0 ? "text-emerald-400" : "text-red-400 rotate-180"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                  </svg>
+                  <span className={`text-[13px] font-medium tracking-tight ${index.changePercent >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                    {formatPercent(index.changePercent)}
+                  </span>
                 </div>
               </div>
             ))}

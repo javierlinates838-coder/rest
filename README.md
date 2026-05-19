@@ -99,6 +99,15 @@ npm start
 - **Built-in Analysis Engine**: 15+ technical indicators computed in real-time
 - **OpenAI** (optional): Enhanced AI-powered analysis when API key is provided
 
+### Red Flags & Risk Scanner
+- **Insider Trading Detection**: Monitors SEC filing patterns for suspicious insider selling
+- **Volume Anomaly Detection**: Alerts on 2x+ volume spikes that may indicate institutional activity
+- **Pump & Dump Scanner**: Detects RSI + volume combos indicating potential manipulation
+- **Price Gap Analysis**: Flags unusual after-hours moves and opening gaps
+- **Divergence Detection**: MACD/price bearish and bullish divergences
+- **Bollinger Squeeze**: Detects low-volatility periods that precede explosive moves
+- **Risk Score System**: A-F grading across 5 dimensions (Technical, Fundamental, Sentiment, Manipulation, Volatility)
+
 ## Disclaimer
 
 This application is for informational and educational purposes only. It does not constitute financial advice. Always do your own research and consult with a qualified financial advisor before making investment decisions.

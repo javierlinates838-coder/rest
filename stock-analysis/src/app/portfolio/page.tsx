@@ -98,8 +98,8 @@ export default function PortfolioPage() {
 
   return (
     <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-3xl font-bold text-white mb-2">Portfolio</h1>
-      <p className="text-zinc-400 mb-8">Track your holdings with AI-powered signals and deep analysis</p>
+      <h1 className="text-[32px] font-semibold text-white tracking-tight mb-2">Portfolio</h1>
+      <p className="text-[14px] text-zinc-400 font-light tracking-tight mb-8">Track your holdings with AI-powered signals and deep analysis</p>
 
       {loading ? (
         <div className="animate-pulse space-y-4">

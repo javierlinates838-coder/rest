@@ -47,6 +47,26 @@ interface AnalysisData {
   }[];
   news: { title: string; sentiment: string }[];
   dataSources?: { quotes: string; news: string; ai: string };
+  analyzedAt?: string;
+  redFlags?: {
+    id: string;
+    severity: "critical" | "warning" | "info";
+    category: string;
+    title: string;
+    description: string;
+    detectedAt: string;
+    dataPoints: string[];
+  }[];
+  riskScore?: {
+    overall: number;
+    technical: number;
+    fundamental: number;
+    sentiment: number;
+    manipulation: number;
+    volatility: number;
+    grade: string;
+    verdict: string;
+  };
 }
 
 interface HistoryPoint {
@@ -89,12 +109,21 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
 
   if (loading) {
     return (
-      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="animate-pulse space-y-6">
-          <div className="h-12 bg-zinc-800 rounded-xl w-1/3" />
-          <div className="h-96 bg-zinc-800 rounded-xl" />
-          <div className="grid grid-cols-3 gap-4">
-            {[...Array(6)].map((_, i) => <div key={i} className="h-32 bg-zinc-800 rounded-xl" />)}
+      <div className="max-w-[1440px] mx-auto px-6 lg:px-10 py-8">
+        <div className="space-y-6">
+          <div className="flex justify-between items-end">
+            <div>
+              <div className="h-8 bg-zinc-800/60 rounded-lg w-48 mb-3 shimmer" />
+              <div className="h-12 bg-zinc-800/60 rounded-lg w-64 shimmer" />
+            </div>
+            <div className="h-28 w-52 bg-zinc-800/60 rounded-2xl shimmer" />
+          </div>
+          <div className="flex gap-1 mb-6">
+            {[...Array(6)].map((_, i) => <div key={i} className="h-10 w-24 bg-zinc-800/40 rounded-lg shimmer" style={{ animationDelay: `${i * 100}ms` }} />)}
+          </div>
+          <div className="h-[400px] bg-zinc-800/40 rounded-2xl shimmer" />
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            {[...Array(12)].map((_, i) => <div key={i} className="h-20 bg-zinc-800/30 rounded-xl shimmer" style={{ animationDelay: `${i * 50}ms` }} />)}
           </div>
         </div>
       </div>
@@ -112,7 +141,7 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
     );
   }
 
-  const { quote, indicators, signal, competitors, aiAnalysis, dataSources, analystRecommendations } = data;
+  const { quote, indicators, signal, competitors, aiAnalysis, dataSources, analystRecommendations, redFlags, riskScore, analyzedAt } = data;
 
   const chartData = history.map((h) => ({
     date: h.date,
@@ -133,10 +162,13 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
     }
   }
 
+  const redFlagCount = data?.redFlags?.filter((f) => f.severity === "critical").length || 0;
+
   const tabs = [
     { id: "overview", label: "Overview" },
     { id: "technical", label: "Technical" },
     { id: "ai-analysis", label: "AI Analysis" },
+    { id: "red-flags", label: `Red Flags${redFlagCount > 0 ? ` (${redFlagCount})` : ""}` },
     { id: "competitors", label: "Competitors" },
     { id: "news", label: "News" },
   ];
@@ -171,26 +203,51 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
               {quote.change >= 0 ? "+" : ""}{formatCurrency(quote.change)} ({formatPercent(quote.changePercent)})
             </span>
           </div>
-          {dataSources && (
-            <div className="flex gap-2 ml-8 mt-2">
-              {Object.entries(dataSources).map(([k, v]) => (
-                <span key={k} className="data-source-tag">{v}</span>
-              ))}
-            </div>
-          )}
+          <div className="flex items-center gap-3 ml-8 mt-2 flex-wrap">
+            {dataSources && Object.entries(dataSources).map(([k, v]) => (
+              <span key={k} className="data-source-tag">{v}</span>
+            ))}
+            {analyzedAt && (
+              <span className="text-[10px] text-zinc-600 tracking-wide">
+                Analyzed {new Date(analyzedAt).toLocaleTimeString()}
+              </span>
+            )}
+          </div>
         </div>
 
-        {/* Signal Badge */}
-        <div className={`px-7 py-5 rounded-2xl border ${getSignalBg(signal.signal)} text-center min-w-[210px]`}>
-          <div className="text-[10px] text-zinc-400 font-semibold tracking-widest uppercase mb-1.5">AI Recommendation</div>
-          <div className={`text-[26px] font-semibold tracking-tight ${getSignalColor(signal.signal)}`}>{signal.signal.toUpperCase()}</div>
-          <div className="text-[12px] text-zinc-400 mt-1 font-light">Confidence: {signal.confidence}%</div>
-          <div className="w-full bg-zinc-800/50 rounded-full h-1.5 mt-2.5">
-            <div
-              className={`h-1.5 rounded-full transition-all ${signal.signal.includes("Buy") ? "bg-emerald-500" : signal.signal.includes("Sell") ? "bg-red-500" : "bg-yellow-500"}`}
-              style={{ width: `${signal.confidence}%` }}
-            />
+        {/* Signal + Risk Badges */}
+        <div className="flex gap-3 items-stretch">
+          <div className={`px-7 py-5 rounded-2xl border ${getSignalBg(signal.signal)} text-center min-w-[200px] animate-scaleIn`}>
+            <div className="text-[10px] text-zinc-400 font-semibold tracking-widest uppercase mb-1.5">AI Verdict</div>
+            <div className={`text-[26px] font-semibold tracking-tight ${getSignalColor(signal.signal)}`}>{signal.signal.toUpperCase()}</div>
+            <div className="text-[12px] text-zinc-400 mt-1 font-light">Confidence: {signal.confidence}%</div>
+            <div className="w-full bg-zinc-800/50 rounded-full h-1.5 mt-2.5">
+              <div
+                className={`h-1.5 rounded-full transition-all duration-1000 ${signal.signal.includes("Buy") ? "bg-emerald-500" : signal.signal.includes("Sell") ? "bg-red-500" : "bg-yellow-500"}`}
+                style={{ width: `${signal.confidence}%` }}
+              />
+            </div>
           </div>
+
+          {riskScore && (
+            <div className={`px-5 py-5 rounded-2xl border text-center min-w-[120px] animate-scaleIn stagger-2 ${
+              riskScore.grade === "A" ? "bg-emerald-500/5 border-emerald-500/20" :
+              riskScore.grade === "B" ? "bg-green-500/5 border-green-500/20" :
+              riskScore.grade === "C" ? "bg-yellow-500/5 border-yellow-500/20" :
+              riskScore.grade === "D" ? "bg-orange-500/5 border-orange-500/20" :
+              "bg-red-500/5 border-red-500/20"
+            }`}>
+              <div className="text-[10px] text-zinc-400 font-semibold tracking-widest uppercase mb-1.5">Risk</div>
+              <div className={`text-[32px] font-bold tracking-tight ${
+                riskScore.grade === "A" ? "text-emerald-400" :
+                riskScore.grade === "B" ? "text-green-400" :
+                riskScore.grade === "C" ? "text-yellow-400" :
+                riskScore.grade === "D" ? "text-orange-400" :
+                "text-red-400"
+              }`}>{riskScore.grade}</div>
+              <div className="text-[10px] text-zinc-500 mt-0.5">{riskScore.overall}/100</div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -297,27 +354,35 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
           </div>
 
           {/* Key Stats Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
             {[
-              { label: "Market Cap", value: formatLargeNumber(quote.marketCap) },
-              { label: "P/E Ratio", value: quote.peRatio.toFixed(2) },
-              { label: "EPS", value: formatCurrency(quote.eps) },
-              { label: "52W High", value: formatCurrency(quote.high52) },
-              { label: "52W Low", value: formatCurrency(quote.low52) },
-              { label: "Avg Volume", value: `${(quote.avgVolume / 1e6).toFixed(1)}M` },
-              { label: "Beta", value: quote.beta.toFixed(2) },
-              { label: "Dividend Yield", value: `${quote.dividendYield.toFixed(2)}%` },
-              { label: "Day Range", value: `${formatCurrency(quote.dayLow)} - ${formatCurrency(quote.dayHigh)}` },
-              { label: "Sector", value: quote.sector },
-              { label: "Industry", value: quote.industry },
-              { label: "Open", value: formatCurrency(quote.open) },
-            ].map((stat) => (
-              <div key={stat.label} className="glass-card rounded-xl p-4">
-                <div className="text-xs text-zinc-500 mb-1">{stat.label}</div>
-                <div className="text-sm font-semibold text-white truncate">{stat.value}</div>
+              { label: "Market Cap", value: formatLargeNumber(quote.marketCap), tooltip: "Total market value of outstanding shares" },
+              { label: "P/E Ratio", value: quote.peRatio > 0 ? quote.peRatio.toFixed(2) : "N/A", tooltip: "Price-to-Earnings ratio" },
+              { label: "EPS", value: formatCurrency(quote.eps), tooltip: "Earnings Per Share (trailing 12 months)" },
+              { label: "52W High", value: formatCurrency(quote.high52), tooltip: "Highest price in the last 52 weeks" },
+              { label: "52W Low", value: formatCurrency(quote.low52), tooltip: "Lowest price in the last 52 weeks" },
+              { label: "Avg Volume", value: quote.avgVolume > 0 ? `${(quote.avgVolume / 1e6).toFixed(1)}M` : "—", tooltip: "10-day average daily volume" },
+              { label: "Beta", value: quote.beta > 0 ? quote.beta.toFixed(2) : "—", tooltip: "Volatility relative to the market (1.0 = market)" },
+              { label: "Dividend Yield", value: quote.dividendYield > 0 ? `${quote.dividendYield.toFixed(2)}%` : "—", tooltip: "Annual dividend as % of price" },
+              { label: "Day Range", value: `${formatCurrency(quote.dayLow)} – ${formatCurrency(quote.dayHigh)}`, tooltip: "Today's trading range" },
+              { label: "Sector", value: quote.sector, tooltip: "Market sector classification" },
+              { label: "Industry", value: quote.industry, tooltip: "Specific industry within sector" },
+              { label: "Open", value: formatCurrency(quote.open), tooltip: "Today's opening price" },
+            ].map((stat, i) => (
+              <div key={stat.label} className={`glass-card rounded-xl p-4 animate-fadeInUp stagger-${Math.min(i + 1, 8)} premium-tooltip`} data-tooltip={stat.tooltip}>
+                <div className="text-[10px] text-zinc-500 font-semibold tracking-wider uppercase mb-1.5">{stat.label}</div>
+                <div className="text-[13px] font-semibold text-white truncate tracking-tight">{stat.value}</div>
               </div>
             ))}
           </div>
+
+          {/* Company Description */}
+          {quote.description && (
+            <div className="glass-card rounded-2xl p-6 animate-fadeInUp">
+              <h3 className="text-[14px] font-semibold text-white tracking-tight mb-2">About {quote.name}</h3>
+              <p className="text-[12px] text-zinc-400 font-light leading-relaxed line-clamp-3">{quote.description}</p>
+            </div>
+          )}
 
           {/* Radar Chart */}
           <div className="glass-card rounded-xl p-6">
@@ -622,6 +687,157 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
                 <div key={i} className="flex items-start gap-3 p-3 bg-zinc-800/30 rounded-lg">
                   <span className="text-indigo-400 font-bold text-sm">{i + 1}.</span>
                   <span className="text-sm text-zinc-300">{factor}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Red Flags Tab */}
+      {activeTab === "red-flags" && (
+        <div className="space-y-6 animate-fadeIn">
+          {/* Risk Score Overview */}
+          {riskScore && (
+            <div className="glass-card rounded-2xl p-7 glow-border animate-fadeInUp">
+              <div className="flex items-center gap-4 mb-6">
+                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-[28px] font-bold ${
+                  riskScore.grade === "A" ? "bg-emerald-500/15 text-emerald-400" :
+                  riskScore.grade === "B" ? "bg-green-500/15 text-green-400" :
+                  riskScore.grade === "C" ? "bg-yellow-500/15 text-yellow-400" :
+                  riskScore.grade === "D" ? "bg-orange-500/15 text-orange-400" :
+                  "bg-red-500/15 text-red-400"
+                }`}>{riskScore.grade}</div>
+                <div>
+                  <h3 className="text-[18px] font-semibold text-white tracking-tight">Risk Assessment</h3>
+                  <p className="text-[13px] text-zinc-400 font-light">{riskScore.verdict}</p>
+                </div>
+                <div className="ml-auto text-right">
+                  <div className="text-[28px] font-bold text-white tracking-tight">{riskScore.overall}<span className="text-[14px] text-zinc-500 font-light">/100</span></div>
+                  <div className="text-[10px] text-zinc-500 tracking-wider uppercase">Overall Risk</div>
+                </div>
+              </div>
+
+              {/* Risk Gauge */}
+              <div className="risk-gauge mb-8">
+                <div className="risk-gauge-needle" style={{ left: `${riskScore.overall}%` }} />
+              </div>
+
+              {/* Risk Breakdown */}
+              <div className="grid grid-cols-5 gap-3">
+                {[
+                  { label: "Technical", value: riskScore.technical, icon: "📊" },
+                  { label: "Fundamental", value: riskScore.fundamental, icon: "📈" },
+                  { label: "Sentiment", value: riskScore.sentiment, icon: "🧠" },
+                  { label: "Manipulation", value: riskScore.manipulation, icon: "🚨" },
+                  { label: "Volatility", value: riskScore.volatility, icon: "⚡" },
+                ].map((item, i) => (
+                  <div key={item.label} className={`text-center p-3 rounded-xl bg-zinc-900/50 animate-fadeInUp stagger-${i + 1}`}>
+                    <div className="text-lg mb-1">{item.icon}</div>
+                    <div className={`text-[18px] font-bold tracking-tight ${
+                      item.value <= 30 ? "text-emerald-400" :
+                      item.value <= 50 ? "text-yellow-400" :
+                      item.value <= 70 ? "text-orange-400" :
+                      "text-red-400"
+                    }`}>{item.value}</div>
+                    <div className="text-[10px] text-zinc-500 font-medium tracking-wider uppercase mt-0.5">{item.label}</div>
+                    <div className="w-full bg-zinc-800 rounded-full h-1 mt-2">
+                      <div
+                        className={`h-1 rounded-full transition-all duration-1000 ${
+                          item.value <= 30 ? "bg-emerald-500" :
+                          item.value <= 50 ? "bg-yellow-500" :
+                          item.value <= 70 ? "bg-orange-500" :
+                          "bg-red-500"
+                        }`}
+                        style={{ width: `${item.value}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Red Flags List */}
+          {redFlags && redFlags.length > 0 ? (
+            <div className="space-y-3">
+              <h3 className="text-[16px] font-semibold text-white tracking-tight flex items-center gap-2">
+                <span className="text-red-400">⚠</span>
+                Detected Alerts ({redFlags.length})
+              </h3>
+              {redFlags.map((flag, i) => (
+                <div
+                  key={flag.id}
+                  className={`glass-card rounded-2xl p-5 animate-fadeInUp stagger-${Math.min(i + 1, 8)} ${
+                    flag.severity === "critical" ? "border-red-500/20 hover:border-red-500/40" :
+                    flag.severity === "warning" ? "border-yellow-500/15 hover:border-yellow-500/30" :
+                    "border-blue-500/10 hover:border-blue-500/20"
+                  }`}
+                >
+                  <div className="flex items-start gap-4">
+                    <div className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-[18px] ${
+                      flag.severity === "critical" ? "bg-red-500/10" :
+                      flag.severity === "warning" ? "bg-yellow-500/10" :
+                      "bg-blue-500/10"
+                    }`}>
+                      {flag.category === "insider" ? "🕵️" :
+                       flag.category === "volume" ? "📊" :
+                       flag.category === "price" ? "💰" :
+                       flag.category === "manipulation" ? "🚨" :
+                       flag.category === "fundamental" ? "📉" :
+                       flag.category === "pattern" ? "🔍" : "⚠️"}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className={`inline-flex items-center text-[10px] font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-md ${
+                          flag.severity === "critical" ? "flag-critical" :
+                          flag.severity === "warning" ? "flag-warning" :
+                          "flag-info"
+                        }`}>
+                          {flag.severity}
+                        </span>
+                        <span className="text-[10px] text-zinc-600 tracking-wider uppercase">{flag.category}</span>
+                      </div>
+                      <h4 className="text-[14px] font-semibold text-white tracking-tight mb-1.5">{flag.title}</h4>
+                      <p className="text-[12px] text-zinc-400 font-light leading-relaxed mb-3">{flag.description}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {flag.dataPoints.map((dp, j) => (
+                          <span key={j} className="text-[10px] font-medium px-2.5 py-1 rounded-md bg-zinc-800/80 text-zinc-400 border border-zinc-700/30">
+                            {dp}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="glass-card rounded-2xl p-12 text-center animate-fadeIn">
+              <div className="text-[40px] mb-3">✅</div>
+              <h3 className="text-[16px] font-semibold text-white tracking-tight mb-2">No Red Flags Detected</h3>
+              <p className="text-[13px] text-zinc-500 font-light max-w-md mx-auto">
+                Our automated scanning system has not detected any unusual activity, manipulation patterns, or insider trading signals for this stock at this time.
+              </p>
+            </div>
+          )}
+
+          {/* What We Monitor */}
+          <div className="glass-card rounded-2xl p-6">
+            <h3 className="text-[14px] font-semibold text-white tracking-tight mb-4">What Our Scanner Monitors</h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {[
+                { icon: "🕵️", label: "Insider Trading", desc: "SEC filing anomalies & insider sell patterns" },
+                { icon: "📊", label: "Volume Spikes", desc: "Unusual volume that exceeds 2x+ average" },
+                { icon: "🚨", label: "Pump & Dump", desc: "RSI + volume combos indicating manipulation" },
+                { icon: "💰", label: "Price Gaps", desc: "After-hours moves and opening gaps" },
+                { icon: "📉", label: "Divergences", desc: "MACD/price bearish and bullish divergences" },
+                { icon: "⚡", label: "Volatility Spikes", desc: "Bollinger squeeze & ATR anomalies" },
+              ].map((item) => (
+                <div key={item.label} className="p-3 rounded-xl bg-zinc-900/40 border border-white/[0.02]">
+                  <div className="text-lg mb-1.5">{item.icon}</div>
+                  <div className="text-[12px] font-semibold text-white tracking-tight">{item.label}</div>
+                  <div className="text-[10px] text-zinc-500 font-light mt-0.5">{item.desc}</div>
                 </div>
               ))}
             </div>

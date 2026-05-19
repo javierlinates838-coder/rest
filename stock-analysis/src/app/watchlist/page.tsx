@@ -86,8 +86,8 @@ export default function WatchlistPage() {
     <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-white">Watchlist</h1>
-          <p className="text-zinc-400 mt-1">Track stocks and get AI-powered signals</p>
+          <h1 className="text-[32px] font-semibold text-white tracking-tight">Watchlist</h1>
+          <p className="text-zinc-400 mt-1 text-[14px] font-light tracking-tight">Track stocks and get AI-powered signals in real time</p>
         </div>
         <form
           onSubmit={(e) => { e.preventDefault(); addToWatchlist(); }}
@@ -121,10 +121,10 @@ export default function WatchlistPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {watchlist.map((item) => (
+          {watchlist.map((item, i) => (
             <div
               key={item.symbol}
-              className="glass-card rounded-xl p-6 hover:glow-border transition-all cursor-pointer group"
+              className={`glass-card rounded-2xl p-6 hover:glow-border transition-all cursor-pointer group animate-fadeInUp stagger-${Math.min(i + 1, 8)}`}
               onClick={() => router.push(`/stock/${item.symbol}`)}
             >
               <div className="flex justify-between items-start mb-4">

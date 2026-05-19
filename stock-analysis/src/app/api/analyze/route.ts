@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { fetchStockQuote, fetchHistoricalData, fetchCompetitors } from "@/services/stock-data";
 import { computeAllIndicators, generateSignal } from "@/lib/technical-analysis";
 import { generateAIAnalysis } from "@/services/ai-analysis";
+import { detectRedFlags, calculateRiskScore } from "@/lib/red-flags";
 import { finnhubFetchNews, finnhubFetchRecommendations, finnhubFetchSentiment, analyzeSentimentFromNews } from "@/services/finnhub-api";
 
 export async function GET(request: NextRequest) {
@@ -46,6 +47,9 @@ export async function GET(request: NextRequest) {
 
     const aiAnalysis = await generateAIAnalysis(quote, indicators, signal, competitors, newsForAI);
 
+    const redFlags = detectRedFlags(history, indicators, quote);
+    const riskScore = calculateRiskScore(indicators, quote, redFlags);
+
     const newsSentimentBreakdown = finnhubNews.length > 0
       ? analyzeSentimentFromNews(finnhubNews)
       : null;
@@ -56,10 +60,13 @@ export async function GET(request: NextRequest) {
       signal,
       competitors,
       aiAnalysis,
+      redFlags,
+      riskScore,
       news: newsForAI,
       analystRecommendations: analystRecs,
       finnhubSentiment,
       newsSentimentBreakdown,
+      analyzedAt: new Date().toISOString(),
       dataSources: {
         quotes: process.env.FMP_API_KEY ? "FMP Live" : "Yahoo Finance",
         news: finnhubNews.length > 0 ? "Finnhub Live" : "Generated",
