@@ -9,6 +9,8 @@
     "build": "npm run build -w stock-analysis",
     "start": "npm run start -w stock-analysis",
     "lint": "npm run lint -w stock-analysis",
-    "vercel-build": "npm run build -w stock-analysis"
+    "vercel-build": "npm run build -w stock-analysis",
+    "clean": "rm -rf node_modules stock-analysis/node_modules stock-analysis/.next .vercel",
+    "reinstall": "npm run clean && npm install"
   }
 }

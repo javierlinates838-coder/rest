@@ -22,3 +22,31 @@ export async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> 
 
   return data as T;
 }
+
+export interface QuoteSummary {
+  quote: {
+    name: string;
+    price: number;
+    changePercent: number;
+  };
+  signal?: {
+    signal: string;
+    confidence: number;
+  };
+}
+
+export function hasQuotePayload(data: unknown): data is QuoteSummary {
+  if (!data || typeof data !== "object") return false;
+  const q = (data as QuoteSummary).quote;
+  return Boolean(q && typeof q.price === "number");
+}
+
+export async function fetchQuoteSummary(symbol: string): Promise<QuoteSummary> {
+  const data = await fetchJson<QuoteSummary>(
+    `/api/analyze?symbol=${encodeURIComponent(symbol)}`
+  );
+  if (!hasQuotePayload(data)) {
+    throw new ApiError("Invalid quote data from server", 502);
+  }
+  return data;
+}

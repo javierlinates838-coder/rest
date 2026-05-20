@@ -248,8 +248,9 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
     let cancelled = false;
     const tick = async () => {
       try {
-        const res = await fetch(`/api/stock?symbol=${symbol}&period=1m`);
-        const fresh = await res.json();
+        const fresh = await fetchJson<{ quote?: { price: number; change: number; changePercent: number } }>(
+          `/api/stock?symbol=${encodeURIComponent(symbol)}&period=1m`
+        );
         if (!cancelled && fresh?.quote) {
           setLivePrice({
             price: fresh.quote.price,

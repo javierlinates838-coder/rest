@@ -49,7 +49,7 @@ Confirm. Vercel should detect:
 | Framework      | Next.js            |
 | Build Command  | `npm run build`    |
 | Output         | (automatic)        |
-| Install Command| `npm install`      |
+| Install Command| *(default — leave empty so Vercel uses workspace root)* |
 
 Leave **Node.js Version** on the default (18.x or 20.x both work).
 
@@ -151,7 +151,7 @@ Env vars are baked in at **build/runtime** per deployment:
 
 ```bash
 npm i -g vercel
-cd stock-analysis
+cd /path/to/rest   # repo root
 vercel login
 vercel        # first time: link project, set root if prompted
 vercel --prod # production deploy

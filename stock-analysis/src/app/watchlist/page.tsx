@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { formatCurrency, formatPercent, getSignalColor, getSignalBg } from "@/lib/utils";
+import { fetchQuoteSummary } from "@/lib/fetch-json";
 
 interface WatchlistItem {
   symbol: string;
@@ -32,8 +33,7 @@ export default function WatchlistPage() {
     const items: WatchlistItem[] = [];
     for (const sym of symbols) {
       try {
-        const res = await fetch(`/api/analyze?symbol=${sym}`);
-        const data = await res.json();
+        const data = await fetchQuoteSummary(sym);
         items.push({
           symbol: sym,
           name: data.quote?.name || sym,
@@ -69,8 +69,7 @@ export default function WatchlistPage() {
       for (const sym of symbols) {
         if (cancelled) return;
         try {
-          const res = await fetch(`/api/analyze?symbol=${sym}`);
-          const data = await res.json();
+          const data = await fetchQuoteSummary(sym);
           items.push({
             symbol: sym,
             name: data.quote?.name || sym,

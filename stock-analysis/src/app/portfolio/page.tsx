@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { formatCurrency, formatPercent, getSignalColor, getSignalBg } from "@/lib/utils";
+import { fetchQuoteSummary } from "@/lib/fetch-json";
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -50,9 +51,8 @@ export default function PortfolioPage() {
       for (const item of portfolio) {
         if (cancelled) return;
         try {
-          const res = await fetch(`/api/analyze?symbol=${item.symbol}`);
-          const data = await res.json();
-          const currentPrice = data.quote?.price || item.avgCost;
+          const data = await fetchQuoteSummary(item.symbol);
+          const currentPrice = data.quote.price || item.avgCost;
           const totalValue = currentPrice * item.shares;
           const totalCost = item.avgCost * item.shares;
           holdingData.push({

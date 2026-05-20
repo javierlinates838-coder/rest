@@ -55,11 +55,11 @@ An AI-powered stock analysis platform built with Next.js, featuring deep researc
 ### Installation
 
 ```bash
-# From repo root (recommended)
+# Always from repo root (workspace) — do not npm install inside stock-analysis/
 npm install
 
-# Or from the app folder
-cd stock-analysis && npm install
+# If dependencies act broken or you see duplicate node_modules:
+npm run reinstall
 ```
 
 ### Environment Variables

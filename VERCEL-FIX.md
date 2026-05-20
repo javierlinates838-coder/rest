@@ -1,60 +1,42 @@
-# Vercel — auto-detect & deploy StockPulse AI
+# Vercel — deploy StockPulse AI
 
-## If Vercel shows “Other” or won’t detect Next.js
+## Project layout (do not mix old setups)
 
-The app lives in **`stock-analysis/`**. Use **one** of these setups:
+| Use | Do not use |
+|-----|------------|
+| Root `package.json` + **one** `package-lock.json` at repo root | Second lockfile in `stock-analysis/` |
+| `npm install` from **repo root** only | `cd stock-analysis && npm install` (creates duplicate `node_modules`) |
+| Vercel **Root Directory** = `stock-analysis` | Root Directory `.` without monorepo config |
+| Env vars in Vercel dashboard | Committed `.env.local` |
 
-### Option A — Recommended (auto on re-import)
+## Import / configure
 
 1. [vercel.com/new](https://vercel.com/new) → import **`javierlinates838-coder/rest`**
-2. On **Configure Project**, click **Edit** next to **Root Directory**
-3. Select **`stock-analysis`** (it should appear in the list now that the repo has a root workspace)
-4. Framework should show **Next.js** automatically
-5. Leave **Output Directory** empty
-6. Add env vars (see below) → **Deploy**
-
-### Option B — Deploy from repo root (no Root Directory change)
-
-If Root Directory is **`.`** (repo root), the root `vercel.json` runs:
-
-- `npm install` (workspace)
-- `npm run vercel-build` → builds `stock-analysis`
-
-Use this only if you cannot set Root Directory to `stock-analysis`.
-
-## Environment variables
-
-Add for **Production**, **Preview**, and **Development**:
-
-| Name | Required |
-|------|----------|
-| `GEMINI_API_KEY` | Yes (AI analysis) |
-| `FMP_API_KEY` | Yes (quotes/fundamentals) |
-| `FINNHUB_API_KEY` | Yes (news/sentiment) |
-
-## Already have a broken Vercel project?
-
-1. **Settings** → **Build and Deployment**
-2. **Root Directory** → `stock-analysis` (or `.` with Option B)
+2. **Root Directory** → **`stock-analysis`** (Edit → pick from list)
 3. **Framework** → Next.js
-4. **Output Directory** → *(empty)*
-5. **Deployments** → **Redeploy** → clear build cache
+4. **Output Directory** → leave **empty**
+5. **Install Command** → leave **default** (Vercel installs from workspace root)
+6. Environment variables (Production + Preview + Development):
+   - `GEMINI_API_KEY`
+   - `FMP_API_KEY`
+   - `FINNHUB_API_KEY`
+7. Deploy (clear build cache if a previous deploy failed)
 
-## Success looks like
+## Broken project already linked?
 
-Build log includes:
-
-- `stock-analysis@0.1.0 build`
-- `next build`
-- No `.next was not found` error
+1. Settings → Build and Deployment  
+2. Root Directory = `stock-analysis`  
+3. Remove any custom **Output Directory** override  
+4. Redeploy with **Clear cache**
 
 ## Local dev
 
 ```bash
-# From repo root (workspace)
-npm install
+# From repo root only
+npm run reinstall   # first time or after weird errors
 npm run dev
-
-# Or from app folder
-cd stock-analysis && npm install && npm run dev
 ```
+
+## Success
+
+Build log shows `stock-analysis@0.1.0 build` and `next build` with no `.next was not found` error.
