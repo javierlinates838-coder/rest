@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { fetchStockQuote, fetchHistoricalData } from "@/services/stock-data";
+import { fetchStockQuote, fetchHistoricalWithSource } from "@/services/stock-data";
 
 export async function GET(request: NextRequest) {
   const symbol = request.nextUrl.searchParams.get("symbol");
@@ -10,12 +10,14 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const [quote, history] = await Promise.all([
-      fetchStockQuote(symbol),
-      fetchHistoricalData(symbol, period),
-    ]);
+    const quote = await fetchStockQuote(symbol);
+    const { history, source: historySource } = await fetchHistoricalWithSource(
+      symbol,
+      period,
+      quote.price
+    );
 
-    return NextResponse.json({ quote, history });
+    return NextResponse.json({ quote, history, historySource });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Failed to fetch stock data";
     return NextResponse.json({ error: message }, { status: 500 });

@@ -1,6 +1,9 @@
 import type { PriceData } from "@/lib/technical-analysis";
+import { createSeededRandom } from "@/lib/seeded-random";
 import { fmpFetchQuote, fmpFetchProfile, fmpFetchHistorical, fmpFetchPeers, fmpFetchFinancials, type FMPFinancials } from "./fmp-api";
 import { finnhubFetchQuote, finnhubFetchPeers, finnhubFetchBasicFinancials } from "./finnhub-api";
+
+export type PriceHistorySource = "fmp" | "yahoo" | "simulated";
 
 export interface StockQuote {
   symbol: string;
@@ -187,14 +190,18 @@ export async function fetchStockQuote(symbol: string): Promise<StockQuote> {
   }
 }
 
-export async function fetchHistoricalData(symbol: string, period: string = "1y"): Promise<PriceData[]> {
+export async function fetchHistoricalWithSource(
+  symbol: string,
+  period: string = "1y",
+  anchorPrice?: number
+): Promise<{ history: PriceData[]; source: PriceHistorySource }> {
   const upperSymbol = symbol.toUpperCase();
 
-  // Strategy 1: FMP
   const fmpData = await fmpFetchHistorical(upperSymbol, period);
-  if (fmpData.length > 0) return fmpData;
+  if (fmpData.length > 0) {
+    return { history: alignHistoryToPrice(fmpData, anchorPrice), source: "fmp" };
+  }
 
-  // Strategy 2: Yahoo Finance
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const yahooFinance = (await import("yahoo-finance2")).default as any;
@@ -209,16 +216,50 @@ export async function fetchHistoricalData(symbol: string, period: string = "1y")
     const config = periodMap[period] || periodMap["1y"];
     const result = await yahooFinance.chart(upperSymbol, { period1: config.period1, interval: config.interval });
     if (result?.quotes) {
-      return result.quotes
+      const yahoo = result.quotes
         .filter((q: { close: number | null }) => q.close !== null)
         .map((q: { date: Date; open: number; high: number; low: number; close: number; volume: number }) => ({
           date: new Date(q.date).toISOString().split("T")[0],
           open: q.open, high: q.high, low: q.low, close: q.close, volume: q.volume,
         }));
+      if (yahoo.length > 0) {
+        return { history: alignHistoryToPrice(yahoo, anchorPrice), source: "yahoo" };
+      }
     }
   } catch { /* fall through */ }
 
-  return generateMockHistoricalData(upperSymbol, period);
+  return {
+    history: generateMockHistoricalData(upperSymbol, period, anchorPrice),
+    source: "simulated",
+  };
+}
+
+export async function fetchHistoricalData(
+  symbol: string,
+  period: string = "1y",
+  anchorPrice?: number
+): Promise<PriceData[]> {
+  const { history } = await fetchHistoricalWithSource(symbol, period, anchorPrice);
+  return history;
+}
+
+/** Nudge the last candle toward the live quote so the chart matches the header price. */
+function alignHistoryToPrice(history: PriceData[], anchorPrice?: number): PriceData[] {
+  if (!anchorPrice || anchorPrice <= 0 || history.length === 0) return history;
+  const last = history[history.length - 1];
+  const lastClose = last.close;
+  if (!lastClose || lastClose <= 0) return history;
+  const ratio = anchorPrice / lastClose;
+  if (ratio < 0.85 || ratio > 1.15) return history;
+  return history.map((bar, i) => {
+    if (i !== history.length - 1) return bar;
+    return {
+      ...bar,
+      close: anchorPrice,
+      high: Math.max(bar.high, anchorPrice),
+      low: Math.min(bar.low, anchorPrice),
+    };
+  });
 }
 
 export async function fetchCompetitors(symbol: string): Promise<CompetitorData[]> {
@@ -273,55 +314,61 @@ export async function fetchCompetitors(symbol: string): Promise<CompetitorData[]
 }
 
 function generateMockQuote(symbol: string, name: string, sector: string): StockQuote {
+  const rand = createSeededRandom(`quote-${symbol}`);
   const basePrice = hashStringToRange(symbol, 50, 500);
-  const change = (Math.random() - 0.5) * 10;
+  const change = (rand() - 0.5) * 10;
   return {
     symbol, name, sector,
     price: basePrice, change,
     changePercent: (change / basePrice) * 100,
-    volume: Math.floor(Math.random() * 50000000) + 1000000,
-    avgVolume: Math.floor(Math.random() * 30000000) + 5000000,
-    marketCap: basePrice * (Math.random() * 5e9 + 1e9),
-    peRatio: Math.random() * 40 + 5,
-    eps: basePrice / (Math.random() * 40 + 5),
+    volume: Math.floor(rand() * 50000000) + 1000000,
+    avgVolume: Math.floor(rand() * 30000000) + 5000000,
+    marketCap: basePrice * (rand() * 5e9 + 1e9),
+    peRatio: rand() * 40 + 5,
+    eps: basePrice / (rand() * 40 + 5),
     high52: basePrice * 1.3, low52: basePrice * 0.7,
     dayHigh: basePrice * 1.02, dayLow: basePrice * 0.98,
-    open: basePrice * (1 + (Math.random() - 0.5) * 0.02),
+    open: basePrice * (1 + (rand() - 0.5) * 0.02),
     previousClose: basePrice - change,
-    dividendYield: Math.random() * 3, beta: 0.5 + Math.random() * 1.5,
+    dividendYield: rand() * 3, beta: 0.5 + rand() * 1.5,
     industry: "Technology", exchange: "NASDAQ",
     description: `${name} is a leading company in the ${sector} sector.`,
   };
 }
 
 function generateMockCompetitor(symbol: string): CompetitorData {
+  const rand = createSeededRandom(`comp-${symbol}`);
   const basePrice = hashStringToRange(symbol, 50, 400);
   return {
     symbol, name: POPULAR_STOCKS[symbol]?.name || symbol,
     price: basePrice, marketCap: basePrice * 5e9,
-    peRatio: Math.random() * 35 + 8,
-    changePercent: (Math.random() - 0.5) * 6,
+    peRatio: rand() * 35 + 8,
+    changePercent: (rand() - 0.5) * 6,
     revenue: basePrice * 5e9 * 0.15,
     sector: POPULAR_STOCKS[symbol]?.sector || "Technology",
   };
 }
 
-function generateMockHistoricalData(symbol: string, period: string): PriceData[] {
+function generateMockHistoricalData(symbol: string, period: string, anchorPrice?: number): PriceData[] {
   const days = period === "1m" ? 30 : period === "3m" ? 90 : period === "6m" ? 180 : period === "2y" ? 104 : period === "5y" ? 260 : 252;
-  const basePrice = hashStringToRange(symbol, 80, 300);
+  const rand = createSeededRandom(`hist-${symbol}-${period}`);
+  const basePrice =
+    anchorPrice && anchorPrice > 0 ? anchorPrice : hashStringToRange(symbol, 80, 300);
   const data: PriceData[] = [];
-  let price = basePrice;
+  let price = basePrice * (0.92 + rand() * 0.08);
   for (let i = days; i >= 0; i--) {
     const date = new Date(Date.now() - i * 86400000);
-    const change = (Math.random() - 0.48) * (price * 0.03);
+    const change = (rand() - 0.48) * (price * 0.03);
     price = Math.max(price + change, 10);
+    const isLast = i === 0;
+    const close = isLast && anchorPrice && anchorPrice > 0 ? anchorPrice : price;
     data.push({
       date: date.toISOString().split("T")[0],
-      open: price + (Math.random() - 0.5) * 2,
-      high: price * (1 + Math.random() * 0.02),
-      low: price * (1 - Math.random() * 0.02),
-      close: price,
-      volume: Math.floor(Math.random() * 50000000) + 5000000,
+      open: close + (rand() - 0.5) * 2,
+      high: close * (1 + rand() * 0.02),
+      low: close * (1 - rand() * 0.02),
+      close,
+      volume: Math.floor(rand() * 50000000) + 5000000,
     });
   }
   return data;

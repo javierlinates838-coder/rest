@@ -748,7 +748,14 @@ export function StickyMiniHeader({ symbol, name, price, change, changePercent, v
   symbol: string; name: string; price: number; change: number; changePercent: number; visible: boolean;
 }) {
   return (
-    <div className={`fixed top-14 sm:top-[60px] left-0 right-0 z-30 glass-card border-b border-white/[0.04] transition-all duration-300 ${visible ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0"}`}>
+    <div
+      aria-hidden={!visible}
+      className={`fixed top-14 sm:top-[60px] left-0 right-0 z-30 glass-card border-b border-white/[0.04] transition-all duration-300 ${
+        visible
+          ? "translate-y-0 opacity-100 pointer-events-auto"
+          : "-translate-y-full opacity-0 pointer-events-none"
+      }`}
+    >
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10 py-2.5 flex flex-wrap items-center gap-3 sm:gap-6">
         <div className="flex items-center gap-3">
           <span className="text-[15px] font-semibold text-white tracking-tight">{symbol}</span>

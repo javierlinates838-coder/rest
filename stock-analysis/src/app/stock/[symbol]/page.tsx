@@ -62,7 +62,7 @@ interface AnalysisData {
     strongBuy: number; strongSell: number; period: string;
   }[];
   news: { title: string; sentiment: string }[];
-  dataSources?: { quotes: string; news: string; ai: string };
+  dataSources?: { quotes: string; chart?: string; news: string; ai: string; tradingPlan?: string; institutional?: string; keyEvents?: string };
   analyzedAt?: string;
   redFlags?: {
     id: string;
@@ -149,9 +149,28 @@ export default function StockPage() {
   const [livePrice, setLivePrice] = useState<{ price: number; change: number; changePercent: number } | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [chartSource, setChartSource] = useState<"fmp" | "yahoo" | "simulated" | "unknown">("unknown");
+  const [newsSource, setNewsSource] = useState<string | null>(null);
   const heroRef = useRef<HTMLDivElement>(null);
   const skipPeriodFetchRef = useRef(true);
   const clientNow = useClientNow();
+
+  const goBack = () => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+    } else {
+      router.push("/");
+    }
+  };
+
+  const chartSourceLabel =
+    chartSource === "fmp"
+      ? "Live · FMP"
+      : chartSource === "yahoo"
+        ? "Live · Yahoo Finance"
+        : chartSource === "simulated"
+          ? "Simulated — add FMP_API_KEY for real prices"
+          : null;
 
   // Full analysis load when symbol changes (not on chart period change)
   useEffect(() => {
@@ -161,6 +180,8 @@ export default function StockPage() {
       setData(null);
       setHistory([]);
       setNewsItems([]);
+      setChartSource("unknown");
+      setNewsSource(null);
       setLoading(true);
     });
     skipPeriodFetchRef.current = true;
@@ -169,11 +190,16 @@ export default function StockPage() {
       try {
         const encoded = encodeURIComponent(symbol);
 
-        // Analysis is required; stock history and news are best-effort (must not block the page)
-        const analysisData = await fetchJsonWithTimeout<AnalysisData>(
-          `/api/analyze?symbol=${encoded}`,
-          55000
-        );
+        const [analysisData, stockData, newsData] = await Promise.all([
+          fetchJsonWithTimeout<AnalysisData>(`/api/analyze?symbol=${encoded}`, 55000),
+          fetchJson<{ history?: HistoryPoint[]; historySource?: string }>(
+            `/api/stock?symbol=${encoded}&period=${period}`
+          ).catch(() => ({ history: [], historySource: "unknown" })),
+          fetchJson<{ news?: typeof newsItems; source?: string }>(`/api/news?symbol=${encoded}`).catch(() => ({
+            news: [],
+            source: "unknown",
+          })),
+        ]);
         if (cancelled) return;
 
         const parsed = parseAnalysis(analysisData);
@@ -181,25 +207,22 @@ export default function StockPage() {
           throw new Error("Incomplete analysis data from server. Check API keys on Vercel (FMP, Finnhub, Gemini).");
         }
         setData(parsed);
-        setHistory(
+
+        const stockHistory = stockData.history?.length ? stockData.history : [];
+        const analysisHistory =
           Array.isArray(analysisData.history) && analysisData.history.length > 0
             ? (analysisData.history as HistoryPoint[])
-            : []
-        );
+            : [];
+        setHistory(stockHistory.length > 0 ? stockHistory : analysisHistory);
 
-        void fetchJson<{ history?: HistoryPoint[] }>(
-          `/api/stock?symbol=${encoded}&period=${period}`
-        )
-          .then((stockData) => {
-            if (!cancelled && stockData.history?.length) setHistory(stockData.history);
-          })
-          .catch((e) => console.warn("Chart history refresh failed:", e));
+        const src = stockData.historySource || analysisData.dataSources?.chart;
+        if (stockData.historySource === "fmp" || src === "FMP Live") setChartSource("fmp");
+        else if (stockData.historySource === "yahoo" || src === "Yahoo Finance") setChartSource("yahoo");
+        else if (stockData.historySource === "simulated" || src?.includes("Simulated")) setChartSource("simulated");
+        else if (stockHistory.length > 0 || analysisHistory.length > 0) setChartSource("unknown");
 
-        void fetchJson<{ news?: typeof newsItems }>(`/api/news?symbol=${encoded}`)
-          .then((newsData) => {
-            if (!cancelled && newsData.news?.length) setNewsItems(newsData.news);
-          })
-          .catch((e) => console.warn("News fetch failed:", e));
+        if (newsData.news?.length) setNewsItems(newsData.news);
+        setNewsSource(newsData.source || null);
       } catch (e) {
         if (!cancelled) {
           const message =
@@ -235,11 +258,14 @@ export default function StockPage() {
 
     (async () => {
       try {
-        const stockData = await fetchJson<{ history?: HistoryPoint[] }>(
+        const stockData = await fetchJson<{ history?: HistoryPoint[]; historySource?: string }>(
           `/api/stock?symbol=${encodeURIComponent(symbol)}&period=${period}`
         );
         if (!cancelled && stockData.history?.length) {
           setHistory(stockData.history);
+          if (stockData.historySource === "fmp") setChartSource("fmp");
+          else if (stockData.historySource === "yahoo") setChartSource("yahoo");
+          else if (stockData.historySource === "simulated") setChartSource("simulated");
         }
       } catch (e) {
         console.error("Failed to refresh chart:", e);
@@ -327,10 +353,10 @@ export default function StockPage() {
             </button>
             <button
               type="button"
-              onClick={() => router.push("/")}
+              onClick={goBack}
               className="px-6 py-2.5 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-zinc-200 text-sm font-medium transition-colors"
             >
-              Back to Dashboard
+              Go back
             </button>
           </div>
         </div>
@@ -421,7 +447,12 @@ export default function StockPage() {
       <div ref={heroRef} className="w-full min-w-0 space-y-5 mb-6 sm:mb-8">
         <div>
           <div className="flex items-center gap-3 mb-2 flex-wrap">
-            <button onClick={() => router.push("/")} className="text-zinc-500 hover:text-white transition-colors duration-200">
+            <button
+              type="button"
+              onClick={goBack}
+              aria-label="Go back"
+              className="relative z-10 flex items-center justify-center w-10 h-10 -ml-1 rounded-lg text-zinc-500 hover:text-white hover:bg-white/5 transition-colors duration-200"
+            >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
               </svg>
@@ -570,6 +601,18 @@ export default function StockPage() {
       </div>
 
       {/* Analyst Recommendations (if available) */}
+      {activeTab === "overview" && (chartSource === "simulated" || newsSource === "generated") && (
+        <div className="glass-card rounded-xl px-4 py-3 mb-6 border border-amber-500/20 bg-amber-500/5 text-[12px] text-amber-200/90 leading-relaxed">
+          {chartSource === "simulated" && (
+            <span>Price charts are simulated without a live market data key. </span>
+          )}
+          {newsSource === "generated" && (
+            <span>News headlines are template-based until Finnhub returns live articles. </span>
+          )}
+          Trading plan, institutional holdings, and key events are model estimates — not SEC filings.
+        </div>
+      )}
+
       {activeTab === "overview" && analystRecommendations && analystRecommendations.length > 0 && (
         <div className="glass-card rounded-2xl p-4 sm:p-6 mb-6 glow-border">
           <h3 className="text-[15px] font-semibold text-white mb-4 tracking-tight">Wall Street Analyst Consensus</h3>
@@ -609,12 +652,19 @@ export default function StockPage() {
           {/* Price Chart */}
           <div className="glass-card rounded-xl p-6">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold text-white">
-                Price Chart
-                {historyLoading && (
-                  <span className="ml-2 text-[10px] font-normal text-zinc-500">Updating…</span>
+              <div>
+                <h3 className="text-lg font-bold text-white">
+                  Price Chart
+                  {historyLoading && (
+                    <span className="ml-2 text-[10px] font-normal text-zinc-500">Updating…</span>
+                  )}
+                </h3>
+                {chartSourceLabel && (
+                  <p className={`text-[10px] mt-1 ${chartSource === "simulated" ? "text-amber-400/90" : "text-zinc-500"}`}>
+                    {chartSourceLabel}
+                  </p>
                 )}
-              </h3>
+              </div>
               <div className="flex gap-1 bg-zinc-800/50 p-1 rounded-lg">
                 {["1m", "3m", "6m", "1y", "2y", "5y"].map((p) => (
                   <button
@@ -635,9 +685,9 @@ export default function StockPage() {
             <ClientOnly fallback={<div className="h-[280px] rounded-xl bg-zinc-800/40 animate-pulse" />}>
             <div className="w-full min-h-[280px]" style={{ minWidth: 0 }}>
             <ResponsiveContainer width="100%" height={280}>
-              <AreaChart data={chartData}>
+              <AreaChart key={`${quote.symbol}-${period}`} data={chartData}>
                 <defs>
-                  <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id={`priceGradient-${quote.symbol}`} x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
                     <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
                   </linearGradient>
@@ -650,7 +700,7 @@ export default function StockPage() {
                   labelStyle={{ color: "#a1a1aa" }}
                   formatter={(value) => [formatCurrency(Number(value)), ""]}
                 />
-                <Area type="monotone" dataKey="price" stroke="#6366f1" fill="url(#priceGradient)" strokeWidth={2} name="Price" />
+                <Area type="monotone" dataKey="price" stroke="#6366f1" fill={`url(#priceGradient-${quote.symbol})`} strokeWidth={2} name="Price" />
                 {chartData.some((d) => d.sma20 > 0) && (
                   <Line type="monotone" dataKey="sma20" stroke="#22c55e" dot={false} strokeWidth={1} strokeDasharray="4 4" name="SMA 20" />
                 )}
@@ -672,7 +722,7 @@ export default function StockPage() {
             <ClientOnly fallback={<div className="h-[150px] rounded-xl bg-zinc-800/40 animate-pulse" />}>
               <div className="w-full min-h-[150px]" style={{ minWidth: 0 }}>
                 <ResponsiveContainer width="100%" height={150}>
-                  <BarChart data={chartData.slice(-60)}>
+                  <BarChart key={`vol-${quote.symbol}-${period}`} data={chartData.slice(-60)}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
                     <XAxis dataKey="date" stroke="#52525b" tick={{ fontSize: 10 }} tickFormatter={(v) => String(v).slice(5)} />
                     <YAxis stroke="#52525b" tick={{ fontSize: 10 }} tickFormatter={(v) => `${(Number(v) / 1e6).toFixed(0)}M`} />
@@ -1350,6 +1400,11 @@ export default function StockPage() {
 
         return (
           <div className="space-y-5 animate-fadeIn">
+            {newsSource === "generated" && (
+              <div className="glass-card rounded-xl px-4 py-3 border border-amber-500/20 bg-amber-500/5 text-[12px] text-amber-200/90">
+                News shown here is generated from templates (symbol name inserted). Connect FINNHUB_API_KEY for real headlines.
+              </div>
+            )}
             {/* News Hero / Sentiment Summary */}
             <div className="glass-card rounded-2xl p-6 glow-border">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

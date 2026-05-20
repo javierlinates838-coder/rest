@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { fetchStockQuote, fetchHistoricalData, fetchCompetitors } from "@/services/stock-data";
+import { fetchStockQuote, fetchHistoricalWithSource, fetchCompetitors } from "@/services/stock-data";
 import { computeAllIndicators, generateSignal } from "@/lib/technical-analysis";
 import { generateAIAnalysis } from "@/services/ai-analysis";
 import { detectRedFlags, calculateRiskScore } from "@/lib/red-flags";
@@ -20,10 +20,12 @@ export async function GET(request: NextRequest) {
   const upperSymbol = symbol.toUpperCase();
 
   try {
-    const [quote, history] = await Promise.all([
-      fetchStockQuote(upperSymbol),
-      fetchHistoricalData(upperSymbol, "1y"),
-    ]);
+    const quote = await fetchStockQuote(upperSymbol);
+    const { history, source: chartSource } = await fetchHistoricalWithSource(
+      upperSymbol,
+      "1y",
+      quote.price
+    );
 
     const [competitors, finnhubNews, analystRecs, finnhubSentiment] = await Promise.all([
       fetchCompetitors(upperSymbol).catch((e) => {
@@ -82,7 +84,7 @@ export async function GET(request: NextRequest) {
       keyEvents,
       institutional,
       priceAction,
-      history: history.slice(-30),
+      history,
       news: newsForAI,
       analystRecommendations: analystRecs,
       finnhubSentiment,
@@ -90,8 +92,17 @@ export async function GET(request: NextRequest) {
       analyzedAt: new Date().toISOString(),
       dataSources: {
         quotes: process.env.FMP_API_KEY ? "FMP Live" : "Yahoo Finance",
+        chart:
+          chartSource === "fmp"
+            ? "FMP Live"
+            : chartSource === "yahoo"
+              ? "Yahoo Finance"
+              : "Simulated (set FMP_API_KEY)",
         news: finnhubNews.length > 0 ? "Finnhub Live" : "Generated",
         ai: process.env.GEMINI_API_KEY ? "Google Gemini 2.0 Flash" : process.env.OPENAI_API_KEY ? "OpenAI GPT-4o-mini" : "Built-in Engine",
+        tradingPlan: "Model estimates",
+        institutional: "Model estimates",
+        keyEvents: "Estimated calendar",
       },
     });
 
