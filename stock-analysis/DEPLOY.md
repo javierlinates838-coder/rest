@@ -28,16 +28,17 @@ Never commit keys to git. Only set them in Vercel **Environment Variables**.
 
 Your Next.js app lives in the **`stock-analysis`** folder, not the repo root.
 
-On the import screen, open **Root Directory** → **Edit** → select or type:
+On the import screen, open **Root Directory** → **Edit** → type exactly:
 
 ```text
 stock-analysis
 ```
 
-**Can't select or change Root Directory?** Use either fix:
+**Required.** Do not leave Root Directory as `./` or empty — the build will fail with *".next was not found"*.
 
-1. **Type it manually** (not a file picker): Project → **Settings** → **Build and Deployment** → **Root Directory** → enter `stock-analysis` → **Save** → **Redeploy**.
-2. **Skip Root Directory entirely**: the repo root now has `package.json` + `vercel.json` that build `stock-analysis` for you. Import `rest`, leave Root Directory as `./`, add env vars, Deploy.
+If you don't see a folder picker, type `stock-analysis` manually in **Settings → Build and Deployment → Root Directory**.
+
+**Output Directory:** leave **empty** (automatic). Do not set `.next` yourself.
 
 Confirm. Vercel should detect:
 

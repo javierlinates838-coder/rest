@@ -86,7 +86,9 @@ npm start
 
 ### Deploy to Vercel
 
-See **[stock-analysis/DEPLOY.md](stock-analysis/DEPLOY.md)** for step-by-step hosting (root directory `stock-analysis`, API keys, custom domain, troubleshooting).
+**Root Directory must be `stock-analysis`** — see **[VERCEL-FIX.md](VERCEL-FIX.md)** if deploy fails with `.next not found`.
+
+Full guide: **[stock-analysis/DEPLOY.md](stock-analysis/DEPLOY.md)**
 
 ### Deploy to Netlify
 
