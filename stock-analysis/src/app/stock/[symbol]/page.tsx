@@ -230,7 +230,8 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
     })();
 
     return () => { cancelled = true; };
-  }, [period, symbol, loading, data]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only refetch on period change
+  }, [period]);
 
   useEffect(() => {
     function onScroll() {
