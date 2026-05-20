@@ -19,9 +19,16 @@
 
 html {
   overflow-x: hidden;
+  width: 100%;
+  max-width: 100%;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   background: var(--background);
   color: var(--foreground);
   font-family: "SF Pro Display", "SF Pro Text", -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -44,13 +51,15 @@ body {
 }
 
 .page-shell {
+  width: 100%;
   max-width: 1440px;
   margin-left: auto;
   margin-right: auto;
   padding-left: 1rem;
   padding-right: 1rem;
-  padding-top: 1.5rem;
+  padding-top: 1rem;
   padding-bottom: 1.5rem;
+  box-sizing: border-box;
 }
 
 @media (min-width: 640px) {
@@ -90,6 +99,33 @@ body {
 @media (max-width: 639px) {
   .glass-card:hover {
     transform: none;
+  }
+
+  .page-shell {
+    padding-left: 0.875rem;
+    padding-right: 0.875rem;
+  }
+
+  .data-source-tag {
+    font-size: 8px;
+    padding: 2px 6px;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobile-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 100%;
+  }
+
+  .mobile-card-full {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
   }
 }
 

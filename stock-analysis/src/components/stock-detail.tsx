@@ -431,7 +431,7 @@ export function InstitutionalCard({ data }: {
           <div className="bg-emerald-500/80" style={{ width: `${data.insiderOwnershipPercent}%` }} />
           <div className="bg-zinc-600/80" style={{ width: `${data.retailPercent}%` }} />
         </div>
-        <div className="grid grid-cols-3 mt-2 text-[10px]">
+        <div className="grid grid-cols-1 sm:grid-cols-3 mt-2 text-[10px]">
           <div className="flex items-center gap-1.5">
             <div className="w-2 h-2 bg-indigo-500 rounded-full" />
             <span className="text-zinc-400">Institutional</span>
@@ -451,7 +451,7 @@ export function InstitutionalCard({ data }: {
       </div>
 
       {/* Key metrics */}
-      <div className="grid grid-cols-3 gap-2 mb-5">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-5">
         <div className="bg-zinc-900/50 rounded-lg p-2.5">
           <div className="text-[9px] text-zinc-500 font-semibold tracking-wider uppercase">Short Interest</div>
           <div className={`text-[14px] font-semibold tracking-tight ${data.shortInterestPercent > 10 ? "text-red-400" : data.shortInterestPercent > 5 ? "text-amber-400" : "text-white"}`}>

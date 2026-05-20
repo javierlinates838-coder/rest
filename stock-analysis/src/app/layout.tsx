@@ -27,9 +27,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body className={`${inter.variable} antialiased min-h-screen overflow-x-hidden`}>
-        <div className="flex flex-col min-h-screen">
+    <html lang="en" className="dark w-full">
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+      </head>
+      <body className={`${inter.variable} antialiased min-h-screen w-full max-w-[100vw] overflow-x-hidden`}>
+        <div className="flex flex-col min-h-screen w-full min-w-0">
           <nav className="sticky top-0 z-50 glass-card border-b border-white/[0.04] safe-top">
             <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10">
               <div className="flex items-center justify-between h-14 sm:h-[60px] gap-3">
@@ -55,7 +58,7 @@ export default function RootLayout({
             </div>
           </nav>
 
-          <main className="flex-1 pb-safe">{children}</main>
+          <main className="flex-1 pb-safe w-full min-w-0 overflow-x-hidden">{children}</main>
 
           <footer className="border-t border-white/[0.04] py-5 safe-bottom">
             <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10">

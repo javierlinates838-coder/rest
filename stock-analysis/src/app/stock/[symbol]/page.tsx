@@ -114,6 +114,15 @@ interface HistoryPoint {
   close: number; volume: number;
 }
 
+function shortDataSource(label: string): string {
+  if (label.includes("Gemini")) return "Gemini AI";
+  if (label.includes("Finnhub")) return "Finnhub";
+  if (label.includes("FMP")) return "FMP";
+  if (label.includes("OpenAI")) return "OpenAI";
+  if (label.includes("Yahoo")) return "Yahoo";
+  return label.length > 14 ? `${label.slice(0, 14)}…` : label;
+}
+
 export default function StockPage({ params }: { params: Promise<{ symbol: string }> }) {
   const { symbol } = use(params);
   const router = useRouter();
@@ -277,7 +286,7 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
       <QuickActions symbol={quote.symbol} />
 
       {/* Header */}
-      <div ref={heroRef} className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-6 mb-8">
+      <div ref={heroRef} className="w-full min-w-0 space-y-5 mb-6 sm:mb-8">
         <div>
           <div className="flex items-center gap-3 mb-2 flex-wrap">
             <button onClick={() => router.push("/")} className="text-zinc-500 hover:text-white transition-colors duration-200">
@@ -291,9 +300,9 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
             <span className="px-2.5 py-0.5 text-[10px] font-medium bg-indigo-500/10 text-indigo-400 rounded-md tracking-wide">{quote.sector}</span>
           </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-end gap-2 sm:gap-4 sm:ml-8 flex-wrap">
+          <div className="flex flex-col sm:flex-row sm:items-end gap-2 sm:gap-4  flex-wrap">
             <div className="flex items-baseline gap-3">
-              <span className="text-3xl sm:text-[44px] font-semibold text-white tracking-tight tabular-nums">
+              <span className="text-4xl sm:text-[44px] font-semibold text-white tracking-tight tabular-nums">
                 <AnimatedNumber value={displayPrice} format={formatCurrency} />
               </span>
               <Sparkline data={recentPrices} color="auto" width={100} height={32} />
@@ -311,9 +320,9 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
             )}
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3 sm:ml-8 mt-3 flex-wrap">
+          <div className="flex items-center gap-2 sm:gap-3  mt-3 flex-wrap">
             {dataSources && Object.entries(dataSources).map(([k, v]) => (
-              <span key={k} className="data-source-tag">{v}</span>
+              <span key={k} className="data-source-tag">{shortDataSource(v)}</span>
             ))}
             <MarketSession />
             {analyzedAt && (
@@ -324,7 +333,7 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
           </div>
 
           {/* Day range + volume gauge */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:ml-8 mt-5 max-w-2xl w-full">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5 w-full lg:max-w-2xl">
             {quote.dayHigh > 0 && quote.dayLow > 0 && (
               <DayRangeSlider low={quote.dayLow} high={quote.dayHigh} current={quote.price} label="Day Range" />
             )}
@@ -337,7 +346,7 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
             {quote.previousClose > 0 && (
               <div>
                 <div className="text-[10px] text-zinc-500 font-semibold tracking-wider uppercase mb-1.5">Today vs Yesterday</div>
-                <div className="flex items-center gap-2 text-[11px]">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2 text-[11px]">
                   <span className="text-zinc-400">Open: <span className="text-white font-medium">{formatCurrency(quote.open)}</span></span>
                   <span className="text-zinc-600">·</span>
                   <span className="text-zinc-400">Prev: <span className="text-white font-medium">{formatCurrency(quote.previousClose)}</span></span>
@@ -354,12 +363,11 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
           </div>
         </div>
 
-        {/* Signal + Risk Badges */}
-        <div className="flex flex-col sm:flex-row lg:flex-col gap-3 w-full lg:items-stretch lg:items-end">
-          <div className="flex gap-3">
-          <div className={`px-7 py-5 rounded-2xl border ${getSignalBg(signal.signal)} text-center w-full sm:w-auto sm:min-w-[160px] lg:min-w-[200px] animate-scaleIn`}>
+        {/* Signal + Risk Badges — stacked on mobile */}
+        <div className="grid grid-cols-1 gap-3 w-full sm:grid-cols-2 lg:grid-cols-3">
+          <div className={`px-5 py-4 sm:px-7 sm:py-5 rounded-2xl border mobile-card-full ${getSignalBg(signal.signal)} text-center animate-scaleIn`}>
             <div className="text-[10px] text-zinc-400 font-semibold tracking-widest uppercase mb-1.5">AI Verdict</div>
-            <div className={`text-[26px] font-semibold tracking-tight ${getSignalColor(signal.signal)}`}>{signal.signal.toUpperCase()}</div>
+            <div className={`text-[22px] sm:text-[26px] font-semibold tracking-tight ${getSignalColor(signal.signal)}`}>{signal.signal.toUpperCase()}</div>
             <div className="text-[12px] text-zinc-400 mt-1 font-light">Confidence: {signal.confidence}%</div>
             <div className="w-full bg-zinc-800/50 rounded-full h-1.5 mt-2.5">
               <div
@@ -370,7 +378,7 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
           </div>
 
           {riskScore && (
-            <div className={`px-5 py-5 rounded-2xl border text-center w-full sm:w-auto sm:min-w-[100px] animate-scaleIn stagger-2 ${
+            <div className={`px-5 py-4 sm:px-7 sm:py-5 rounded-2xl border text-center mobile-card-full animate-scaleIn stagger-2 ${
               riskScore.grade === "A" ? "bg-emerald-500/5 border-emerald-500/20" :
               riskScore.grade === "B" ? "bg-green-500/5 border-green-500/20" :
               riskScore.grade === "C" ? "bg-yellow-500/5 border-yellow-500/20" :
@@ -378,7 +386,7 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
               "bg-red-500/5 border-red-500/20"
             }`}>
               <div className="text-[10px] text-zinc-400 font-semibold tracking-widest uppercase mb-1.5">Risk</div>
-              <div className={`text-[32px] font-bold tracking-tight ${
+              <div className={`text-[28px] sm:text-[32px] font-bold tracking-tight ${
                 riskScore.grade === "A" ? "text-emerald-400" :
                 riskScore.grade === "B" ? "text-green-400" :
                 riskScore.grade === "C" ? "text-yellow-400" :
@@ -388,11 +396,9 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
               <div className="text-[10px] text-zinc-500 mt-0.5">{riskScore.overall}/100</div>
             </div>
           )}
-          </div>
 
-          {/* Mini quote summary card */}
-          <div className="glass-card rounded-2xl p-4 w-full sm:w-auto sm:min-w-[160px] lg:min-w-[200px] animate-scaleIn stagger-3">
-            <div className="grid grid-cols-2 gap-2 text-[11px]">
+          <div className="glass-card rounded-2xl p-4 mobile-card-full animate-scaleIn stagger-3 sm:col-span-2 lg:col-span-1">
+            <div className="grid grid-cols-2 gap-3 text-[11px]">
               <div>
                 <div className="text-zinc-500 text-[9px] tracking-wider uppercase">Bid</div>
                 <div className="text-white font-medium">{formatCurrency(quote.price - 0.01)}</div>
@@ -553,7 +559,7 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
 
           {/* Company Description */}
           {quote.description && (
-            <div className="glass-card rounded-2xl p-6 animate-fadeInUp">
+            <div className="glass-card rounded-2xl p-4 sm:p-6 animate-fadeInUp">
               <h3 className="text-[14px] font-semibold text-white tracking-tight mb-2">About {quote.name}</h3>
               <p className="text-[12px] text-zinc-400 font-light leading-relaxed line-clamp-3">{quote.description}</p>
             </div>
@@ -754,7 +760,7 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
           {/* Price Targets */}
           <div className="glass-card rounded-xl p-6">
             <h3 className="text-lg font-bold text-white mb-4">Price Target Projections</h3>
-            <div className="grid grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4 mb-6">
               <div className="text-center p-4 bg-red-500/10 rounded-xl border border-red-500/20">
                 <div className="text-xs text-zinc-500 mb-1">Bear Case</div>
                 <div className="text-2xl font-bold text-red-400">{formatCurrency(aiAnalysis.priceTarget.low)}</div>
@@ -904,7 +910,7 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
               </div>
 
               {/* Risk Breakdown */}
-              <div className="grid grid-cols-5 gap-3">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5 sm:gap-3">
                 {[
                   { label: "Technical", value: riskScore.technical, Icon: IconTechnical },
                   { label: "Fundamental", value: riskScore.fundamental, Icon: IconFundamental },
