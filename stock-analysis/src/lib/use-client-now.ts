@@ -2,13 +2,25 @@
 
 import { useSyncExternalStore } from "react";
 
+/** Cached timestamp — must be stable between store notifications (React #185 if not). */
+let snapshot = 0;
+
 function subscribe(onStoreChange: () => void) {
-  const id = setInterval(onStoreChange, 60_000);
+  const tick = () => {
+    const next = Date.now();
+    if (next !== snapshot) {
+      snapshot = next;
+      onStoreChange();
+    }
+  };
+
+  tick();
+  const id = setInterval(tick, 60_000);
   return () => clearInterval(id);
 }
 
 function getSnapshot() {
-  return Date.now();
+  return snapshot;
 }
 
 function getServerSnapshot() {
