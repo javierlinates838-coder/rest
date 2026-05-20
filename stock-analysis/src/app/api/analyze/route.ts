@@ -20,13 +20,19 @@ export async function GET(request: NextRequest) {
   const upperSymbol = symbol.toUpperCase();
 
   try {
-    const [quote, history, competitors, finnhubNews, analystRecs, finnhubSentiment] = await Promise.all([
+    const [quote, history] = await Promise.all([
       fetchStockQuote(upperSymbol),
       fetchHistoricalData(upperSymbol, "1y"),
-      fetchCompetitors(upperSymbol),
-      finnhubFetchNews(upperSymbol),
-      finnhubFetchRecommendations(upperSymbol),
-      finnhubFetchSentiment(upperSymbol),
+    ]);
+
+    const [competitors, finnhubNews, analystRecs, finnhubSentiment] = await Promise.all([
+      fetchCompetitors(upperSymbol).catch((e) => {
+        console.error("Competitors fetch failed:", e);
+        return [];
+      }),
+      finnhubFetchNews(upperSymbol).catch(() => []),
+      finnhubFetchRecommendations(upperSymbol).catch(() => []),
+      finnhubFetchSentiment(upperSymbol).catch(() => null),
     ]);
 
     const priceHistory = history.length > 0 ? history : [{ date: new Date().toISOString().split("T")[0], open: quote.price, high: quote.price, low: quote.price, close: quote.price, volume: quote.volume || 0 }];

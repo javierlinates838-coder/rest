@@ -11,7 +11,8 @@ import {
   PolarAngleAxis, PolarRadiusAxis, Radar, Legend,
 } from "recharts";
 import { formatCurrency, formatLargeNumber, formatPercent, getSignalColor, getSignalBg } from "@/lib/utils";
-import { ApiError, fetchJson } from "@/lib/fetch-json";
+import { ApiError, fetchJson, fetchJsonWithTimeout } from "@/lib/fetch-json";
+import { ErrorBoundary } from "@/components/error-boundary";
 import { normalizeAnalysisPayload } from "@/lib/normalize-analysis";
 import {
   AnimatedNumber, Sparkline, DayRangeSlider, MarketSession, VolumeGauge,
@@ -167,19 +168,38 @@ export default function StockPage() {
     (async () => {
       try {
         const encoded = encodeURIComponent(symbol);
-        const [analysisData, stockData, newsData] = await Promise.all([
-          fetchJson<AnalysisData>(`/api/analyze?symbol=${encoded}`),
-          fetchJson<{ history?: HistoryPoint[] }>(`/api/stock?symbol=${encoded}&period=${period}`),
-          fetchJson<{ news?: typeof newsItems }>(`/api/news?symbol=${encoded}`),
-        ]);
+
+        // Analysis is required; stock history and news are best-effort (must not block the page)
+        const analysisData = await fetchJsonWithTimeout<AnalysisData>(
+          `/api/analyze?symbol=${encoded}`,
+          55000
+        );
         if (cancelled) return;
+
         const parsed = parseAnalysis(analysisData);
         if (!parsed) {
-          throw new Error("Incomplete analysis data from server");
+          throw new Error("Incomplete analysis data from server. Check API keys on Vercel (FMP, Finnhub, Gemini).");
         }
         setData(parsed);
-        setHistory(stockData.history?.length ? stockData.history : analysisData.history || []);
-        setNewsItems(newsData.news || []);
+        setHistory(
+          Array.isArray(analysisData.history) && analysisData.history.length > 0
+            ? (analysisData.history as HistoryPoint[])
+            : []
+        );
+
+        void fetchJson<{ history?: HistoryPoint[] }>(
+          `/api/stock?symbol=${encoded}&period=${period}`
+        )
+          .then((stockData) => {
+            if (!cancelled && stockData.history?.length) setHistory(stockData.history);
+          })
+          .catch((e) => console.warn("Chart history refresh failed:", e));
+
+        void fetchJson<{ news?: typeof newsItems }>(`/api/news?symbol=${encoded}`)
+          .then((newsData) => {
+            if (!cancelled && newsData.news?.length) setNewsItems(newsData.news);
+          })
+          .catch((e) => console.warn("News fetch failed:", e));
       } catch (e) {
         if (!cancelled) {
           const message =
@@ -365,6 +385,24 @@ export default function StockPage() {
   const recentPrices = (data.history || history.slice(-30)).map((h) => h.close);
 
   return (
+    <ErrorBoundary
+      fallback={(err, reset) => (
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
+          <div className="glass-card rounded-2xl p-10 max-w-lg mx-auto">
+            <h2 className="text-xl font-semibold text-white mb-3">This page could not load</h2>
+            <p className="text-sm text-zinc-400 mb-6">{err.message}</p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <button type="button" onClick={reset} className="px-6 py-2.5 bg-indigo-600 rounded-lg text-white text-sm">
+                Try again
+              </button>
+              <button type="button" onClick={() => router.push("/")} className="px-6 py-2.5 bg-zinc-800 rounded-lg text-zinc-200 text-sm">
+                Dashboard
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    >
     <div className="page-shell animate-fadeIn">
       {/* Sticky Mini Header */}
       <StickyMiniHeader
@@ -537,11 +575,11 @@ export default function StockPage() {
           <h3 className="text-[15px] font-semibold text-white mb-4 tracking-tight">Wall Street Analyst Consensus</h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 text-center">
             {[
-              { label: "Strong Buy", value: analystRecommendations[0].strongBuy, color: "text-emerald-400 bg-emerald-500/10" },
-              { label: "Buy", value: analystRecommendations[0].buy, color: "text-green-400 bg-green-500/10" },
-              { label: "Hold", value: analystRecommendations[0].hold, color: "text-yellow-400 bg-yellow-500/10" },
-              { label: "Sell", value: analystRecommendations[0].sell, color: "text-orange-400 bg-orange-500/10" },
-              { label: "Strong Sell", value: analystRecommendations[0].strongSell, color: "text-red-400 bg-red-500/10" },
+              { label: "Strong Buy", value: analystRecommendations[0]?.strongBuy ?? 0, color: "text-emerald-400 bg-emerald-500/10" },
+              { label: "Buy", value: analystRecommendations[0]?.buy ?? 0, color: "text-green-400 bg-green-500/10" },
+              { label: "Hold", value: analystRecommendations[0]?.hold ?? 0, color: "text-yellow-400 bg-yellow-500/10" },
+              { label: "Sell", value: analystRecommendations[0]?.sell ?? 0, color: "text-orange-400 bg-orange-500/10" },
+              { label: "Strong Sell", value: analystRecommendations[0]?.strongSell ?? 0, color: "text-red-400 bg-red-500/10" },
             ].map((rec) => (
               <div key={rec.label} className={`rounded-xl py-3 ${rec.color}`}>
                 <div className="text-[22px] font-semibold tracking-tight">{rec.value}</div>
@@ -549,7 +587,7 @@ export default function StockPage() {
               </div>
             ))}
           </div>
-          <div className="text-[10px] text-zinc-600 mt-3 text-right tracking-wide">Period: {analystRecommendations[0].period}</div>
+          <div className="text-[10px] text-zinc-600 mt-3 text-right tracking-wide">Period: {analystRecommendations[0]?.period ?? "—"}</div>
         </div>
       )}
 
@@ -1455,6 +1493,7 @@ export default function StockPage() {
         );
       })()}
     </div>
+    </ErrorBoundary>
   );
 }
 

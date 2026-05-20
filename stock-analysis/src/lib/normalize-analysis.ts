@@ -103,6 +103,39 @@ function normalizeKeyEvents(raw: unknown) {
   }));
 }
 
+function normalizeRiskScore(raw: unknown) {
+  const r = (raw && typeof raw === "object" ? raw : {}) as LooseRecord;
+  const overall = num(r.overall, 50);
+  let grade = str(r.grade, "C");
+  if (!["A", "B", "C", "D", "F"].includes(grade)) grade = "C";
+  return {
+    overall,
+    technical: num(r.technical, overall),
+    fundamental: num(r.fundamental, overall),
+    sentiment: num(r.sentiment, overall),
+    manipulation: num(r.manipulation, 10),
+    volatility: num(r.volatility, overall),
+    grade,
+    verdict: str(r.verdict, "Risk assessment based on available data"),
+  };
+}
+
+function resolveQuotePrice(quote: LooseRecord, raw: LooseRecord): number {
+  let price = num(quote.price, 0);
+  if (price > 0) return price;
+
+  price = num(quote.previousClose, 0);
+  if (price > 0) return price;
+
+  const history = arr<LooseRecord>(raw.history);
+  for (let i = history.length - 1; i >= 0; i--) {
+    const close = num(history[i].close, 0);
+    if (close > 0) return close;
+  }
+
+  return 0;
+}
+
 function normalizeRedFlags(raw: unknown) {
   return arr<LooseRecord>(raw).map((f, i) => ({
     id: str(f.id, `flag-${i}`),
@@ -138,7 +171,7 @@ export function normalizeAnalysisPayload(raw: any): any {
   const quote = raw.quote;
   if (!quote || !str(quote.symbol)) return null;
 
-  const price = num(quote.price, 0);
+  const price = resolveQuotePrice(quote as LooseRecord, raw as LooseRecord);
   if (price <= 0) return null;
 
   const indicators = raw.indicators || {};
@@ -250,7 +283,7 @@ export function normalizeAnalysisPayload(raw: any): any {
     keyEvents: normalizeKeyEvents(raw.keyEvents),
     institutional: normalizeInstitutional(raw.institutional),
     priceAction: normalizePriceAction(raw.priceAction),
-    riskScore: raw.riskScore || null,
+    riskScore: raw.riskScore ? normalizeRiskScore(raw.riskScore) : null,
     dataSources: raw.dataSources || {},
     analyzedAt: str(raw.analyzedAt, new Date().toISOString()),
     finnhubSentiment: raw.finnhubSentiment ?? null,

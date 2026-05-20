@@ -10,19 +10,49 @@ export class ApiError extends Error {
   }
 }
 
+function errorMessageFromBody(data: unknown, status: number): string {
+  if (typeof data === "object" && data !== null && "error" in data && typeof data.error === "string") {
+    return data.error;
+  }
+  return `Request failed (${status})`;
+}
+
 export async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, init);
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
-    const message =
-      typeof data === "object" && data !== null && "error" in data && typeof data.error === "string"
-        ? data.error
-        : `Request failed (${res.status})`;
-    throw new ApiError(message, res.status);
+    throw new ApiError(errorMessageFromBody(data, res.status), res.status);
+  }
+
+  if (typeof data === "object" && data !== null && "error" in data && typeof data.error === "string") {
+    throw new ApiError(data.error, res.status || 500);
   }
 
   return data as T;
+}
+
+/** Same as fetchJson but with an abort timeout (critical for slow /api/analyze on Vercel). */
+export async function fetchJsonWithTimeout<T>(
+  url: string,
+  timeoutMs = 55000,
+  init?: RequestInit
+): Promise<T> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetchJson<T>(url, { ...init, signal: controller.signal });
+  } catch (e) {
+    if (e instanceof DOMException && e.name === "AbortError") {
+      throw new ApiError(
+        "Analysis timed out. The server may be missing API keys or on a plan with a 10s limit — try again in a moment.",
+        504
+      );
+    }
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 export interface QuoteSummary {
