@@ -28,7 +28,8 @@ export async function GET(request: NextRequest) {
       finnhubFetchSentiment(upperSymbol),
     ]);
 
-    const indicators = computeAllIndicators(history);
+    const priceHistory = history.length > 0 ? history : [{ date: new Date().toISOString().split("T")[0], open: quote.price, high: quote.price, low: quote.price, close: quote.price, volume: quote.volume || 0 }];
+    const indicators = computeAllIndicators(priceHistory);
     const signal = generateSignal(indicators, quote.price);
 
     // Build news array for AI — prefer real Finnhub news
@@ -51,12 +52,12 @@ export async function GET(request: NextRequest) {
 
     const aiAnalysis = await generateAIAnalysis(quote, indicators, signal, competitors, newsForAI);
 
-    const redFlags = detectRedFlags(history, indicators, quote);
+    const redFlags = detectRedFlags(priceHistory, indicators, quote);
     const riskScore = calculateRiskScore(indicators, quote, redFlags);
-    const tradingPlan = generateTradingPlan(quote.price, indicators, signal, history, quote.beta);
+    const tradingPlan = generateTradingPlan(quote.price, indicators, signal, priceHistory, quote.beta);
     const keyEvents = generateKeyEvents(upperSymbol);
     const institutional = generateInstitutionalOwnership(upperSymbol, quote.marketCap);
-    const priceAction = generatePriceAction(history, indicators);
+    const priceAction = generatePriceAction(priceHistory, indicators);
 
     const newsSentimentBreakdown = finnhubNews.length > 0
       ? analyzeSentimentFromNews(finnhubNews)

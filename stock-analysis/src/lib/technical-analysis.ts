@@ -237,8 +237,41 @@ export function findSupportResistance(data: PriceData[]): {
   };
 }
 
+function defaultIndicators(price: number): TechnicalIndicators {
+  return {
+    sma20: price,
+    sma50: price,
+    sma200: price,
+    ema12: price,
+    ema26: price,
+    rsi: 50,
+    macd: { macd: 0, signal: 0, histogram: 0 },
+    bollingerBands: { upper: price * 1.02, middle: price, lower: price * 0.98 },
+    atr: price * 0.02,
+    stochastic: { k: 50, d: 50 },
+    adx: 25,
+    obv: [0],
+    vwap: price,
+    fibonacciLevels: [
+      { level: "0%", price: price * 0.9 },
+      { level: "100%", price: price * 1.1 },
+    ],
+    supportLevels: [price * 0.95],
+    resistanceLevels: [price * 1.05],
+  };
+}
+
 export function computeAllIndicators(data: PriceData[]): TechnicalIndicators {
+  if (data.length === 0) {
+    return defaultIndicators(0);
+  }
+
   const closes = data.map((d) => d.close);
+  const price = closes[closes.length - 1] || 0;
+  if (data.length < 2) {
+    return defaultIndicators(price);
+  }
+
   const highestHigh = Math.max(...data.map((d) => d.high));
   const lowestLow = Math.min(...data.map((d) => d.low));
   const sr = findSupportResistance(data);

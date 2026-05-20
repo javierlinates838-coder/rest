@@ -9,6 +9,7 @@ import {
   PolarAngleAxis, PolarRadiusAxis, Radar, Legend,
 } from "recharts";
 import { formatCurrency, formatLargeNumber, formatPercent, getSignalColor, getSignalBg } from "@/lib/utils";
+import { ApiError, fetchJson } from "@/lib/fetch-json";
 import {
   AnimatedNumber, Sparkline, DayRangeSlider, MarketSession, VolumeGauge,
   TradingPlanCard, KeyEventsCard, InstitutionalCard, PriceActionCard,
@@ -115,6 +116,17 @@ interface HistoryPoint {
   close: number; volume: number;
 }
 
+function isValidAnalysis(data: unknown): data is AnalysisData {
+  if (!data || typeof data !== "object") return false;
+  const d = data as AnalysisData;
+  return Boolean(
+    d.quote?.symbol &&
+    d.indicators &&
+    d.signal?.signal &&
+    d.aiAnalysis?.summary
+  );
+}
+
 function shortDataSource(label: string): string {
   if (label.includes("Gemini")) return "Gemini AI";
   if (label.includes("Finnhub")) return "Finnhub";
@@ -136,34 +148,89 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
   const [newsFilter, setNewsFilter] = useState("all");
   const [showStickyHeader, setShowStickyHeader] = useState(false);
   const [livePrice, setLivePrice] = useState<{ price: number; change: number; changePercent: number } | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const heroRef = useRef<HTMLDivElement>(null);
+  const skipPeriodFetchRef = useRef(true);
   const clientNow = useClientNow();
 
+  // Full analysis load when symbol changes (not on chart period change)
   useEffect(() => {
     let cancelled = false;
-    startTransition(() => setLoading(true));
+    startTransition(() => {
+      setLoadError(null);
+      setData(null);
+      setHistory([]);
+      setNewsItems([]);
+      setLoading(true);
+    });
+    skipPeriodFetchRef.current = true;
+
     (async () => {
       try {
-        const [analysisRes, stockRes, newsRes] = await Promise.all([
-          fetch(`/api/analyze?symbol=${symbol}`),
-          fetch(`/api/stock?symbol=${symbol}&period=${period}`),
-          fetch(`/api/news?symbol=${symbol}`),
+        const encoded = encodeURIComponent(symbol);
+        const [analysisData, stockData, newsData] = await Promise.all([
+          fetchJson<AnalysisData>(`/api/analyze?symbol=${encoded}`),
+          fetchJson<{ history?: HistoryPoint[] }>(`/api/stock?symbol=${encoded}&period=${period}`),
+          fetchJson<{ news?: typeof newsItems }>(`/api/news?symbol=${encoded}`),
         ]);
         if (cancelled) return;
-        const analysisData = await analysisRes.json();
-        const stockData = await stockRes.json();
-        const newsData = await newsRes.json();
+        if (!isValidAnalysis(analysisData)) {
+          throw new Error("Incomplete analysis data from server");
+        }
         setData(analysisData);
-        setHistory(stockData.history || []);
+        setHistory(stockData.history?.length ? stockData.history : analysisData.history || []);
         setNewsItems(newsData.news || []);
       } catch (e) {
-        console.error("Failed to fetch:", e);
+        if (!cancelled) {
+          const message =
+            e instanceof ApiError
+              ? e.message
+              : e instanceof Error
+                ? e.message
+                : "Failed to load stock data";
+          setLoadError(message);
+          setData(null);
+          console.error("Failed to fetch:", e);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
+
     return () => { cancelled = true; };
-  }, [symbol, period]);
+    // period intentionally omitted — chart period has its own effect
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [symbol]);
+
+  // Chart period change — only refetch price history (fast), not full AI analysis
+  useEffect(() => {
+    if (!symbol || loading || !data) return;
+    if (skipPeriodFetchRef.current) {
+      skipPeriodFetchRef.current = false;
+      return;
+    }
+
+    let cancelled = false;
+    setHistoryLoading(true);
+
+    (async () => {
+      try {
+        const stockData = await fetchJson<{ history?: HistoryPoint[] }>(
+          `/api/stock?symbol=${encodeURIComponent(symbol)}&period=${period}`
+        );
+        if (!cancelled && stockData.history?.length) {
+          setHistory(stockData.history);
+        }
+      } catch (e) {
+        console.error("Failed to refresh chart:", e);
+      } finally {
+        if (!cancelled) setHistoryLoading(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [period, symbol, loading, data]);
 
   useEffect(() => {
     function onScroll() {
@@ -221,10 +288,31 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
   if (!data) {
     return (
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
-        <h2 className="text-2xl font-bold text-white mb-4">Could not load data for {symbol}</h2>
-        <button onClick={() => router.push("/")} className="px-6 py-2 bg-indigo-600 rounded-lg text-white">
-          Back to Dashboard
-        </button>
+        <div className="glass-card rounded-2xl p-10 max-w-lg mx-auto">
+          <h2 className="text-xl sm:text-2xl font-semibold text-white mb-3">
+            Could not load {symbol}
+          </h2>
+          <p className="text-sm text-zinc-400 mb-6 leading-relaxed">
+            {loadError ||
+              "The analysis service did not return valid data. This often happens when API keys are missing on Vercel or the request timed out."}
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white text-sm font-medium transition-colors"
+            >
+              Try again
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push("/")}
+              className="px-6 py-2.5 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-zinc-200 text-sm font-medium transition-colors"
+            >
+              Back to Dashboard
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -264,7 +352,7 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
   const radarData = [
     { subject: "Momentum", value: Math.min(indicators.rsi, 100), fullMark: 100 },
     { subject: "Trend", value: Math.min(indicators.adx * 2, 100), fullMark: 100 },
-    { subject: "Volume", value: Math.min((quote.volume / quote.avgVolume) * 50, 100), fullMark: 100 },
+    { subject: "Volume", value: quote.avgVolume > 0 ? Math.min((quote.volume / quote.avgVolume) * 50, 100) : 50, fullMark: 100 },
     { subject: "Volatility", value: Math.min((indicators.atr / quote.price) * 2000, 100), fullMark: 100 },
     { subject: "Value", value: quote.peRatio > 0 ? Math.min(100 - (quote.peRatio / 50) * 100, 100) : 50, fullMark: 100 },
     { subject: "Sentiment", value: Math.max(Math.min(aiAnalysis.sentimentScore + 50, 100), 0), fullMark: 100 },
@@ -482,7 +570,12 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
           {/* Price Chart */}
           <div className="glass-card rounded-xl p-6">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold text-white">Price Chart</h3>
+              <h3 className="text-lg font-bold text-white">
+                Price Chart
+                {historyLoading && (
+                  <span className="ml-2 text-[10px] font-normal text-zinc-500">Updating…</span>
+                )}
+              </h3>
               <div className="flex gap-1 bg-zinc-800/50 p-1 rounded-lg">
                 {["1m", "3m", "6m", "1y", "2y", "5y"].map((p) => (
                   <button

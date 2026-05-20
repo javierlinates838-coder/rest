@@ -17,6 +17,17 @@ export interface AIAnalysis {
   sentimentScore: number;
 }
 
+const AI_TIMEOUT_MS = 8000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error("AI request timed out")), ms)
+    ),
+  ]);
+}
+
 export async function generateAIAnalysis(
   quote: StockQuote,
   indicators: TechnicalIndicators,
@@ -24,11 +35,16 @@ export async function generateAIAnalysis(
   competitors: CompetitorData[],
   news: { title: string; sentiment: string }[]
 ): Promise<AIAnalysis> {
-  // Try Gemini first, then OpenAI, then built-in
+  const fallback = () =>
+    generateBuiltInAnalysis(quote, indicators, signal, competitors, news);
+
   const geminiKey = process.env.GEMINI_API_KEY;
   if (geminiKey) {
     try {
-      return await callGeminiAnalysis(quote, indicators, signal, competitors, news, geminiKey);
+      return await withTimeout(
+        callGeminiAnalysis(quote, indicators, signal, competitors, news, geminiKey),
+        AI_TIMEOUT_MS
+      );
     } catch (e) {
       console.error("Gemini API failed, trying fallback:", e);
     }
@@ -37,13 +53,16 @@ export async function generateAIAnalysis(
   const openaiKey = process.env.OPENAI_API_KEY;
   if (openaiKey) {
     try {
-      return await callOpenAIAnalysis(quote, indicators, signal, competitors, news, openaiKey);
+      return await withTimeout(
+        callOpenAIAnalysis(quote, indicators, signal, competitors, news, openaiKey),
+        AI_TIMEOUT_MS
+      );
     } catch (e) {
       console.error("OpenAI API failed, using built-in:", e);
     }
   }
 
-  return generateBuiltInAnalysis(quote, indicators, signal, competitors, news);
+  return fallback();
 }
 
 function buildAnalysisPrompt(
