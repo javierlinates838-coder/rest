@@ -183,7 +183,7 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
 
   if (loading) {
     return (
-      <div className="max-w-[1440px] mx-auto px-6 lg:px-10 py-8">
+      <div className="page-shell">
         <div className="space-y-6">
           <div className="flex justify-between items-end">
             <div>
@@ -262,7 +262,7 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
   const recentPrices = (data.history || history.slice(-30)).map((h) => h.close);
 
   return (
-    <div className="max-w-[1440px] mx-auto px-6 lg:px-10 py-8 animate-fadeIn">
+    <div className="page-shell animate-fadeIn">
       {/* Sticky Mini Header */}
       <StickyMiniHeader
         symbol={quote.symbol}
@@ -285,15 +285,15 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
-            <h1 className="text-[32px] font-semibold text-white tracking-tight">{quote.symbol}</h1>
-            <span className="text-zinc-400 text-[16px] font-light tracking-tight">{quote.name}</span>
+            <h1 className="text-2xl sm:text-[32px] font-semibold text-white tracking-tight">{quote.symbol}</h1>
+            <span className="text-zinc-400 text-sm sm:text-[16px] hidden sm:inline font-light tracking-tight max-w-[140px] truncate">{quote.name}</span>
             <span className="px-2.5 py-0.5 text-[10px] font-semibold bg-zinc-800/60 text-zinc-500 rounded-md tracking-wider uppercase">{quote.exchange}</span>
             <span className="px-2.5 py-0.5 text-[10px] font-medium bg-indigo-500/10 text-indigo-400 rounded-md tracking-wide">{quote.sector}</span>
           </div>
 
-          <div className="flex items-end gap-4 ml-8 flex-wrap">
+          <div className="flex flex-col sm:flex-row sm:items-end gap-2 sm:gap-4 sm:ml-8 flex-wrap">
             <div className="flex items-baseline gap-3">
-              <span className="text-[44px] font-semibold text-white tracking-tight tabular-nums">
+              <span className="text-3xl sm:text-[44px] font-semibold text-white tracking-tight tabular-nums">
                 <AnimatedNumber value={displayPrice} format={formatCurrency} />
               </span>
               <Sparkline data={recentPrices} color="auto" width={100} height={32} />
@@ -311,7 +311,7 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
             )}
           </div>
 
-          <div className="flex items-center gap-3 ml-8 mt-3 flex-wrap">
+          <div className="flex items-center gap-2 sm:gap-3 sm:ml-8 mt-3 flex-wrap">
             {dataSources && Object.entries(dataSources).map(([k, v]) => (
               <span key={k} className="data-source-tag">{v}</span>
             ))}
@@ -324,7 +324,7 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
           </div>
 
           {/* Day range + volume gauge */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 ml-8 mt-5 max-w-2xl">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:ml-8 mt-5 max-w-2xl w-full">
             {quote.dayHigh > 0 && quote.dayLow > 0 && (
               <DayRangeSlider low={quote.dayLow} high={quote.dayHigh} current={quote.price} label="Day Range" />
             )}
@@ -355,9 +355,9 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
         </div>
 
         {/* Signal + Risk Badges */}
-        <div className="flex gap-3 items-stretch lg:flex-col lg:items-end">
+        <div className="flex flex-col sm:flex-row lg:flex-col gap-3 w-full lg:items-stretch lg:items-end">
           <div className="flex gap-3">
-          <div className={`px-7 py-5 rounded-2xl border ${getSignalBg(signal.signal)} text-center min-w-[200px] animate-scaleIn`}>
+          <div className={`px-7 py-5 rounded-2xl border ${getSignalBg(signal.signal)} text-center w-full sm:w-auto sm:min-w-[160px] lg:min-w-[200px] animate-scaleIn`}>
             <div className="text-[10px] text-zinc-400 font-semibold tracking-widest uppercase mb-1.5">AI Verdict</div>
             <div className={`text-[26px] font-semibold tracking-tight ${getSignalColor(signal.signal)}`}>{signal.signal.toUpperCase()}</div>
             <div className="text-[12px] text-zinc-400 mt-1 font-light">Confidence: {signal.confidence}%</div>
@@ -370,7 +370,7 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
           </div>
 
           {riskScore && (
-            <div className={`px-5 py-5 rounded-2xl border text-center min-w-[120px] animate-scaleIn stagger-2 ${
+            <div className={`px-5 py-5 rounded-2xl border text-center w-full sm:w-auto sm:min-w-[100px] animate-scaleIn stagger-2 ${
               riskScore.grade === "A" ? "bg-emerald-500/5 border-emerald-500/20" :
               riskScore.grade === "B" ? "bg-green-500/5 border-green-500/20" :
               riskScore.grade === "C" ? "bg-yellow-500/5 border-yellow-500/20" :
@@ -391,7 +391,7 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
           </div>
 
           {/* Mini quote summary card */}
-          <div className="glass-card rounded-2xl p-4 min-w-[200px] animate-scaleIn stagger-3">
+          <div className="glass-card rounded-2xl p-4 w-full sm:w-auto sm:min-w-[160px] lg:min-w-[200px] animate-scaleIn stagger-3">
             <div className="grid grid-cols-2 gap-2 text-[11px]">
               <div>
                 <div className="text-zinc-500 text-[9px] tracking-wider uppercase">Bid</div>
@@ -415,12 +415,12 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex gap-0.5 mb-8 bg-zinc-900/40 p-1 rounded-xl w-fit border border-white/[0.03]">
+      <div className="scroll-tabs mb-6 sm:mb-8 bg-zinc-900/40 p-1 rounded-xl border border-white/[0.03]">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`px-5 py-2 rounded-lg text-[13px] font-medium tracking-tight transition-all duration-200 ${
+            className={`px-3 sm:px-5 py-2 rounded-lg text-[12px] sm:text-[13px] whitespace-nowrap flex-shrink-0 font-medium tracking-tight transition-all duration-200 ${
               activeTab === tab.id
                 ? "bg-indigo-500/90 text-white shadow-lg shadow-indigo-500/20"
                 : "text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.03]"
@@ -433,9 +433,9 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
 
       {/* Analyst Recommendations (if available) */}
       {activeTab === "overview" && analystRecommendations && analystRecommendations.length > 0 && (
-        <div className="glass-card rounded-2xl p-6 mb-6 glow-border">
+        <div className="glass-card rounded-2xl p-4 sm:p-6 mb-6 glow-border">
           <h3 className="text-[15px] font-semibold text-white mb-4 tracking-tight">Wall Street Analyst Consensus</h3>
-          <div className="grid grid-cols-5 gap-3 text-center">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 text-center">
             {[
               { label: "Strong Buy", value: analystRecommendations[0].strongBuy, color: "text-emerald-400 bg-emerald-500/10" },
               { label: "Buy", value: analystRecommendations[0].buy, color: "text-green-400 bg-green-500/10" },
@@ -486,7 +486,7 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
                 ))}
               </div>
             </div>
-            <ResponsiveContainer width="100%" height={400}>
+            <ResponsiveContainer width="100%" height={280}>
               <AreaChart data={chartData}>
                 <defs>
                   <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
@@ -562,7 +562,7 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
           {/* Radar Chart */}
           <div className="glass-card rounded-xl p-6">
             <h3 className="text-lg font-bold text-white mb-4">Stock Health Radar</h3>
-            <ResponsiveContainer width="100%" height={350}>
+            <ResponsiveContainer width="100%" height={280}>
               <RadarChart data={radarData}>
                 <PolarGrid stroke="#27272a" />
                 <PolarAngleAxis dataKey="subject" tick={{ fill: "#a1a1aa", fontSize: 12 }} />

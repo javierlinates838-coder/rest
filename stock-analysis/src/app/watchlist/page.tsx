@@ -83,7 +83,7 @@ export default function WatchlistPage() {
   };
 
   return (
-    <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="page-shell max-w-[1600px]">
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-[32px] font-semibold text-white tracking-tight">Watchlist</h1>

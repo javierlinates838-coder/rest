@@ -121,13 +121,13 @@ export default function DashboardPage() {
   const quickPicks = ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", "NVDA", "META", "AMD"];
 
   return (
-    <div className="max-w-[1440px] mx-auto px-6 lg:px-10 py-10">
+    <div className="page-shell">
       {/* Hero */}
-      <div className="text-center mb-14 animate-fadeIn">
-        <h1 className="text-[52px] font-semibold tracking-tight leading-[1.1] mb-5">
+      <div className="text-center mb-10 sm:mb-14 animate-fadeIn">
+        <h1 className="text-[32px] sm:text-[44px] lg:text-[52px] font-semibold tracking-tight leading-[1.1] mb-4 sm:mb-5 px-1">
           <span className="gradient-text">AI-Powered</span> Stock Analysis
         </h1>
-        <p className="text-[17px] text-zinc-400 max-w-xl mx-auto mb-10 leading-relaxed font-light tracking-tight">
+        <p className="text-[15px] sm:text-[17px] text-zinc-400 max-w-xl mx-auto mb-8 sm:mb-10 leading-relaxed font-light tracking-tight px-2">
           Deep research, technical indicators, competitor insights, and intelligent
           buy/sell recommendations — powered by live market data.
         </p>
@@ -144,12 +144,12 @@ export default function DashboardPage() {
                 value={searchQuery}
                 onChange={(e) => handleSearchChange(e.target.value)}
                 onFocus={() => searchResults.length > 0 && setShowResults(true)}
-                placeholder="Search any stock symbol or company name..."
-                className="w-full pl-14 pr-32 py-4 bg-zinc-900/60 border border-zinc-800/60 rounded-2xl text-white placeholder:text-zinc-600 focus:outline-none focus:border-indigo-500/40 focus:ring-1 focus:ring-indigo-500/20 transition-all text-[15px] font-light tracking-tight"
+                placeholder="Search symbol or company..."
+                className="w-full pl-12 sm:pl-14 pr-4 sm:pr-32 py-3.5 sm:py-4 bg-zinc-900/60 border border-zinc-800/60 rounded-2xl text-white placeholder:text-zinc-600 focus:outline-none focus:border-indigo-500/40 focus:ring-1 focus:ring-indigo-500/20 transition-all text-[15px] font-light tracking-tight"
               />
               <button
                 type="submit"
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 px-6 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl text-white text-[13px] font-semibold tracking-wide hover:from-indigo-400 hover:to-purple-400 transition-all shadow-lg shadow-indigo-500/20"
+                className="mt-3 sm:mt-0 w-full sm:w-auto sm:absolute sm:right-2.5 sm:top-1/2 sm:-translate-y-1/2 px-6 py-2.5 sm:py-2 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl text-white text-[13px] font-semibold tracking-wide hover:from-indigo-400 hover:to-purple-400 transition-all shadow-lg shadow-indigo-500/20"
               >
                 Analyze
               </button>
@@ -249,8 +249,8 @@ export default function DashboardPage() {
                 </svg>
                 Trending Stocks
               </h2>
-              <div className="glass-card rounded-2xl overflow-hidden">
-                <table className="w-full">
+              <div className="glass-card rounded-2xl overflow-hidden table-scroll">
+                <table className="w-full min-w-[520px]">
                   <thead>
                     <tr className="border-b border-white/[0.04]">
                       <th className="text-left text-[10px] text-zinc-500 font-semibold tracking-widest uppercase px-5 py-3">Symbol</th>

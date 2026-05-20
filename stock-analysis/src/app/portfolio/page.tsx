@@ -97,7 +97,7 @@ export default function PortfolioPage() {
   }));
 
   return (
-    <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="page-shell max-w-[1600px]">
       <h1 className="text-[32px] font-semibold text-white tracking-tight mb-2">Portfolio</h1>
       <p className="text-[14px] text-zinc-400 font-light tracking-tight mb-8">Track your holdings with AI-powered signals and deep analysis</p>
 
@@ -182,8 +182,8 @@ export default function PortfolioPage() {
           </div>
 
           {/* Holdings Table */}
-          <div className="glass-card rounded-xl overflow-hidden">
-            <table className="w-full">
+          <div className="glass-card rounded-xl overflow-hidden table-scroll">
+            <table className="w-full min-w-[640px]">
               <thead>
                 <tr className="border-b border-zinc-800/50">
                   <th className="text-left text-xs text-zinc-500 font-medium px-4 py-3">HOLDING</th>

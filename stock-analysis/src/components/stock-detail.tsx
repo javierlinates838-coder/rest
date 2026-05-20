@@ -151,13 +151,13 @@ export function MarketSession() {
   }, []);
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
       <div className="flex items-center gap-2">
         <div className={`w-2 h-2 rounded-full ${session.color} animate-pulse`} />
         <span className="text-[11px] text-zinc-300 font-medium tracking-tight">{session.label}</span>
       </div>
       <span className="text-[10px] text-zinc-600 tracking-wide">{session.subtitle}</span>
-      <span className="text-[10px] text-zinc-600 tracking-wide font-mono">{time}</span>
+      <span className="text-[10px] text-zinc-600 tracking-wide font-mono hidden sm:inline">{time}</span>
     </div>
   );
 }
@@ -222,10 +222,10 @@ export function TradingPlanCard({ plan, currentPrice }: {
 
   return (
     <div className="glass-card rounded-2xl p-6 animate-fadeInUp">
-      <div className="flex justify-between items-start mb-6">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <h3 className="text-[18px] font-semibold text-white tracking-tight">Trading Plan</h3>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-6">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2 mb-1">
+            <h3 className="text-[16px] sm:text-[18px] font-semibold text-white tracking-tight">Trading Plan</h3>
             <span className={`text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-md ${
               isLong ? "bg-emerald-500/15 text-emerald-400" :
               isShort ? "bg-red-500/15 text-red-400" :
@@ -236,14 +236,14 @@ export function TradingPlanCard({ plan, currentPrice }: {
           </div>
           <p className="text-[11px] text-zinc-500 font-light tracking-tight">{plan.timeframe}</p>
         </div>
-        <div className="text-right">
+        <div className="text-left sm:text-right">
           <div className="text-[10px] text-zinc-500 tracking-wider uppercase">Position Size</div>
           <div className="text-[15px] font-semibold text-white">{plan.positionSize.percentOfPortfolio}% of portfolio</div>
           <div className="text-[10px] text-zinc-500">≈ {plan.positionSize.sharesPer1k} shares per $1k</div>
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-3 mb-5">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
         <div className="bg-emerald-500/5 border border-emerald-500/15 rounded-xl p-3.5">
           <div className="text-[9px] text-emerald-400 font-bold tracking-widest uppercase mb-2">Entry Zone</div>
           <div className="space-y-1.5">
@@ -324,7 +324,7 @@ export function TradingPlanCard({ plan, currentPrice }: {
             );
           })()}
         </div>
-        <div className="flex justify-between text-[10px] text-zinc-500 mt-2.5">
+        <div className="flex flex-col sm:flex-row gap-2 sm:justify-between text-[10px] text-zinc-500 mt-2.5">
           <span className="flex items-center gap-1.5"><IconStop size={11} className="text-red-400" /> Stop ${plan.stopLoss.standard.toFixed(2)}</span>
           <span className="flex items-center gap-1.5"><IconArrowRight size={11} className="text-white" /> Now ${currentPrice.toFixed(2)}</span>
           <span className="flex items-center gap-1.5"><IconTarget size={11} className="text-indigo-400" /> Target ${plan.targets.base.toFixed(2)}</span>
@@ -609,7 +609,7 @@ export function QuickActions({ symbol }: { symbol: string }) {
   };
 
   return (
-    <div className="fixed right-5 bottom-5 flex flex-col gap-2 z-40">
+    <div className="fixed right-3 bottom-20 sm:right-5 sm:bottom-5 flex flex-row sm:flex-col gap-2 z-40">
       <button
         onClick={toggleWatchlist}
         className={`group glass-card rounded-2xl p-3 hover:glow-border transition-all ${inWatchlist ? "border-amber-500/30" : ""}`}
@@ -660,7 +660,7 @@ export function NewsFilters({ activeFilter, onFilter, counts }: {
     { id: "neutral", label: "Neutral", count: counts.neutral, color: "text-zinc-400" },
   ];
   return (
-    <div className="flex gap-1.5 p-1 bg-zinc-900/40 rounded-xl border border-white/[0.03] w-fit">
+    <div className="scroll-tabs gap-1.5 p-1 bg-zinc-900/40 rounded-xl border border-white/[0.03] w-full max-w-full">
       {filters.map((f) => (
         <button
           key={f.id}
@@ -737,8 +737,8 @@ export function StickyMiniHeader({ symbol, name, price, change, changePercent, v
   symbol: string; name: string; price: number; change: number; changePercent: number; visible: boolean;
 }) {
   return (
-    <div className={`fixed top-[60px] left-0 right-0 z-30 glass-card border-b border-white/[0.04] transition-all duration-300 ${visible ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0"}`}>
-      <div className="max-w-[1440px] mx-auto px-6 lg:px-10 py-2.5 flex items-center gap-6">
+    <div className={`fixed top-14 sm:top-[60px] left-0 right-0 z-30 glass-card border-b border-white/[0.04] transition-all duration-300 ${visible ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0"}`}>
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10 py-2.5 flex flex-wrap items-center gap-3 sm:gap-6">
         <div className="flex items-center gap-3">
           <span className="text-[15px] font-semibold text-white tracking-tight">{symbol}</span>
           <span className="text-[12px] text-zinc-500 font-light tracking-tight hidden md:inline">{name}</span>
