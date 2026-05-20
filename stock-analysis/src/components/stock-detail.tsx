@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { formatCurrency, formatPercent } from "@/lib/utils";
 import { useClientNow } from "@/lib/use-client-now";
 import {
@@ -335,7 +335,7 @@ export function TradingPlanCard({ plan, currentPrice }: {
       {/* Notes */}
       <div className="space-y-2">
         <div className="text-[10px] text-zinc-500 font-semibold tracking-wider uppercase mb-2">Trader Notes</div>
-        {plan.notes.map((note, i) => {
+        {(plan.notes || []).map((note, i) => {
           const [type, text] = note.includes("|") ? note.split("|") : ["info", note];
           const color =
             type === "warning" ? "text-amber-400 bg-amber-500/10" :
@@ -381,7 +381,7 @@ export function KeyEventsCard({ events }: { events: { date: string; type: string
             medium: { bg: "bg-amber-500/10", text: "text-amber-400", border: "border-amber-500/20", iconBg: "bg-amber-500/10 text-amber-400" },
             low: { bg: "bg-blue-500/10", text: "text-blue-400", border: "border-blue-500/20", iconBg: "bg-blue-500/10 text-blue-400" },
           };
-          const c = importanceColors[event.importance as keyof typeof importanceColors];
+          const c = importanceColors[event.importance as keyof typeof importanceColors] || importanceColors.low;
           return (
             <div key={i} className={`flex items-start gap-3 p-3.5 rounded-xl bg-zinc-900/40 border border-white/[0.02] hover:border-white/[0.05] transition-colors animate-fadeInUp stagger-${i + 1}`}>
               <div className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${c.iconBg}`}>
@@ -473,7 +473,7 @@ export function InstitutionalCard({ data }: {
       <div className="mb-5">
         <div className="text-[10px] text-zinc-500 font-semibold tracking-wider uppercase mb-2">Top Institutional Holders</div>
         <div className="space-y-1.5">
-          {data.topHolders.map((h, i) => {
+          {(data.topHolders || []).map((h, i) => {
             const TrendIcon = h.trend === "up" ? IconArrowUp : h.trend === "down" ? IconArrowDown : IconArrowRight;
             const trendColor = h.trend === "up" ? "text-emerald-400" : h.trend === "down" ? "text-red-400" : "text-zinc-500";
             return (
@@ -496,7 +496,7 @@ export function InstitutionalCard({ data }: {
       <div>
         <div className="text-[10px] text-zinc-500 font-semibold tracking-wider uppercase mb-2">Recent 13F Activity</div>
         <div className="space-y-1.5">
-          {data.recentActivity.map((a, i) => (
+          {(data.recentActivity || []).map((a, i) => (
             <div key={i} className="flex items-center justify-between text-[11px] py-1">
               <div className="flex items-center gap-2">
                 <span className={`text-[9px] font-bold tracking-wider uppercase px-1.5 py-0.5 rounded ${
@@ -504,7 +504,7 @@ export function InstitutionalCard({ data }: {
                 }`}>{a.action}</span>
                 <span className="text-zinc-300 font-medium">{a.holder}</span>
               </div>
-              <span className="text-zinc-400 font-mono text-[10px]">+{a.sharesPercent}% • {a.date.slice(5)}</span>
+              <span className="text-zinc-400 font-mono text-[10px]">+{a.sharesPercent}% • {String(a.date).slice(5)}</span>
             </div>
           ))}
         </div>
@@ -594,24 +594,23 @@ function readWatchlistSymbols(): string[] {
 }
 
 export function QuickActions({ symbol }: { symbol: string }) {
-  const [inWatchlist, setInWatchlist] = useState(false);
+  const [watchlistRevision, setWatchlistRevision] = useState(0);
   const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    setInWatchlist(readWatchlistSymbols().includes(symbol));
-  }, [symbol]);
+  const inWatchlist = useMemo(
+    () => readWatchlistSymbols().includes(symbol),
+    [symbol, watchlistRevision]
+  );
 
   const toggleWatchlist = () => {
     const stored = JSON.parse(localStorage.getItem("watchlist") || "null") || ["AAPL", "TSLA", "NVDA", "GOOGL", "AMD", "MSFT"];
     if (stored.includes(symbol)) {
       const updated = stored.filter((s: string) => s !== symbol);
       localStorage.setItem("watchlist", JSON.stringify(updated));
-      setInWatchlist(false);
     } else {
       stored.push(symbol);
       localStorage.setItem("watchlist", JSON.stringify(stored));
-      setInWatchlist(true);
     }
+    setWatchlistRevision((n) => n + 1);
   };
 
   const copyLink = () => {

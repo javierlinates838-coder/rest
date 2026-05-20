@@ -15,6 +15,120 @@ function arr<T>(v: unknown): T[] {
   return Array.isArray(v) ? v : [];
 }
 
+function normalizeTradingPlan(raw: unknown, price: number) {
+  const p = (raw && typeof raw === "object" ? raw : {}) as LooseRecord;
+  const entry = (p.entry && typeof p.entry === "object" ? p.entry : {}) as LooseRecord;
+  const targets = (p.targets && typeof p.targets === "object" ? p.targets : {}) as LooseRecord;
+  const stopLoss = (p.stopLoss && typeof p.stopLoss === "object" ? p.stopLoss : {}) as LooseRecord;
+  const riskReward = (p.riskReward && typeof p.riskReward === "object" ? p.riskReward : {}) as LooseRecord;
+  const positionSize = (p.positionSize && typeof p.positionSize === "object" ? p.positionSize : {}) as LooseRecord;
+
+  return {
+    bias: str(p.bias, "neutral"),
+    entry: {
+      primary: num(entry.primary, price),
+      secondary: num(entry.secondary, price * 0.98),
+      aggressive: num(entry.aggressive, price * 1.01),
+    },
+    targets: {
+      conservative: num(targets.conservative, price * 1.05),
+      base: num(targets.base, price * 1.08),
+      ambitious: num(targets.ambitious, price * 1.12),
+    },
+    stopLoss: {
+      tight: num(stopLoss.tight, price * 0.97),
+      standard: num(stopLoss.standard, price * 0.95),
+      wide: num(stopLoss.wide, price * 0.92),
+    },
+    riskReward: {
+      conservative: num(riskReward.conservative, 1),
+      base: num(riskReward.base, 2),
+      ambitious: num(riskReward.ambitious, 3),
+    },
+    positionSize: {
+      percentOfPortfolio: num(positionSize.percentOfPortfolio, 5),
+      sharesPer1k: num(positionSize.sharesPer1k, 1),
+    },
+    timeframe: str(p.timeframe, "Swing (days to weeks)"),
+    notes: arr<string>(p.notes),
+    invalidationLevel: num(p.invalidationLevel, price * 0.94),
+    confidence: num(p.confidence, 50),
+  };
+}
+
+function normalizeInstitutional(raw: unknown) {
+  const d = (raw && typeof raw === "object" ? raw : {}) as LooseRecord;
+  return {
+    totalInstitutionalPercent: num(d.totalInstitutionalPercent, 60),
+    insiderOwnershipPercent: num(d.insiderOwnershipPercent, 5),
+    retailPercent: num(d.retailPercent, 35),
+    topHolders: arr<LooseRecord>(d.topHolders).map((h) => ({
+      name: str(h.name, "Institution"),
+      sharesPercent: num(h.sharesPercent),
+      trend: str(h.trend, "stable"),
+    })),
+    recentActivity: arr<LooseRecord>(d.recentActivity).map((a) => ({
+      holder: str(a.holder, "Fund"),
+      action: str(a.action, "bought"),
+      sharesPercent: num(a.sharesPercent),
+      date: str(a.date, new Date().toISOString().split("T")[0]),
+    })),
+    shortInterestPercent: num(d.shortInterestPercent),
+    daysToCover: num(d.daysToCover, 2),
+    floatPercent: num(d.floatPercent, 90),
+  };
+}
+
+function normalizePriceAction(raw: unknown) {
+  const d = (raw && typeof raw === "object" ? raw : {}) as LooseRecord;
+  return {
+    intradayMomentum: num(d.intradayMomentum),
+    volumeProfile: str(d.volumeProfile, "stable"),
+    buyPressure: num(d.buyPressure, 50),
+    sellPressure: num(d.sellPressure, 50),
+    averageTrueRangePercent: num(d.averageTrueRangePercent, 2),
+    trendStrength: str(d.trendStrength, "moderate"),
+    marketStructure: str(d.marketStructure, "ranging"),
+  };
+}
+
+function normalizeKeyEvents(raw: unknown) {
+  return arr<LooseRecord>(raw).map((e) => ({
+    date: str(e.date, new Date().toISOString().split("T")[0]),
+    type: str(e.type, "economic"),
+    title: str(e.title, "Market event"),
+    importance: ["high", "medium", "low"].includes(str(e.importance)) ? str(e.importance) : "medium",
+    description: str(e.description, ""),
+    daysAway: num(e.daysAway),
+  }));
+}
+
+function normalizeRedFlags(raw: unknown) {
+  return arr<LooseRecord>(raw).map((f, i) => ({
+    id: str(f.id, `flag-${i}`),
+    severity: ["critical", "warning", "info"].includes(str(f.severity)) ? str(f.severity) : "info",
+    category: str(f.category, "technical"),
+    title: str(f.title, "Alert"),
+    description: str(f.description, ""),
+    detectedAt: str(f.detectedAt, new Date().toISOString()),
+    dataPoints: arr<string>(f.dataPoints),
+  }));
+}
+
+function normalizeFibLevels(raw: unknown, price: number) {
+  const levels = arr<LooseRecord>(raw);
+  if (levels.length === 0) {
+    return [
+      { level: "0%", price: price * 0.95 },
+      { level: "100%", price: price * 1.05 },
+    ];
+  }
+  return levels.map((f) => ({
+    level: str(f.level, ""),
+    price: num(f.price, price),
+  }));
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function normalizeAnalysisPayload(raw: any): any {
   if (!raw || typeof raw !== "object" || raw.error) {
@@ -25,23 +139,23 @@ export function normalizeAnalysisPayload(raw: any): any {
   if (!quote || !str(quote.symbol)) return null;
 
   const price = num(quote.price, 0);
+  if (price <= 0) return null;
+
   const indicators = raw.indicators || {};
   const macd = indicators.macd || {};
   const bb = indicators.bollingerBands || {};
   const stoch = indicators.stochastic || {};
-
   const ai = raw.aiAnalysis || {};
   const pt = ai.priceTarget || {};
   const low = num(pt.low, price * 0.9);
   const high = num(pt.high, price * 1.1);
   const mid = num(pt.mid, price);
-
   const signal = raw.signal || {};
 
+  const tradingPlan = normalizeTradingPlan(raw.tradingPlan, price);
+
   return {
-    ...raw,
     quote: {
-      ...quote,
       symbol: str(quote.symbol).toUpperCase(),
       name: str(quote.name, quote.symbol),
       price,
@@ -90,7 +204,7 @@ export function normalizeAnalysisPayload(raw: any): any {
       adx: num(indicators.adx, 25),
       obv: arr<number>(indicators.obv),
       vwap: num(indicators.vwap, price),
-      fibonacciLevels: arr(indicators.fibonacciLevels),
+      fibonacciLevels: normalizeFibLevels(indicators.fibonacciLevels, price),
       supportLevels: arr<number>(indicators.supportLevels),
       resistanceLevels: arr<number>(indicators.resistanceLevels),
     },
@@ -128,10 +242,18 @@ export function normalizeAnalysisPayload(raw: any): any {
       risks: arr<string>(ai.risks),
       sentimentScore: num(ai.sentimentScore),
     },
-    redFlags: arr(raw.redFlags),
+    redFlags: normalizeRedFlags(raw.redFlags),
     news: arr(raw.news),
     history: arr(raw.history),
     analystRecommendations: arr(raw.analystRecommendations),
+    tradingPlan,
+    keyEvents: normalizeKeyEvents(raw.keyEvents),
+    institutional: normalizeInstitutional(raw.institutional),
+    priceAction: normalizePriceAction(raw.priceAction),
+    riskScore: raw.riskScore || null,
     dataSources: raw.dataSources || {},
+    analyzedAt: str(raw.analyzedAt, new Date().toISOString()),
+    finnhubSentiment: raw.finnhubSentiment ?? null,
+    newsSentimentBreakdown: raw.newsSentimentBreakdown ?? null,
   };
 }

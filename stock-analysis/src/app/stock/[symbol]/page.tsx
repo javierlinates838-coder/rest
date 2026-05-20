@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useEffect, use, useRef, startTransition } from "react";
+import { useState, useEffect, useRef, startTransition } from "react";
+import { useParams } from "next/navigation";
+import { ClientOnly } from "@/components/client-only";
 import { useClientNow } from "@/lib/use-client-now";
 import { useRouter } from "next/navigation";
 import {
@@ -130,8 +132,10 @@ function shortDataSource(label: string): string {
   return label.length > 14 ? `${label.slice(0, 14)}…` : label;
 }
 
-export default function StockPage({ params }: { params: Promise<{ symbol: string }> }) {
-  const { symbol } = use(params);
+export default function StockPage() {
+  const params = useParams();
+  const rawSymbol = params?.symbol;
+  const symbol = (Array.isArray(rawSymbol) ? rawSymbol[0] : rawSymbol || "AAPL").toUpperCase().replace(/[^A-Z0-9.-]/g, "");
   const router = useRouter();
   const [data, setData] = useState<AnalysisData | null>(null);
   const [history, setHistory] = useState<HistoryPoint[]>([]);
@@ -350,7 +354,7 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
     { subject: "Momentum", value: Math.min(indicators.rsi, 100), fullMark: 100 },
     { subject: "Trend", value: Math.min(indicators.adx * 2, 100), fullMark: 100 },
     { subject: "Volume", value: quote.avgVolume > 0 ? Math.min((quote.volume / quote.avgVolume) * 50, 100) : 50, fullMark: 100 },
-    { subject: "Volatility", value: Math.min((indicators.atr / quote.price) * 2000, 100), fullMark: 100 },
+    { subject: "Volatility", value: quote.price > 0 ? Math.min((indicators.atr / quote.price) * 2000, 100) : 50, fullMark: 100 },
     { subject: "Value", value: quote.peRatio > 0 ? Math.min(100 - (quote.peRatio / 50) * 100, 100) : 50, fullMark: 100 },
     { subject: "Sentiment", value: Math.max(Math.min(aiAnalysis.sentimentScore + 50, 100), 0), fullMark: 100 },
   ];
@@ -590,6 +594,8 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
             {chartData.length < 2 ? (
               <p className="text-sm text-zinc-500 py-12 text-center">Chart data is loading or unavailable for this symbol.</p>
             ) : (
+            <ClientOnly fallback={<div className="h-[280px] rounded-xl bg-zinc-800/40 animate-pulse" />}>
+            <div className="w-full min-h-[280px]" style={{ minWidth: 0 }}>
             <ResponsiveContainer width="100%" height={280}>
               <AreaChart data={chartData}>
                 <defs>
@@ -616,6 +622,8 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
                 <Legend />
               </AreaChart>
             </ResponsiveContainer>
+            </div>
+            </ClientOnly>
             )}
           </div>
 
@@ -623,15 +631,19 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
           {chartData.length >= 2 && (
           <div className="glass-card rounded-xl p-6">
             <h3 className="text-lg font-bold text-white mb-4">Volume</h3>
-            <ResponsiveContainer width="100%" height={150}>
-              <BarChart data={chartData.slice(-60)}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-                <XAxis dataKey="date" stroke="#52525b" tick={{ fontSize: 10 }} tickFormatter={(v) => v.slice(5)} />
-                <YAxis stroke="#52525b" tick={{ fontSize: 10 }} tickFormatter={(v) => `${(v / 1e6).toFixed(0)}M`} />
-                <Tooltip contentStyle={{ backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "8px" }} />
-                <Bar dataKey="volume" fill="#6366f1" opacity={0.6} name="Volume" />
-              </BarChart>
-            </ResponsiveContainer>
+            <ClientOnly fallback={<div className="h-[150px] rounded-xl bg-zinc-800/40 animate-pulse" />}>
+              <div className="w-full min-h-[150px]" style={{ minWidth: 0 }}>
+                <ResponsiveContainer width="100%" height={150}>
+                  <BarChart data={chartData.slice(-60)}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                    <XAxis dataKey="date" stroke="#52525b" tick={{ fontSize: 10 }} tickFormatter={(v) => String(v).slice(5)} />
+                    <YAxis stroke="#52525b" tick={{ fontSize: 10 }} tickFormatter={(v) => `${(Number(v) / 1e6).toFixed(0)}M`} />
+                    <Tooltip contentStyle={{ backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "8px" }} />
+                    <Bar dataKey="volume" fill="#6366f1" opacity={0.6} name="Volume" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </ClientOnly>
           </div>
           )}
 
@@ -669,14 +681,18 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
           {/* Radar Chart */}
           <div className="glass-card rounded-xl p-6">
             <h3 className="text-lg font-bold text-white mb-4">Stock Health Radar</h3>
-            <ResponsiveContainer width="100%" height={280}>
-              <RadarChart data={radarData}>
-                <PolarGrid stroke="#27272a" />
-                <PolarAngleAxis dataKey="subject" tick={{ fill: "#a1a1aa", fontSize: 12 }} />
-                <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fill: "#52525b", fontSize: 10 }} />
-                <Radar name="Score" dataKey="value" stroke="#6366f1" fill="#6366f1" fillOpacity={0.3} />
-              </RadarChart>
-            </ResponsiveContainer>
+            <ClientOnly fallback={<div className="h-[280px] rounded-xl bg-zinc-800/40 animate-pulse" />}>
+              <div className="w-full min-h-[280px]" style={{ minWidth: 0 }}>
+                <ResponsiveContainer width="100%" height={280}>
+                  <RadarChart data={radarData}>
+                    <PolarGrid stroke="#27272a" />
+                    <PolarAngleAxis dataKey="subject" tick={{ fill: "#a1a1aa", fontSize: 12 }} />
+                    <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fill: "#52525b", fontSize: 10 }} />
+                    <Radar name="Score" dataKey="value" stroke="#6366f1" fill="#6366f1" fillOpacity={0.3} />
+                  </RadarChart>
+                </ResponsiveContainer>
+              </div>
+            </ClientOnly>
           </div>
         </div>
       )}
@@ -1199,7 +1215,7 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
                     </span>
                   </td>
                   <td className="text-right px-4 py-3 text-zinc-400">{formatLargeNumber(quote.marketCap)}</td>
-                  <td className="text-right px-4 py-3 text-zinc-400">{quote.peRatio.toFixed(1)}</td>
+                  <td className="text-right px-4 py-3 text-zinc-400">{quote.peRatio > 0 ? quote.peRatio.toFixed(1) : "—"}</td>
                   <td className="text-center px-4 py-3 text-xs text-zinc-500">Current</td>
                 </tr>
                 {competitors.map((comp) => (
