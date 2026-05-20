@@ -1,0 +1,14 @@
+{
+  "name": "rest",
+  "private": true,
+  "workspaces": [
+    "stock-analysis"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w stock-analysis",
+    "build": "npm run build -w stock-analysis",
+    "start": "npm run start -w stock-analysis",
+    "lint": "npm run lint -w stock-analysis",
+    "vercel-build": "npm run build -w stock-analysis"
+  }
+}
