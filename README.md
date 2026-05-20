@@ -80,6 +80,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 ### Build for Production
 
 ```bash
+cd stock-analysis
 npm run build
 npm start
 ```

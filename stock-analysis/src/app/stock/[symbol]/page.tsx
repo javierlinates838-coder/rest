@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback, use, useRef } from "react";
+import { useState, useEffect, use, useRef, startTransition } from "react";
+import { useClientNow } from "@/lib/use-client-now";
 import { useRouter } from "next/navigation";
 import {
-  LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, ReferenceLine, RadarChart, PolarGrid,
   PolarAngleAxis, PolarRadiusAxis, Radar, Legend,
 } from "recharts";
@@ -15,7 +16,7 @@ import {
 } from "@/components/stock-detail";
 import {
   IconTechnical, IconFundamental, IconSentiment, IconManipulation, IconVolatility,
-  IconCheck, IconInsider, IconVolume, IconPumpDump, IconPriceGap, IconDivergence,
+  IconInsider, IconVolume, IconPumpDump, IconPriceGap, IconDivergence,
   IconVolatilitySpike, IconShield, IconAlert, IconBullish, IconBearish, IconNews, IconPattern,
 } from "@/components/icons";
 
@@ -136,29 +137,33 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
   const [showStickyHeader, setShowStickyHeader] = useState(false);
   const [livePrice, setLivePrice] = useState<{ price: number; change: number; changePercent: number } | null>(null);
   const heroRef = useRef<HTMLDivElement>(null);
+  const clientNow = useClientNow();
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [analysisRes, stockRes, newsRes] = await Promise.all([
-        fetch(`/api/analyze?symbol=${symbol}`),
-        fetch(`/api/stock?symbol=${symbol}&period=${period}`),
-        fetch(`/api/news?symbol=${symbol}`),
-      ]);
-      const analysisData = await analysisRes.json();
-      const stockData = await stockRes.json();
-      const newsData = await newsRes.json();
-      setData(analysisData);
-      setHistory(stockData.history || []);
-      setNewsItems(newsData.news || []);
-    } catch (e) {
-      console.error("Failed to fetch:", e);
-    } finally {
-      setLoading(false);
-    }
+  useEffect(() => {
+    let cancelled = false;
+    startTransition(() => setLoading(true));
+    (async () => {
+      try {
+        const [analysisRes, stockRes, newsRes] = await Promise.all([
+          fetch(`/api/analyze?symbol=${symbol}`),
+          fetch(`/api/stock?symbol=${symbol}&period=${period}`),
+          fetch(`/api/news?symbol=${symbol}`),
+        ]);
+        if (cancelled) return;
+        const analysisData = await analysisRes.json();
+        const stockData = await stockRes.json();
+        const newsData = await newsRes.json();
+        setData(analysisData);
+        setHistory(stockData.history || []);
+        setNewsItems(newsData.news || []);
+      } catch (e) {
+        console.error("Failed to fetch:", e);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
   }, [symbol, period]);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
 
   useEffect(() => {
     function onScroll() {
@@ -1167,7 +1172,7 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
         };
 
         // Group by time
-        const now = Date.now();
+        const now = clientNow || 0;
         const groups: { label: string; items: typeof filteredNews }[] = [
           { label: "Last Hour", items: [] },
           { label: "Today", items: [] },
@@ -1265,7 +1270,7 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
                     </div>
                     <div className="space-y-3">
                       {group.items.map((item, i) => {
-                        const ageMs = Date.now() - new Date(item.publishedAt).getTime();
+                        const ageMs = (clientNow || 0) - new Date(item.publishedAt).getTime();
                         const ageStr = ageMs < 3600000 ? `${Math.floor(ageMs / 60000)}m ago` :
                                        ageMs < 86400000 ? `${Math.floor(ageMs / 3600000)}h ago` :
                                        ageMs < 604800000 ? `${Math.floor(ageMs / 86400000)}d ago` :

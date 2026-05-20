@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 const links = [
   { href: "/", label: "Dashboard" },
@@ -42,14 +43,14 @@ export function MobileNav() {
           <div className="sm:hidden fixed top-[60px] left-0 right-0 z-50 glass-card border-b border-white/[0.06] p-4 animate-fadeIn">
             <nav className="flex flex-col gap-1">
               {links.map((link) => (
-                <a
+                <Link
                   key={link.href}
                   href={link.href}
                   onClick={() => setOpen(false)}
                   className="px-4 py-3 rounded-xl text-[15px] font-medium text-zinc-300 hover:text-white hover:bg-white/[0.04] transition-colors"
                 >
                   {link.label}
-                </a>
+                </Link>
               ))}
             </nav>
           </div>

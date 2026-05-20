@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { formatCurrency, formatPercent } from "@/lib/utils";
+import { useClientNow } from "@/lib/use-client-now";
 import {
   IconEarnings, IconDividend, IconFed, IconEconomic, IconSplit, IconGuidance, IconCalendar,
-  IconTarget, IconStop, IconBuy, IconArrowUp, IconArrowDown, IconArrowRight, IconNews,
-  IconBullish, IconBearish,
+  IconTarget, IconStop, IconBuy, IconArrowUp, IconArrowDown, IconArrowRight,
 } from "./icons";
 
 export function AnimatedNumber({ value, format, duration = 800 }: { value: number; format: (n: number) => string; duration?: number }) {
@@ -580,14 +580,20 @@ export function PriceActionCard({ data }: {
   );
 }
 
+function readWatchlistSymbols(): string[] {
+  if (typeof window === "undefined") return [];
+  return JSON.parse(localStorage.getItem("watchlist") || "null") || [];
+}
+
 export function QuickActions({ symbol }: { symbol: string }) {
-  const [inWatchlist, setInWatchlist] = useState(false);
+  const [trackedSymbol, setTrackedSymbol] = useState(symbol);
+  const [inWatchlist, setInWatchlist] = useState(() => readWatchlistSymbols().includes(symbol));
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem("watchlist") || "null") || [];
-    setInWatchlist(stored.includes(symbol));
-  }, [symbol]);
+  if (trackedSymbol !== symbol) {
+    setTrackedSymbol(symbol);
+    setInWatchlist(readWatchlistSymbols().includes(symbol));
+  }
 
   const toggleWatchlist = () => {
     const stored = JSON.parse(localStorage.getItem("watchlist") || "null") || ["AAPL", "TSLA", "NVDA", "GOOGL", "AMD", "MSFT"];
@@ -680,10 +686,10 @@ export function NewsFilters({ activeFilter, onFilter, counts }: {
 }
 
 export function SentimentTimeline({ items }: { items: { publishedAt: string; sentiment: string }[] }) {
-  if (items.length === 0) return null;
+  const now = useClientNow();
+  if (items.length === 0 || now === 0) return null;
 
   const days = 7;
-  const now = Date.now();
   const buckets: { positive: number; negative: number; neutral: number }[] = [];
   for (let i = days - 1; i >= 0; i--) {
     const dayStart = now - i * 86400000 - (now % 86400000);

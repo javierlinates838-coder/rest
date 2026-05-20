@@ -14,6 +14,8 @@ This app is a **Next.js server app** (API routes + server-side data). Vercel is 
 
 Never commit keys to git. Only set them in Vercel **Environment Variables**.
 
+> **Important:** The Next.js app is only in `stock-analysis/`. Do not add a `package.json` at the repo root — it breaks Vercel and local builds.
+
 ---
 
 ## Step 1: Import the project

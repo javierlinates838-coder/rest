@@ -1,34 +1,51 @@
-# Vercel deploy fix — `.next` not found
+# Vercel deploy — fixed
 
-## The problem
+## Root cause
 
-The app lives in **`stock-analysis/`**, but Vercel was building from the **repo root** (`rest/`).  
-Next.js creates `.next` inside `stock-analysis/.next`, so Vercel looked in the wrong place.
+The repo had **two** `package-lock.json` files (repo root + `stock-analysis/`). Next.js picked the wrong workspace root, and Vercel looked for `.next` in the wrong folder.
 
-## The fix (do this in Vercel)
+## Fix applied in code
 
-1. Open [vercel.com/dashboard](https://vercel.com/dashboard) → your **rest** project  
-2. **Settings** → **Build and Deployment**  
-3. Set **Root Directory** to:
+- Removed root `package.json` / workspace setup (app only in `stock-analysis/`)
+- Set `turbopack.root` in `stock-analysis/next.config.ts`
+- Added `stock-analysis/vercel.json`
 
-   ```text
-   stock-analysis
-   ```
+## What you must set in Vercel
 
-4. **Clear** any custom **Output Directory** (leave empty / automatic)  
-5. **Framework Preset** → **Next.js**  
-6. **Build Command** → `npm run build` (default)  
-7. **Install Command** → `npm install` (default)  
-8. **Save** → **Deployments** → **Redeploy**
+1. [vercel.com/dashboard](https://vercel.com/dashboard) → **rest** project  
+2. **Settings** → **Build and Deployment**
 
-## Environment variables
+| Setting | Value |
+|---------|--------|
+| **Root Directory** | `stock-analysis` |
+| **Framework Preset** | Next.js |
+| **Build Command** | `npm run build` (default) |
+| **Install Command** | `npm install` (default) |
+| **Output Directory** | *(leave empty — automatic)* |
 
-Still add in **Settings → Environment Variables**:
+3. **Environment variables** (all environments):
 
-- `GEMINI_API_KEY`
-- `FMP_API_KEY`
-- `FINNHUB_API_KEY`
+   - `GEMINI_API_KEY`
+   - `FMP_API_KEY`
+   - `FINNHUB_API_KEY`
 
-## After redeploy
+4. **Save** → **Deployments** → **Redeploy** (clear build cache if offered)
 
-Build log should show paths like `stock-analysis/package.json` and succeed without the `.next` error.
+## Success looks like
+
+Build log shows:
+
+- `> stock-analysis@0.1.0 build`
+- `> next build`
+- No error about `.next was not found`
+- No lockfile warning (or only a harmless note)
+
+## Local dev
+
+```bash
+cd stock-analysis
+npm install
+npm run dev
+```
+
+Do **not** run `npm install` from the repo root only — use the `stock-analysis` folder.

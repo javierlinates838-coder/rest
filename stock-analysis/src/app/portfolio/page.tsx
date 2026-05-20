@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { formatCurrency, formatPercent, getSignalColor, getSignalBg } from "@/lib/utils";
 import {
@@ -38,53 +38,57 @@ export default function PortfolioPage() {
   const [holdings, setHoldings] = useState<PortfolioHolding[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const loadPortfolio = useCallback(async () => {
-    setLoading(true);
-    const stored = typeof window !== "undefined"
-      ? JSON.parse(localStorage.getItem("portfolio") || "null")
-      : null;
-    const portfolio = stored || SAMPLE_PORTFOLIO;
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const stored = typeof window !== "undefined"
+        ? JSON.parse(localStorage.getItem("portfolio") || "null")
+        : null;
+      const portfolio = stored || SAMPLE_PORTFOLIO;
 
-    const holdingData: PortfolioHolding[] = [];
-    for (const item of portfolio) {
-      try {
-        const res = await fetch(`/api/analyze?symbol=${item.symbol}`);
-        const data = await res.json();
-        const currentPrice = data.quote?.price || item.avgCost;
-        const totalValue = currentPrice * item.shares;
-        const totalCost = item.avgCost * item.shares;
-        holdingData.push({
-          symbol: item.symbol,
-          name: data.quote?.name || item.symbol,
-          shares: item.shares,
-          avgCost: item.avgCost,
-          currentPrice,
-          changePercent: data.quote?.changePercent || 0,
-          signal: data.signal?.signal,
-          confidence: data.signal?.confidence,
-          totalValue,
-          totalGain: totalValue - totalCost,
-          gainPercent: ((totalValue - totalCost) / totalCost) * 100,
-        });
-      } catch {
-        holdingData.push({
-          symbol: item.symbol,
-          name: item.symbol,
-          shares: item.shares,
-          avgCost: item.avgCost,
-          currentPrice: item.avgCost,
-          changePercent: 0,
-          totalValue: item.avgCost * item.shares,
-          totalGain: 0,
-          gainPercent: 0,
-        });
+      const holdingData: PortfolioHolding[] = [];
+      for (const item of portfolio) {
+        if (cancelled) return;
+        try {
+          const res = await fetch(`/api/analyze?symbol=${item.symbol}`);
+          const data = await res.json();
+          const currentPrice = data.quote?.price || item.avgCost;
+          const totalValue = currentPrice * item.shares;
+          const totalCost = item.avgCost * item.shares;
+          holdingData.push({
+            symbol: item.symbol,
+            name: data.quote?.name || item.symbol,
+            shares: item.shares,
+            avgCost: item.avgCost,
+            currentPrice,
+            changePercent: data.quote?.changePercent || 0,
+            signal: data.signal?.signal,
+            confidence: data.signal?.confidence,
+            totalValue,
+            totalGain: totalValue - totalCost,
+            gainPercent: ((totalValue - totalCost) / totalCost) * 100,
+          });
+        } catch {
+          holdingData.push({
+            symbol: item.symbol,
+            name: item.symbol,
+            shares: item.shares,
+            avgCost: item.avgCost,
+            currentPrice: item.avgCost,
+            changePercent: 0,
+            totalValue: item.avgCost * item.shares,
+            totalGain: 0,
+            gainPercent: 0,
+          });
+        }
       }
-    }
-    setHoldings(holdingData);
-    setLoading(false);
+      if (!cancelled) {
+        setHoldings(holdingData);
+        setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
   }, []);
-
-  useEffect(() => { loadPortfolio(); }, [loadPortfolio]);
 
   const totalValue = holdings.reduce((s, h) => s + h.totalValue, 0);
   const totalGain = holdings.reduce((s, h) => s + h.totalGain, 0);

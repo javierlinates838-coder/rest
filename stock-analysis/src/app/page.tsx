@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { formatCurrency, formatLargeNumber, formatPercent } from "@/lib/utils";
 import { PremiumSearch } from "@/components/premium-search";
@@ -59,28 +59,34 @@ export default function DashboardPage() {
   const searchRef = useRef<HTMLDivElement>(null);
   const searchTimeout = useRef<NodeJS.Timeout | null>(null);
 
-  const fetchMarketData = useCallback(async () => {
-    try {
-      const res = await fetch("/api/market");
-      const data = await res.json();
-      setIndices(data.indices || []);
-      setTrending(data.trending || []);
-      setSectors(data.sectors || []);
-      setGainers(data.topGainers || []);
-      setLosers(data.topLosers || []);
-      setDataSources(data.dataSources || {});
-    } catch (e) {
-      console.error("Failed to fetch market data:", e);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
-    fetchMarketData();
+    let cancelled = false;
+
+    async function fetchMarketData() {
+      try {
+        const res = await fetch("/api/market");
+        const data = await res.json();
+        if (cancelled) return;
+        setIndices(data.indices || []);
+        setTrending(data.trending || []);
+        setSectors(data.sectors || []);
+        setGainers(data.topGainers || []);
+        setLosers(data.topLosers || []);
+        setDataSources(data.dataSources || {});
+      } catch (e) {
+        console.error("Failed to fetch market data:", e);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    void fetchMarketData();
     const interval = setInterval(fetchMarketData, 60000);
-    return () => clearInterval(interval);
-  }, [fetchMarketData]);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {

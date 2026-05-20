@@ -22,8 +22,8 @@ export default function WatchlistPage() {
   const [loading, setLoading] = useState(true);
   const [newSymbol, setNewSymbol] = useState("");
 
-  const loadWatchlist = useCallback(async () => {
-    setLoading(true);
+  const loadWatchlist = useCallback(async (showLoader = false) => {
+    if (showLoader) setLoading(true);
     const stored = typeof window !== "undefined"
       ? JSON.parse(localStorage.getItem("watchlist") || "null")
       : null;
@@ -57,7 +57,46 @@ export default function WatchlistPage() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { loadWatchlist(); }, [loadWatchlist]);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const stored = typeof window !== "undefined"
+        ? JSON.parse(localStorage.getItem("watchlist") || "null")
+        : null;
+      const symbols: string[] = stored || DEFAULT_WATCHLIST;
+
+      const items: WatchlistItem[] = [];
+      for (const sym of symbols) {
+        if (cancelled) return;
+        try {
+          const res = await fetch(`/api/analyze?symbol=${sym}`);
+          const data = await res.json();
+          items.push({
+            symbol: sym,
+            name: data.quote?.name || sym,
+            price: data.quote?.price || 0,
+            changePercent: data.quote?.changePercent || 0,
+            signal: data.signal?.signal,
+            confidence: data.signal?.confidence,
+            addedAt: new Date().toISOString(),
+          });
+        } catch {
+          items.push({
+            symbol: sym,
+            name: sym,
+            price: 0,
+            changePercent: 0,
+            addedAt: new Date().toISOString(),
+          });
+        }
+      }
+      if (!cancelled) {
+        setWatchlist(items);
+        setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const addToWatchlist = () => {
     if (!newSymbol.trim()) return;
@@ -70,7 +109,7 @@ export default function WatchlistPage() {
     stored.push(sym);
     localStorage.setItem("watchlist", JSON.stringify(stored));
     setNewSymbol("");
-    loadWatchlist();
+    void loadWatchlist(true);
   };
 
   const removeFromWatchlist = (symbol: string) => {
