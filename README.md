@@ -55,23 +55,28 @@ An AI-powered stock analysis platform built with Next.js, featuring deep researc
 ### Installation
 
 ```bash
-cd stock-analysis
+# From repo root (recommended)
 npm install
+
+# Or from the app folder
+cd stock-analysis && npm install
 ```
 
-### Environment Variables (Optional)
+### Environment Variables
 
-Create a `.env.local` file in the `stock-analysis` directory:
+Create `.env.local` in the `stock-analysis` directory:
 
 ```env
-# Optional: Enables GPT-4o powered analysis (falls back to built-in engine)
+GEMINI_API_KEY=your-gemini-key
+FMP_API_KEY=your-fmp-key
+FINNHUB_API_KEY=your-finnhub-key
+# Optional fallback
 OPENAI_API_KEY=sk-your-key-here
 ```
 
 ### Run Development Server
 
 ```bash
-cd stock-analysis
 npm run dev
 ```
 
@@ -80,9 +85,8 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 ### Build for Production
 
 ```bash
-cd stock-analysis
 npm run build
-npm start
+npm run start
 ```
 
 ### Deploy to Vercel
