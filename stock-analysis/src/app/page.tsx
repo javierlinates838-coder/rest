@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { formatCurrency, formatLargeNumber, formatPercent } from "@/lib/utils";
+import { PremiumSearch } from "@/components/premium-search";
+import { MobileTrendingList } from "@/components/mobile-trending-list";
 
 interface MarketIndex {
   symbol: string;
@@ -123,65 +125,32 @@ export default function DashboardPage() {
   return (
     <div className="page-shell">
       {/* Hero */}
-      <div className="text-center mb-10 sm:mb-14 animate-fadeIn">
-        <h1 className="text-[32px] sm:text-[44px] lg:text-[52px] font-semibold tracking-tight leading-[1.1] mb-4 sm:mb-5 px-1">
+      <div className="text-center mb-8 sm:mb-14 animate-fadeIn">
+        <h1 className="mobile-hero-title sm:text-[44px] lg:text-[52px] font-semibold tracking-tight leading-[1.1] mb-3 sm:mb-5 px-1">
           <span className="gradient-text">AI-Powered</span> Stock Analysis
         </h1>
-        <p className="text-[15px] sm:text-[17px] text-zinc-400 max-w-xl mx-auto mb-8 sm:mb-10 leading-relaxed font-light tracking-tight px-2">
+        <p className="hidden sm:block text-[17px] text-zinc-400 max-w-xl mx-auto mb-10 leading-relaxed font-light tracking-tight px-2">
           Deep research, technical indicators, competitor insights, and intelligent
           buy/sell recommendations — powered by live market data.
         </p>
+        <p className="sm:hidden text-[14px] text-zinc-500 mb-5 leading-relaxed font-light px-1">
+          Live quotes, AI analysis, and smart signals.
+        </p>
 
-        {/* Search */}
-        <div ref={searchRef} className="max-w-2xl mx-auto relative">
-          <form onSubmit={handleSearch}>
-            <div className="relative">
-              <svg className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                onFocus={() => searchResults.length > 0 && setShowResults(true)}
-                placeholder="Search symbol or company..."
-                className="w-full pl-12 sm:pl-14 pr-4 sm:pr-32 py-3.5 sm:py-4 bg-zinc-900/60 border border-zinc-800/60 rounded-2xl text-white placeholder:text-zinc-600 focus:outline-none focus:border-indigo-500/40 focus:ring-1 focus:ring-indigo-500/20 transition-all text-[15px] font-light tracking-tight"
-              />
-              <button
-                type="submit"
-                className="mt-3 sm:mt-0 w-full sm:w-auto sm:absolute sm:right-2.5 sm:top-1/2 sm:-translate-y-1/2 px-6 py-2.5 sm:py-2 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl text-white text-[13px] font-semibold tracking-wide hover:from-indigo-400 hover:to-purple-400 transition-all shadow-lg shadow-indigo-500/20"
-              >
-                Analyze
-              </button>
-            </div>
-          </form>
-
-          {/* Search Autocomplete */}
-          {showResults && searchResults.length > 0 && (
-            <div className="absolute top-full mt-2 w-full glass-card rounded-xl overflow-hidden z-50 border border-zinc-800/50 animate-fadeIn">
-              {searchResults.map((r) => (
-                <button
-                  key={r.symbol}
-                  onClick={() => {
-                    setShowResults(false);
-                    setSearchQuery(r.symbol);
-                    router.push(`/stock/${r.symbol}`);
-                  }}
-                  className="w-full flex items-center justify-between px-5 py-3 hover:bg-zinc-800/50 transition-colors text-left"
-                >
-                  <div>
-                    <span className="text-[14px] font-semibold text-white">{r.symbol}</span>
-                    <span className="text-[12px] text-zinc-500 ml-3">{r.name}</span>
-                  </div>
-                  <span className="text-[11px] text-zinc-600">{r.exchange}</span>
-                </button>
-              ))}
-            </div>
-          )}
+        <div ref={searchRef} className="w-full max-w-2xl mx-auto">
+          <PremiumSearch
+            searchQuery={searchQuery}
+            searchResults={searchResults}
+            showResults={showResults}
+            onQueryChange={handleSearchChange}
+            onSubmit={handleSearch}
+            onCloseResults={() => setShowResults(false)}
+            onOpenResults={() => searchQuery.length > 0 && searchResults.length > 0 && setShowResults(true)}
+            quickPicks={quickPicks}
+          />
         </div>
 
-        {/* Quick Picks */}
-        <div className="flex flex-wrap justify-center gap-2 mt-5">
+        <div className="hidden sm:flex flex-wrap justify-center gap-2 mt-5">
           {quickPicks.map((symbol) => (
             <button
               key={symbol}
@@ -193,9 +162,8 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {/* Data Sources */}
         {Object.keys(dataSources).length > 0 && (
-          <div className="flex justify-center gap-2 mt-6">
+          <div className="hidden sm:flex justify-center flex-wrap gap-2 mt-6">
             {Object.entries(dataSources).map(([key, value]) => (
               <span key={key} className="data-source-tag">{value}</span>
             ))}
@@ -249,7 +217,11 @@ export default function DashboardPage() {
                 </svg>
                 Trending Stocks
               </h2>
-              <div className="glass-card rounded-2xl overflow-hidden table-scroll">
+              <MobileTrendingList
+                stocks={trending}
+                onSelect={(symbol) => router.push(`/stock/${symbol}`)}
+              />
+              <div className="hidden lg:block glass-card rounded-2xl overflow-hidden table-scroll">
                 <table className="w-full min-w-[520px]">
                   <thead>
                     <tr className="border-b border-white/[0.04]">
