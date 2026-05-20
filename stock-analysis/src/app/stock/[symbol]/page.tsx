@@ -1231,7 +1231,7 @@ export default function StockPage() {
                       </span>
                     </td>
                     <td className="text-right px-4 py-3 text-zinc-400">{formatLargeNumber(comp.marketCap)}</td>
-                    <td className="text-right px-4 py-3 text-zinc-400">{comp.peRatio.toFixed(1)}</td>
+                    <td className="text-right px-4 py-3 text-zinc-400">{comp.peRatio > 0 ? comp.peRatio.toFixed(1) : "—"}</td>
                     <td className="text-center px-4 py-3">
                       <button className="px-3 py-1 text-xs bg-indigo-500/20 text-indigo-400 rounded-full border border-indigo-500/30">
                         View
