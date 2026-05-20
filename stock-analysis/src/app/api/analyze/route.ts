@@ -5,6 +5,7 @@ import { generateAIAnalysis } from "@/services/ai-analysis";
 import { detectRedFlags, calculateRiskScore } from "@/lib/red-flags";
 import { generateTradingPlan, generateKeyEvents, generateInstitutionalOwnership, generatePriceAction } from "@/lib/trading-plan";
 import { finnhubFetchNews, finnhubFetchRecommendations, finnhubFetchSentiment, analyzeSentimentFromNews } from "@/services/finnhub-api";
+import { normalizeAnalysisPayload } from "@/lib/normalize-analysis";
 
 // Vercel Pro allows up to 60s; Hobby caps at 10s regardless of this value.
 export const maxDuration = 60;
@@ -63,7 +64,7 @@ export async function GET(request: NextRequest) {
       ? analyzeSentimentFromNews(finnhubNews)
       : null;
 
-    return NextResponse.json({
+    const payload = normalizeAnalysisPayload({
       quote,
       indicators,
       signal,
@@ -87,6 +88,12 @@ export async function GET(request: NextRequest) {
         ai: process.env.GEMINI_API_KEY ? "Google Gemini 2.0 Flash" : process.env.OPENAI_API_KEY ? "OpenAI GPT-4o-mini" : "Built-in Engine",
       },
     });
+
+    if (!payload) {
+      return NextResponse.json({ error: "Failed to build analysis response" }, { status: 500 });
+    }
+
+    return NextResponse.json(payload);
   } catch (e) {
     const message = e instanceof Error ? e.message : "Analysis failed";
     return NextResponse.json({ error: message }, { status: 500 });

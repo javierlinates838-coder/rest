@@ -9,11 +9,12 @@ import {
 } from "./icons";
 
 export function AnimatedNumber({ value, format, duration = 800 }: { value: number; format: (n: number) => string; duration?: number }) {
-  const [display, setDisplay] = useState(value);
+  const safeValue = Number.isFinite(value) ? value : 0;
+  const [display, setDisplay] = useState(safeValue);
 
   useEffect(() => {
     const start = display;
-    const end = value;
+    const end = safeValue;
     const startTime = performance.now();
 
     let raf: number;
@@ -26,7 +27,7 @@ export function AnimatedNumber({ value, format, duration = 800 }: { value: numbe
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value]);
+  }, [safeValue]);
 
   return <>{format(display)}</>;
 }
@@ -582,18 +583,23 @@ export function PriceActionCard({ data }: {
 
 function readWatchlistSymbols(): string[] {
   if (typeof window === "undefined") return [];
-  return JSON.parse(localStorage.getItem("watchlist") || "null") || [];
+  try {
+    const raw = localStorage.getItem("watchlist");
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
 }
 
 export function QuickActions({ symbol }: { symbol: string }) {
-  const [trackedSymbol, setTrackedSymbol] = useState(symbol);
-  const [inWatchlist, setInWatchlist] = useState(() => readWatchlistSymbols().includes(symbol));
+  const [inWatchlist, setInWatchlist] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  if (trackedSymbol !== symbol) {
-    setTrackedSymbol(symbol);
+  useEffect(() => {
     setInWatchlist(readWatchlistSymbols().includes(symbol));
-  }
+  }, [symbol]);
 
   const toggleWatchlist = () => {
     const stored = JSON.parse(localStorage.getItem("watchlist") || "null") || ["AAPL", "TSLA", "NVDA", "GOOGL", "AMD", "MSFT"];

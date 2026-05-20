@@ -10,6 +10,7 @@ import {
 } from "recharts";
 import { formatCurrency, formatLargeNumber, formatPercent, getSignalColor, getSignalBg } from "@/lib/utils";
 import { ApiError, fetchJson } from "@/lib/fetch-json";
+import { normalizeAnalysisPayload } from "@/lib/normalize-analysis";
 import {
   AnimatedNumber, Sparkline, DayRangeSlider, MarketSession, VolumeGauge,
   TradingPlanCard, KeyEventsCard, InstitutionalCard, PriceActionCard,
@@ -116,15 +117,8 @@ interface HistoryPoint {
   close: number; volume: number;
 }
 
-function isValidAnalysis(data: unknown): data is AnalysisData {
-  if (!data || typeof data !== "object") return false;
-  const d = data as AnalysisData;
-  return Boolean(
-    d.quote?.symbol &&
-    d.indicators &&
-    d.signal?.signal &&
-    d.aiAnalysis?.summary
-  );
+function parseAnalysis(data: unknown): AnalysisData | null {
+  return normalizeAnalysisPayload(data) as AnalysisData | null;
 }
 
 function shortDataSource(label: string): string {
@@ -175,10 +169,11 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
           fetchJson<{ news?: typeof newsItems }>(`/api/news?symbol=${encoded}`),
         ]);
         if (cancelled) return;
-        if (!isValidAnalysis(analysisData)) {
+        const parsed = parseAnalysis(analysisData);
+        if (!parsed) {
           throw new Error("Incomplete analysis data from server");
         }
-        setData(analysisData);
+        setData(parsed);
         setHistory(stockData.history?.length ? stockData.history : analysisData.history || []);
         setNewsItems(newsData.news || []);
       } catch (e) {
@@ -592,6 +587,9 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
                 ))}
               </div>
             </div>
+            {chartData.length < 2 ? (
+              <p className="text-sm text-zinc-500 py-12 text-center">Chart data is loading or unavailable for this symbol.</p>
+            ) : (
             <ResponsiveContainer width="100%" height={280}>
               <AreaChart data={chartData}>
                 <defs>
@@ -601,7 +599,7 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-                <XAxis dataKey="date" stroke="#52525b" tick={{ fontSize: 11 }} tickFormatter={(v) => v.slice(5)} />
+                <XAxis dataKey="date" stroke="#52525b" tick={{ fontSize: 11 }} tickFormatter={(v) => String(v).slice(5)} />
                 <YAxis stroke="#52525b" tick={{ fontSize: 11 }} domain={["auto", "auto"]} tickFormatter={(v) => `$${v}`} />
                 <Tooltip
                   contentStyle={{ backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "8px" }}
@@ -618,9 +616,11 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
                 <Legend />
               </AreaChart>
             </ResponsiveContainer>
+            )}
           </div>
 
           {/* Volume Chart */}
+          {chartData.length >= 2 && (
           <div className="glass-card rounded-xl p-6">
             <h3 className="text-lg font-bold text-white mb-4">Volume</h3>
             <ResponsiveContainer width="100%" height={150}>
@@ -633,6 +633,7 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
               </BarChart>
             </ResponsiveContainer>
           </div>
+          )}
 
           {/* Key Stats Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
@@ -885,7 +886,11 @@ export default function StockPage({ params }: { params: Promise<{ symbol: string
               <div
                 className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full border-2 border-indigo-500"
                 style={{
-                  left: `${Math.max(0, Math.min(100, ((quote.price - aiAnalysis.priceTarget.low) / (aiAnalysis.priceTarget.high - aiAnalysis.priceTarget.low)) * 100))}%`,
+                  left: `${(() => {
+                    const span = aiAnalysis.priceTarget.high - aiAnalysis.priceTarget.low;
+                    if (span <= 0) return 50;
+                    return Math.max(0, Math.min(100, ((quote.price - aiAnalysis.priceTarget.low) / span) * 100));
+                  })()}%`,
                 }}
               />
             </div>

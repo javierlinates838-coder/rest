@@ -1,3 +1,5 @@
+import { normalizeAnalysisPayload } from "./normalize-analysis";
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -42,9 +44,10 @@ export function hasQuotePayload(data: unknown): data is QuoteSummary {
 }
 
 export async function fetchQuoteSummary(symbol: string): Promise<QuoteSummary> {
-  const data = await fetchJson<QuoteSummary>(
+  const raw = await fetchJson<QuoteSummary>(
     `/api/analyze?symbol=${encodeURIComponent(symbol)}`
   );
+  const data = normalizeAnalysisPayload(raw) as QuoteSummary | null;
   if (!hasQuotePayload(data)) {
     throw new ApiError("Invalid quote data from server", 502);
   }
