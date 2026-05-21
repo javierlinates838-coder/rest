@@ -320,8 +320,8 @@ export function generateSignal(indicators: TechnicalIndicators, currentPrice: nu
   // RSI analysis
   if (indicators.rsi < 30) { score += 2; reasons.push(`RSI oversold at ${indicators.rsi.toFixed(1)} (buy signal)`); }
   else if (indicators.rsi > 70) { score -= 2; reasons.push(`RSI overbought at ${indicators.rsi.toFixed(1)} (sell signal)`); }
-  else if (indicators.rsi < 45) { score += 0.5; reasons.push(`RSI slightly bearish at ${indicators.rsi.toFixed(1)}`); }
-  else if (indicators.rsi > 55) { score += 0.5; reasons.push(`RSI moderately bullish at ${indicators.rsi.toFixed(1)}`); }
+  else if (indicators.rsi < 45) { score -= 0.5; reasons.push(`RSI soft at ${indicators.rsi.toFixed(1)} (mild bearish)`); }
+  else if (indicators.rsi > 55) { score += 0.5; reasons.push(`RSI firm at ${indicators.rsi.toFixed(1)} (mild bullish)`); }
 
   // MACD analysis
   if (indicators.macd.histogram > 0) { score += 1; reasons.push("MACD histogram positive (bullish momentum)"); }
@@ -360,5 +360,14 @@ export function generateSignal(indicators: TechnicalIndicators, currentPrice: nu
   else if (normalizedScore > -0.4) signal = "Sell";
   else signal = "Strong Sell";
 
-  return { signal, confidence: Math.round(confidence), reasons };
+  const roundedConf = Math.round(confidence);
+  const isDirectional =
+    signal === "Buy" || signal === "Strong Buy" || signal === "Sell" || signal === "Strong Sell";
+
+  if (isDirectional && roundedConf < 35) {
+    reasons.push(`Low conviction (${roundedConf}%) — displayed as Hold`);
+    return { signal: "Hold", confidence: roundedConf, reasons };
+  }
+
+  return { signal, confidence: roundedConf, reasons };
 }

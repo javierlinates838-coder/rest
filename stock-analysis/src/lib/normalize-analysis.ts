@@ -1,5 +1,12 @@
 /** Ensures API/analysis payloads are safe to render (no undefined nested crashes). */
 
+import {
+  normalizePriceTargets,
+  normalizeRecommendation,
+  resolveSignal,
+  riskLevelFromGrade,
+} from "@/lib/analysis-coherence";
+
 type LooseRecord = Record<string, unknown>;
 
 function num(v: unknown, fallback = 0): number {
@@ -179,11 +186,14 @@ export function normalizeAnalysisPayload(raw: any): any {
   const bb = indicators.bollingerBands || {};
   const stoch = indicators.stochastic || {};
   const ai = raw.aiAnalysis || {};
-  const pt = ai.priceTarget || {};
-  const low = num(pt.low, price * 0.9);
-  const high = num(pt.high, price * 1.1);
-  const mid = num(pt.mid, price);
-  const signal = raw.signal || {};
+  const signalRaw = raw.signal || {};
+  const resolved = resolveSignal(str(signalRaw.signal, "Hold"), num(signalRaw.confidence, 50));
+  const recommendation = normalizeRecommendation(
+    str(ai.recommendation, resolved.signal),
+    resolved.signal
+  );
+  const priceTarget = normalizePriceTargets(price, recommendation, ai.priceTarget);
+  const riskScoreNorm = raw.riskScore ? normalizeRiskScore(raw.riskScore) : null;
 
   const tradingPlan = normalizeTradingPlan(raw.tradingPlan, price);
 
@@ -242,10 +252,10 @@ export function normalizeAnalysisPayload(raw: any): any {
       resistanceLevels: arr<number>(indicators.resistanceLevels),
     },
     signal: {
-      signal: str(signal.signal, "Hold"),
-      confidence: num(signal.confidence, 50),
-      reasons: arr<string>(signal.reasons).length
-        ? arr<string>(signal.reasons)
+      signal: resolved.signal,
+      confidence: resolved.confidence,
+      reasons: arr<string>(signalRaw.reasons).length
+        ? arr<string>(signalRaw.reasons)
         : ["Analysis based on available market data"],
     },
     competitors: arr<LooseRecord>(raw.competitors).map((c) => ({
@@ -260,10 +270,12 @@ export function normalizeAnalysisPayload(raw: any): any {
     })),
     aiAnalysis: {
       summary: str(ai.summary, "Analysis summary unavailable."),
-      recommendation: str(ai.recommendation, str(signal.signal, "Hold")),
-      confidence: num(ai.confidence, num(signal.confidence, 50)),
-      priceTarget: { low, mid, high },
-      riskLevel: str(ai.riskLevel, "Medium"),
+      recommendation,
+      confidence: num(ai.confidence, resolved.confidence),
+      priceTarget,
+      riskLevel: riskScoreNorm
+        ? riskLevelFromGrade(riskScoreNorm.grade)
+        : str(ai.riskLevel, "Medium"),
       timeHorizon: str(ai.timeHorizon, "Medium-term (3-12 months)"),
       keyFactors: arr<string>(ai.keyFactors).length
         ? arr<string>(ai.keyFactors)
@@ -283,7 +295,7 @@ export function normalizeAnalysisPayload(raw: any): any {
     keyEvents: normalizeKeyEvents(raw.keyEvents),
     institutional: normalizeInstitutional(raw.institutional),
     priceAction: normalizePriceAction(raw.priceAction),
-    riskScore: raw.riskScore ? normalizeRiskScore(raw.riskScore) : null,
+    riskScore: riskScoreNorm,
     dataSources: raw.dataSources || {},
     analyzedAt: str(raw.analyzedAt, new Date().toISOString()),
     finnhubSentiment: raw.finnhubSentiment ?? null,

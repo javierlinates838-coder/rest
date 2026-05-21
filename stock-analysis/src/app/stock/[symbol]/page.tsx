@@ -14,6 +14,8 @@ import { formatCurrency, formatLargeNumber, formatPercent, getSignalColor, getSi
 import { ApiError, fetchJson, fetchJsonWithTimeout } from "@/lib/fetch-json";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { normalizeAnalysisPayload } from "@/lib/normalize-analysis";
+import { priceChangePercent } from "@/lib/analysis-coherence";
+import { StockLogo } from "@/components/stock-logo";
 import {
   AnimatedNumber, Sparkline, DayRangeSlider, MarketSession, VolumeGauge,
   TradingPlanCard, KeyEventsCard, InstitutionalCard, PriceActionCard,
@@ -457,6 +459,7 @@ export default function StockPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
+            <StockLogo symbol={quote.symbol} size={44} />
             <h1 className="text-2xl sm:text-[32px] font-semibold text-white tracking-tight">{quote.symbol}</h1>
             <span className="text-zinc-400 text-sm sm:text-[16px] hidden sm:inline font-light tracking-tight max-w-[140px] truncate">{quote.name}</span>
             <span className="px-2.5 py-0.5 text-[10px] font-semibold bg-zinc-800/60 text-zinc-500 rounded-md tracking-wider uppercase">{quote.exchange}</span>
@@ -529,9 +532,12 @@ export default function StockPage() {
         {/* Signal + Risk Badges — stacked on mobile */}
         <div className="grid grid-cols-1 gap-3 w-full sm:grid-cols-2 lg:grid-cols-3">
           <div className={`px-5 py-4 sm:px-7 sm:py-5 rounded-2xl border mobile-card-full ${getSignalBg(signal.signal)} text-center animate-scaleIn`}>
-            <div className="text-[10px] text-zinc-400 font-semibold tracking-widest uppercase mb-1.5">AI Verdict</div>
+            <div className="text-[10px] text-zinc-400 font-semibold tracking-widest uppercase mb-1.5">Signal</div>
             <div className={`text-[22px] sm:text-[26px] font-semibold tracking-tight ${getSignalColor(signal.signal)}`}>{signal.signal.toUpperCase()}</div>
             <div className="text-[12px] text-zinc-400 mt-1 font-light">Confidence: {signal.confidence}%</div>
+            {aiAnalysis.recommendation !== signal.signal && (
+              <div className="text-[10px] text-zinc-500 mt-1.5">AI view: {aiAnalysis.recommendation}</div>
+            )}
             <div className="w-full bg-zinc-800/50 rounded-full h-1.5 mt-2.5">
               <div
                 className={`h-1.5 rounded-full transition-all duration-1000 ${signal.signal.includes("Buy") ? "bg-emerald-500" : signal.signal.includes("Sell") ? "bg-red-500" : "bg-yellow-500"}`}
@@ -548,7 +554,7 @@ export default function StockPage() {
               riskScore.grade === "D" ? "bg-orange-500/5 border-orange-500/20" :
               "bg-red-500/5 border-red-500/20"
             }`}>
-              <div className="text-[10px] text-zinc-400 font-semibold tracking-widest uppercase mb-1.5">Risk</div>
+              <div className="text-[10px] text-zinc-400 font-semibold tracking-widest uppercase mb-1.5">Risk grade</div>
               <div className={`text-[28px] sm:text-[32px] font-bold tracking-tight ${
                 riskScore.grade === "A" ? "text-emerald-400" :
                 riskScore.grade === "B" ? "text-green-400" :
@@ -556,7 +562,7 @@ export default function StockPage() {
                 riskScore.grade === "D" ? "text-orange-400" :
                 "text-red-400"
               }`}>{riskScore.grade}</div>
-              <div className="text-[10px] text-zinc-500 mt-0.5">{riskScore.overall}/100</div>
+              <div className="text-[10px] text-zinc-500 mt-0.5">{riskScore.overall}/100 · higher = riskier</div>
             </div>
           )}
 
@@ -898,7 +904,7 @@ export default function StockPage() {
                     <div key={i} className="flex justify-between items-center py-2 border-b border-zinc-800/30 last:border-0">
                       <span className="text-sm text-zinc-400">S{i + 1}</span>
                       <span className="text-sm font-medium text-white">{formatCurrency(level)}</span>
-                      <span className="text-xs text-zinc-500">{((level - quote.price) / quote.price * 100).toFixed(1)}%</span>
+                      <span className="text-xs text-zinc-500">{priceChangePercent(level, quote.price)}</span>
                     </div>
                   ))}
                 </div>
@@ -914,7 +920,7 @@ export default function StockPage() {
                     <div key={i} className="flex justify-between items-center py-2 border-b border-zinc-800/30 last:border-0">
                       <span className="text-sm text-zinc-400">R{i + 1}</span>
                       <span className="text-sm font-medium text-white">{formatCurrency(level)}</span>
-                      <span className="text-xs text-zinc-500">+{((level - quote.price) / quote.price * 100).toFixed(1)}%</span>
+                      <span className="text-xs text-zinc-500">{priceChangePercent(level, quote.price)}</span>
                     </div>
                   ))}
                 </div>
@@ -964,22 +970,25 @@ export default function StockPage() {
 
           {/* Price Targets */}
           <div className="glass-card rounded-xl p-6">
-            <h3 className="text-lg font-bold text-white mb-4">Price Target Projections</h3>
+            <h3 className="text-lg font-bold text-white mb-1">Price Target Projections</h3>
+            <p className="text-[11px] text-zinc-500 mb-4">
+              Bear = downside · Base = expected path · Bull = upside vs current ${quote.price.toFixed(2)}
+            </p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4 mb-6">
               <div className="text-center p-4 bg-red-500/10 rounded-xl border border-red-500/20">
-                <div className="text-xs text-zinc-500 mb-1">Bear Case</div>
+                <div className="text-xs text-zinc-500 mb-1">Bear (low)</div>
                 <div className="text-2xl font-bold text-red-400">{formatCurrency(aiAnalysis.priceTarget.low)}</div>
-                <div className="text-xs text-zinc-500 mt-1">{((aiAnalysis.priceTarget.low - quote.price) / quote.price * 100).toFixed(1)}%</div>
+                <div className="text-xs text-zinc-500 mt-1">{priceChangePercent(aiAnalysis.priceTarget.low, quote.price)}</div>
               </div>
               <div className="text-center p-4 bg-indigo-500/10 rounded-xl border border-indigo-500/20">
-                <div className="text-xs text-zinc-500 mb-1">Base Case</div>
+                <div className="text-xs text-zinc-500 mb-1">Base</div>
                 <div className="text-2xl font-bold text-indigo-400">{formatCurrency(aiAnalysis.priceTarget.mid)}</div>
-                <div className="text-xs text-zinc-500 mt-1">{((aiAnalysis.priceTarget.mid - quote.price) / quote.price * 100).toFixed(1)}%</div>
+                <div className="text-xs text-zinc-500 mt-1">{priceChangePercent(aiAnalysis.priceTarget.mid, quote.price)}</div>
               </div>
               <div className="text-center p-4 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
-                <div className="text-xs text-zinc-500 mb-1">Bull Case</div>
+                <div className="text-xs text-zinc-500 mb-1">Bull (high)</div>
                 <div className="text-2xl font-bold text-emerald-400">{formatCurrency(aiAnalysis.priceTarget.high)}</div>
-                <div className="text-xs text-zinc-500 mt-1">+{((aiAnalysis.priceTarget.high - quote.price) / quote.price * 100).toFixed(1)}%</div>
+                <div className="text-xs text-zinc-500 mt-1">{priceChangePercent(aiAnalysis.priceTarget.high, quote.price)}</div>
               </div>
             </div>
             <div className="relative h-4 bg-zinc-800 rounded-full overflow-hidden">
@@ -1008,12 +1017,15 @@ export default function StockPage() {
           {/* Risk & Time Horizon */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="glass-card rounded-xl p-6">
-              <div className="text-xs text-zinc-500 mb-2">RISK LEVEL</div>
+              <div className="text-xs text-zinc-500 mb-2">AI RISK VIEW</div>
               <div className={`text-xl font-bold ${
                 aiAnalysis.riskLevel === "Low" ? "text-emerald-400" :
                 aiAnalysis.riskLevel === "Medium" ? "text-yellow-400" :
                 aiAnalysis.riskLevel === "High" ? "text-orange-400" : "text-red-400"
               }`}>{aiAnalysis.riskLevel}</div>
+              {riskScore && (
+                <div className="text-[10px] text-zinc-600 mt-1">Matches grade {riskScore.grade} ({riskScore.overall}/100)</div>
+              )}
             </div>
             <div className="glass-card rounded-xl p-6">
               <div className="text-xs text-zinc-500 mb-2">TIME HORIZON</div>

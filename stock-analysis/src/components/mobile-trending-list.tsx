@@ -1,5 +1,6 @@
 "use client";
 
+import { StockLogo } from "@/components/stock-logo";
 import { formatCurrency, formatPercent } from "@/lib/utils";
 
 interface TrendingStock {
@@ -23,8 +24,9 @@ export function MobileTrendingList({
           key={stock.symbol}
           type="button"
           onClick={() => onSelect(stock.symbol)}
-          className="mobile-stock-card w-full text-left"
+          className="mobile-stock-card w-full text-left flex items-center gap-3"
         >
+          <StockLogo symbol={stock.symbol} size={40} />
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <span className="text-[16px] font-bold text-white tracking-tight">{stock.symbol}</span>

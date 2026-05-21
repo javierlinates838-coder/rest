@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { formatCurrency, formatLargeNumber, formatPercent } from "@/lib/utils";
 import { PremiumSearch } from "@/components/premium-search";
 import { MobileTrendingList } from "@/components/mobile-trending-list";
+import { StockPicks } from "@/components/stock-picks";
+import { StockLogo } from "@/components/stock-logo";
 
 interface MarketIndex {
   symbol: string;
@@ -189,6 +191,8 @@ export default function DashboardPage() {
         </div>
       ) : (
         <>
+          <StockPicks />
+
           {/* Market Indices */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-10">
             {indices.map((index, i) => (
@@ -247,8 +251,13 @@ export default function DashboardPage() {
                         onClick={() => router.push(`/stock/${stock.symbol}`)}
                       >
                         <td className="px-5 py-3.5">
-                          <div className="text-[14px] font-semibold text-white tracking-tight">{stock.symbol}</div>
-                          <div className="text-[11px] text-zinc-500 truncate max-w-[140px]">{stock.name}</div>
+                          <div className="flex items-center gap-3">
+                            <StockLogo symbol={stock.symbol} size={32} />
+                            <div>
+                              <div className="text-[14px] font-semibold text-white tracking-tight">{stock.symbol}</div>
+                              <div className="text-[11px] text-zinc-500 truncate max-w-[140px]">{stock.name}</div>
+                            </div>
+                          </div>
                         </td>
                         <td className="text-right px-5 py-3.5 text-[14px] font-medium text-white tracking-tight">{formatCurrency(stock.price)}</td>
                         <td className="text-right px-5 py-3.5">

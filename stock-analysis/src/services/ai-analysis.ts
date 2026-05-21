@@ -1,3 +1,4 @@
+import { buildPriceTargets, normalizeRecommendation } from "@/lib/analysis-coherence";
 import type { TechnicalIndicators } from "@/lib/technical-analysis";
 import type { StockQuote, CompetitorData } from "./stock-data";
 
@@ -209,7 +210,8 @@ function generateBuiltInAnalysis(
   const isUndervalued = quote.peRatio > 0 && quote.peRatio < avgCompetitorPE * 0.8;
   const isOvervalued = quote.peRatio > avgCompetitorPE * 1.3;
 
-  const targetMultiplier = signal.signal.includes("Buy") ? 1.15 : signal.signal.includes("Sell") ? 0.9 : 1.05;
+  const recommendation = normalizeRecommendation(signal.signal, "Hold");
+  const priceTarget = buildPriceTargets(quote.price, recommendation);
 
   const financialsInfo = quote.financials
     ? ` Revenue is $${(quote.financials.revenue / 1e9).toFixed(1)}B with a ${(quote.financials.profitMargin * 100).toFixed(1)}% profit margin and ${(quote.financials.returnOnEquity * 100).toFixed(1)}% ROE.`
@@ -218,14 +220,9 @@ function generateBuiltInAnalysis(
   return {
     summary: `${quote.name} (${quote.symbol}) trades at $${quote.price.toFixed(2)} with a ${signal.signal} signal at ${signal.confidence}% confidence. The stock is ${priceFromSMA200 > 0 ? `${priceFromSMA200.toFixed(1)}% above` : `${Math.abs(priceFromSMA200).toFixed(1)}% below`} its 200-day moving average. ${isUndervalued ? "Valuation appears attractive relative to peers." : isOvervalued ? "Premium valuation relative to peers." : "Valuation is in line with peers."}${financialsInfo} ${newsSentiment > 0 ? "News sentiment is positive." : newsSentiment < 0 ? "News sentiment is concerning." : "Sentiment is mixed."}`,
 
-    recommendation: signal.signal,
+    recommendation,
     confidence: signal.confidence,
-
-    priceTarget: {
-      low: Number((quote.price * (targetMultiplier - 0.1)).toFixed(2)),
-      mid: Number((quote.price * targetMultiplier).toFixed(2)),
-      high: Number((quote.price * (targetMultiplier + 0.1)).toFixed(2)),
-    },
+    priceTarget,
 
     riskLevel,
     timeHorizon: signal.confidence > 70 ? "Short-term (1-3 months)" : signal.confidence > 40 ? "Medium-term (3-12 months)" : "Long-term (1-3 years)",
@@ -249,7 +246,11 @@ function generateBuiltInAnalysis(
       : "Peer data unavailable for comparison.",
 
     catalysts: [
-      signal.signal.includes("Buy") ? "Technical momentum supports further upside" : "Potential mean reversion from oversold levels",
+      signal.signal.includes("Buy")
+        ? "Technical momentum supports further upside"
+        : signal.signal.includes("Sell")
+          ? "Sector headwinds or valuation could pressure shares lower"
+          : "Range-bound action may continue until a catalyst emerges",
       isUndervalued ? "Undervaluation vs peers could drive re-rating" : "Market position justifies premium",
       newsSentiment > 0 ? "Positive news flow building buying interest" : "Improving sentiment could become tailwind",
       `${quote.sector} sector ${quote.changePercent > 0 ? "momentum" : "rotation potential"}`,
