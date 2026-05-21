@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { formatCurrency, formatPercent, getSignalColor, getSignalBg } from "@/lib/utils";
-import { fetchQuoteSummary } from "@/lib/fetch-json";
+import { fetchJson } from "@/lib/fetch-json";
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -38,6 +38,7 @@ export default function PortfolioPage() {
   const router = useRouter();
   const [holdings, setHoldings] = useState<PortfolioHolding[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSample, setIsSample] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -45,45 +46,48 @@ export default function PortfolioPage() {
       const stored = typeof window !== "undefined"
         ? JSON.parse(localStorage.getItem("portfolio") || "null")
         : null;
-      const portfolio = stored || SAMPLE_PORTFOLIO;
+      const portfolio = Array.isArray(stored) && stored.length > 0 ? stored : SAMPLE_PORTFOLIO;
+      if (!cancelled) setIsSample(!stored || stored.length === 0);
 
-      const holdingData: PortfolioHolding[] = [];
-      for (const item of portfolio) {
-        if (cancelled) return;
-        try {
-          const data = await fetchQuoteSummary(item.symbol);
-          const currentPrice = data.quote.price || item.avgCost;
-          const totalValue = currentPrice * item.shares;
-          const totalCost = item.avgCost * item.shares;
-          holdingData.push({
-            symbol: item.symbol,
-            name: data.quote?.name || item.symbol,
-            shares: item.shares,
-            avgCost: item.avgCost,
-            currentPrice,
-            changePercent: data.quote?.changePercent || 0,
-            signal: data.signal?.signal,
-            confidence: data.signal?.confidence,
-            totalValue,
-            totalGain: totalValue - totalCost,
-            gainPercent: ((totalValue - totalCost) / totalCost) * 100,
-          });
-        } catch {
-          holdingData.push({
-            symbol: item.symbol,
-            name: item.symbol,
-            shares: item.shares,
-            avgCost: item.avgCost,
-            currentPrice: item.avgCost,
-            changePercent: 0,
-            totalValue: item.avgCost * item.shares,
-            totalGain: 0,
-            gainPercent: 0,
-          });
-        }
-      }
+      const results = await Promise.all(
+        portfolio.map(async (item: { symbol: string; shares: number; avgCost: number }) => {
+          try {
+            const data = await fetchJson<{
+              quote?: { name: string; price: number; changePercent: number };
+            }>(`/api/stock?symbol=${encodeURIComponent(item.symbol)}&period=1m`);
+            const currentPrice = data.quote?.price || item.avgCost;
+            const totalValue = currentPrice * item.shares;
+            const totalCost = item.avgCost * item.shares;
+            return {
+              symbol: item.symbol,
+              name: data.quote?.name || item.symbol,
+              shares: item.shares,
+              avgCost: item.avgCost,
+              currentPrice,
+              changePercent: data.quote?.changePercent || 0,
+              totalValue,
+              totalGain: totalValue - totalCost,
+              gainPercent: totalCost > 0 ? ((totalValue - totalCost) / totalCost) * 100 : 0,
+            } satisfies PortfolioHolding;
+          } catch {
+            const totalCost = item.avgCost * item.shares;
+            return {
+              symbol: item.symbol,
+              name: item.symbol,
+              shares: item.shares,
+              avgCost: item.avgCost,
+              currentPrice: item.avgCost,
+              changePercent: 0,
+              totalValue: totalCost,
+              totalGain: 0,
+              gainPercent: 0,
+            } satisfies PortfolioHolding;
+          }
+        })
+      );
+
       if (!cancelled) {
-        setHoldings(holdingData);
+        setHoldings(results);
         setLoading(false);
       }
     })();
@@ -103,7 +107,16 @@ export default function PortfolioPage() {
   return (
     <div className="page-shell max-w-[1600px]">
       <h1 className="text-[32px] font-semibold text-white tracking-tight mb-2">Portfolio</h1>
-      <p className="text-[14px] text-zinc-400 font-light tracking-tight mb-8">Track your holdings with AI-powered signals and deep analysis</p>
+      <p className="text-[14px] text-zinc-400 font-light tracking-tight mb-4">
+        Holdings overview with live quotes — tap a row for full AI analysis
+      </p>
+
+      {isSample && (
+        <div className="glass-card rounded-xl px-4 py-3 mb-6 border border-indigo-500/20 bg-indigo-500/5 text-[12px] text-indigo-200/90 leading-relaxed">
+          Showing a <strong className="font-medium text-white">demo portfolio</strong> for illustration.
+          Custom portfolios will be supported in a future update.
+        </div>
+      )}
 
       {loading ? (
         <div className="animate-pulse space-y-4">
@@ -114,120 +127,85 @@ export default function PortfolioPage() {
         </div>
       ) : (
         <>
-          {/* Portfolio Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
             <div className="glass-card rounded-xl p-6">
               <div className="text-xs text-zinc-500 mb-1">TOTAL VALUE</div>
-              <div className="text-3xl font-bold text-white">{formatCurrency(totalValue)}</div>
+              <div className="text-2xl font-bold text-white">{formatCurrency(totalValue)}</div>
             </div>
             <div className="glass-card rounded-xl p-6">
-              <div className="text-xs text-zinc-500 mb-1">TOTAL P&L</div>
-              <div className={`text-3xl font-bold ${totalGain >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+              <div className="text-xs text-zinc-500 mb-1">TOTAL GAIN/LOSS</div>
+              <div className={`text-2xl font-bold ${totalGain >= 0 ? "text-emerald-400" : "text-red-400"}`}>
                 {totalGain >= 0 ? "+" : ""}{formatCurrency(totalGain)}
               </div>
-              <div className={`text-sm ${totalGain >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+            </div>
+            <div className="glass-card rounded-xl p-6">
+              <div className="text-xs text-zinc-500 mb-1">RETURN</div>
+              <div className={`text-2xl font-bold ${totalGainPercent >= 0 ? "text-emerald-400" : "text-red-400"}`}>
                 {formatPercent(totalGainPercent)}
               </div>
             </div>
-            <div className="glass-card rounded-xl p-6">
-              <div className="text-xs text-zinc-500 mb-1">HOLDINGS</div>
-              <div className="text-3xl font-bold text-white">{holdings.length}</div>
-              <div className="text-sm text-zinc-400">stocks tracked</div>
-            </div>
           </div>
 
-          {/* Charts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
             <div className="glass-card rounded-xl p-6">
-              <h3 className="text-lg font-bold text-white mb-4">Portfolio Allocation</h3>
-              <ResponsiveContainer width="100%" height={300}>
+              <h3 className="text-lg font-bold text-white mb-4">Allocation</h3>
+              <ResponsiveContainer width="100%" height={250}>
                 <PieChart>
-                  <Pie
-                    data={pieData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={110}
-                    paddingAngle={2}
-                    dataKey="value"
-                  >
-                    {pieData.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  <Pie data={pieData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} dataKey="value" paddingAngle={2}>
+                    {pieData.map((_, i) => (
+                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip
-                    contentStyle={{ backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "8px" }}
-                    formatter={(value) => [formatCurrency(Number(value)), "Value"]}
-                  />
+                  <Tooltip formatter={(v) => formatCurrency(Number(v))} />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
             </div>
-
             <div className="glass-card rounded-xl p-6">
-              <h3 className="text-lg font-bold text-white mb-4">P&L by Holding</h3>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={holdings.map((h) => ({ symbol: h.symbol, gain: h.totalGain }))}>
+              <h3 className="text-lg font-bold text-white mb-4">Position Values</h3>
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={holdings}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-                  <XAxis dataKey="symbol" stroke="#52525b" />
-                  <YAxis stroke="#52525b" tickFormatter={(v) => `$${(v / 1000).toFixed(0)}K`} />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "8px" }}
-                    formatter={(value) => [formatCurrency(Number(value)), "P&L"]}
-                  />
-                  <Bar dataKey="gain" radius={[4, 4, 0, 0]}>
-                    {holdings.map((h, index) => (
-                      <Cell key={`cell-${index}`} fill={h.totalGain >= 0 ? "#22c55e" : "#ef4444"} />
-                    ))}
-                  </Bar>
+                  <XAxis dataKey="symbol" stroke="#71717a" fontSize={12} />
+                  <YAxis stroke="#71717a" fontSize={12} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
+                  <Tooltip formatter={(v) => formatCurrency(Number(v))} />
+                  <Bar dataKey="totalValue" fill="#6366f1" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </div>
 
-          {/* Holdings Table */}
-          <div className="glass-card rounded-xl overflow-hidden table-scroll">
-            <table className="w-full min-w-[640px]">
+          <div className="glass-card rounded-xl overflow-hidden">
+            <table className="w-full">
               <thead>
-                <tr className="border-b border-zinc-800/50">
-                  <th className="text-left text-xs text-zinc-500 font-medium px-4 py-3">HOLDING</th>
-                  <th className="text-right text-xs text-zinc-500 font-medium px-4 py-3">SHARES</th>
-                  <th className="text-right text-xs text-zinc-500 font-medium px-4 py-3">AVG COST</th>
-                  <th className="text-right text-xs text-zinc-500 font-medium px-4 py-3">CURRENT</th>
-                  <th className="text-right text-xs text-zinc-500 font-medium px-4 py-3">VALUE</th>
-                  <th className="text-right text-xs text-zinc-500 font-medium px-4 py-3">P&L</th>
-                  <th className="text-center text-xs text-zinc-500 font-medium px-4 py-3">SIGNAL</th>
+                <tr className="border-b border-zinc-800 text-xs text-zinc-500 uppercase">
+                  <th className="text-left px-6 py-3">Symbol</th>
+                  <th className="text-right px-4 py-3">Shares</th>
+                  <th className="text-right px-4 py-3">Price</th>
+                  <th className="text-right px-4 py-3">Value</th>
+                  <th className="text-right px-4 py-3">Gain</th>
+                  <th className="text-right px-6 py-3">Today</th>
                 </tr>
               </thead>
               <tbody>
                 {holdings.map((h) => (
                   <tr
                     key={h.symbol}
-                    className="border-b border-zinc-800/30 hover:bg-zinc-800/30 cursor-pointer transition-colors"
+                    className="border-b border-zinc-800/50 hover:bg-zinc-800/30 cursor-pointer"
                     onClick={() => router.push(`/stock/${h.symbol}`)}
                   >
-                    <td className="px-4 py-4">
-                      <div className="font-semibold text-white">{h.symbol}</div>
+                    <td className="px-6 py-4">
+                      <div className="font-bold text-white">{h.symbol}</div>
                       <div className="text-xs text-zinc-500">{h.name}</div>
                     </td>
-                    <td className="text-right px-4 py-4 text-white">{h.shares}</td>
-                    <td className="text-right px-4 py-4 text-zinc-400">{formatCurrency(h.avgCost)}</td>
-                    <td className="text-right px-4 py-4 text-white font-medium">{formatCurrency(h.currentPrice)}</td>
+                    <td className="text-right px-4 py-4 text-zinc-300">{h.shares}</td>
+                    <td className="text-right px-4 py-4 text-white">{formatCurrency(h.currentPrice)}</td>
                     <td className="text-right px-4 py-4 text-white">{formatCurrency(h.totalValue)}</td>
-                    <td className="text-right px-4 py-4">
-                      <div className={h.totalGain >= 0 ? "text-emerald-400" : "text-red-400"}>
-                        {h.totalGain >= 0 ? "+" : ""}{formatCurrency(h.totalGain)}
-                      </div>
-                      <div className={`text-xs ${h.gainPercent >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                        {formatPercent(h.gainPercent)}
-                      </div>
+                    <td className={`text-right px-4 py-4 font-medium ${h.totalGain >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                      {formatPercent(h.gainPercent)}
                     </td>
-                    <td className="text-center px-4 py-4">
-                      {h.signal && (
-                        <span className={`text-xs px-3 py-1 rounded-full border font-bold ${getSignalBg(h.signal)} ${getSignalColor(h.signal)}`}>
-                          {h.signal.toUpperCase()}
-                        </span>
-                      )}
+                    <td className={`text-right px-6 py-4 ${h.changePercent >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                      {formatPercent(h.changePercent)}
                     </td>
                   </tr>
                 ))}

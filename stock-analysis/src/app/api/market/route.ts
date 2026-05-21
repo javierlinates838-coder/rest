@@ -34,6 +34,7 @@ export async function GET() {
     ]);
 
     // Use FMP sector data if available, otherwise fallback
+    const sectorsEstimated = sectorPerf.length === 0;
     const sectors = sectorPerf.length > 0
       ? sectorPerf.map((s) => ({
           name: s.sector.replace("sector", "").trim(),
@@ -62,6 +63,7 @@ export async function GET() {
       indices: indexResults,
       trending: trendingResults.filter(Boolean),
       sectors,
+      sectorsEstimated,
       topGainers,
       topLosers,
       dataSources: {

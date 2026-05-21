@@ -70,12 +70,12 @@ function mergeNewsItems(lists: StockNewsItem[][]): StockNewsItem[] {
 
 function generateFallback(symbol: string): StockNewsItem[] {
   const templates = [
-    { title: `${symbol} Surpasses Analyst Expectations in Latest Quarter`, source: "Financial Times", sentiment: "positive" as const, summary: `${symbol} reported earnings that beat Wall Street estimates.` },
-    { title: `Institutional Investors Increase Stakes in ${symbol}`, source: "Bloomberg", sentiment: "positive" as const, summary: `Major funds have been accumulating shares of ${symbol}.` },
-    { title: `${symbol} Faces Regulatory Headwinds in Key Markets`, source: "Reuters", sentiment: "negative" as const, summary: `New regulatory proposals could impact ${symbol}'s operations.` },
-    { title: `Analyst Roundup: Mixed Views on ${symbol}'s Valuation`, source: "MarketWatch", sentiment: "neutral" as const, summary: `Wall Street analysts are divided on ${symbol}'s valuation.` },
-    { title: `${symbol} Announces Strategic Partnership`, source: "CNBC", sentiment: "positive" as const, summary: `${symbol} entered a new strategic partnership.` },
-    { title: `Market Volatility: How ${symbol} Is Positioned`, source: "Wall Street Journal", sentiment: "neutral" as const, summary: `Analysts evaluate how ${symbol} can weather economic headwinds.` },
+    { title: `${symbol} — illustrative earnings beat scenario`, source: "Illustrative", sentiment: "positive" as const, summary: `Sample headline for ${symbol} when live news APIs are unavailable.` },
+    { title: `${symbol} — illustrative institutional interest`, source: "Illustrative", sentiment: "positive" as const, summary: `Demo content only; connect news APIs for real articles.` },
+    { title: `${symbol} — illustrative regulatory risk scenario`, source: "Illustrative", sentiment: "negative" as const, summary: `Placeholder narrative for ${symbol}, not a reported story.` },
+    { title: `${symbol} — illustrative valuation debate`, source: "Illustrative", sentiment: "neutral" as const, summary: `Example neutral tone headline for ${symbol}.` },
+    { title: `${symbol} — illustrative partnership scenario`, source: "Illustrative", sentiment: "positive" as const, summary: `Demo positive catalyst copy for ${symbol}.` },
+    { title: `${symbol} — illustrative macro positioning`, source: "Illustrative", sentiment: "neutral" as const, summary: `Sample macro-context headline for ${symbol}.` },
   ];
 
   const now = Date.now();

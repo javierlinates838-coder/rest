@@ -317,13 +317,13 @@ function detectSimulatedInsiderActivity(
       id: "insider-selling",
       severity: "critical",
       category: "insider",
-      title: "Insider Selling Activity Detected",
-      description: `Recent SEC filings indicate insider selling of approximately $${(amount / 1e6).toFixed(1)}M in shares. While insiders sell for many reasons, significant selling combined with elevated volume warrants careful attention. This could signal that those with the most knowledge of the company see limited upside.`,
+      title: "Elevated Volume + Sell Pattern (Model)",
+      description: `Our model flags unusual volume versus average alongside a bearish ownership pattern for ${symbol}. This is not a confirmed SEC filing — treat as a risk hint and verify with official disclosures before acting.`,
       detectedAt: new Date().toISOString(),
       dataPoints: [
-        `Estimated insider sales: $${(amount / 1e6).toFixed(1)}M`,
-        `Volume correlation: ${(volume / avgVolume).toFixed(1)}x average`,
-        `Timing: Within last 30 days`,
+        `Model-estimated flow: ~$${(amount / 1e6).toFixed(1)}M (not a filing)`,
+        `Volume: ${(volume / avgVolume).toFixed(1)}× vs average`,
+        `Pattern window: ~30 days`,
       ],
     };
   }
@@ -333,12 +333,12 @@ function detectSimulatedInsiderActivity(
       id: "insider-buying",
       severity: "info",
       category: "insider",
-      title: "Insider Buying Activity Noted",
-      description: `Recent filings show insider purchases. When executives buy shares on the open market with their own money, it's generally a positive signal — they're putting their money where their mouth is.`,
+      title: "Accumulation Pattern (Model)",
+      description: `Model detects a constructive volume/ownership pattern for ${symbol}. Confirm with actual insider transaction filings before relying on this signal.`,
       detectedAt: new Date().toISOString(),
       dataPoints: [
-        `Type: Open market purchase`,
-        `Confidence signal: Positive`,
+        `Pattern: Model-positive (not a filing)`,
+        `Volume context: ${(volume / avgVolume).toFixed(1)}× average`,
       ],
     };
   }

@@ -1,4 +1,5 @@
 import { normalizeAnalysisPayload } from "./normalize-analysis";
+import { userFacingFetchError } from "./display-labels";
 
 export class ApiError extends Error {
   constructor(
@@ -12,7 +13,7 @@ export class ApiError extends Error {
 
 function errorMessageFromBody(data: unknown, status: number): string {
   if (typeof data === "object" && data !== null && "error" in data && typeof data.error === "string") {
-    return data.error;
+    return userFacingFetchError(data.error);
   }
   return `Request failed (${status})`;
 }
@@ -45,7 +46,7 @@ export async function fetchJsonWithTimeout<T>(
   } catch (e) {
     if (e instanceof DOMException && e.name === "AbortError") {
       throw new ApiError(
-        "Analysis timed out. The server may be missing API keys or on a plan with a 10s limit — try again in a moment.",
+        "Analysis took too long. Try again in a moment, or check that live data services are connected on the server.",
         504
       );
     }

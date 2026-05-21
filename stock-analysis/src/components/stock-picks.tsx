@@ -116,7 +116,32 @@ export function StockPicks() {
   }
 
   if (error || !data) {
-    return null;
+    return (
+      <section className="mb-10">
+        <h2 className="text-[20px] font-semibold text-white mb-2 tracking-tight">AI Stock Picks</h2>
+        <div className="glass-card rounded-2xl p-6 text-center">
+          <p className="text-sm text-zinc-400 mb-4">{error || "Recommendations are temporarily unavailable."}</p>
+          <button
+            type="button"
+            onClick={() => {
+              setLoading(true);
+              setError(null);
+              fetch("/api/recommendations")
+                .then((r) => r.json())
+                .then((json) => {
+                  if (json.error) throw new Error(json.error);
+                  setData(json);
+                })
+                .catch((e) => setError(e instanceof Error ? e.message : "Failed"))
+                .finally(() => setLoading(false));
+            }}
+            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white text-sm font-medium"
+          >
+            Retry
+          </button>
+        </div>
+      </section>
+    );
   }
 
   return (

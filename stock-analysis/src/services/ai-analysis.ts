@@ -253,7 +253,6 @@ function generateBuiltInAnalysis(
 ): AIAnalysis {
   const bullishCount = signal.reasons.filter((r) => r.includes("bullish") || r.includes("buy") || r.includes("oversold")).length;
   const bearishCount = signal.reasons.filter((r) => r.includes("bearish") || r.includes("sell") || r.includes("overbought")).length;
-  const sentimentScore = ((bullishCount - bearishCount) / Math.max(signal.reasons.length, 1)) * 100;
   const newsSentiment = news.reduce((acc, n) => n.sentiment === "positive" ? acc + 1 : n.sentiment === "negative" ? acc - 1 : acc, 0);
   const priceFromSMA200 = ((quote.price - indicators.sma200) / indicators.sma200) * 100;
 

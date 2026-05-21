@@ -43,12 +43,12 @@ export interface CompetitorData {
 }
 
 const POPULAR_STOCKS: Record<string, { name: string; sector: string; competitors: string[] }> = {
-  AAPL: { name: "Apple Inc.", sector: "Technology", competitors: ["MSFT", "GOOGL", "SAMSUNG", "DELL"] },
+  AAPL: { name: "Apple Inc.", sector: "Technology", competitors: ["MSFT", "GOOGL", "DELL", "HPQ"] },
   MSFT: { name: "Microsoft Corp.", sector: "Technology", competitors: ["AAPL", "GOOGL", "AMZN", "ORCL"] },
   GOOGL: { name: "Alphabet Inc.", sector: "Technology", competitors: ["META", "MSFT", "AMZN", "AAPL"] },
   AMZN: { name: "Amazon.com Inc.", sector: "Consumer Cyclical", competitors: ["WMT", "SHOP", "BABA", "EBAY"] },
   TSLA: { name: "Tesla Inc.", sector: "Automotive", competitors: ["F", "GM", "RIVN", "NIO"] },
-  META: { name: "Meta Platforms Inc.", sector: "Technology", competitors: ["GOOGL", "SNAP", "PINS", "TWTR"] },
+  META: { name: "Meta Platforms Inc.", sector: "Technology", competitors: ["GOOGL", "SNAP", "PINS", "TTD"] },
   NVDA: { name: "NVIDIA Corp.", sector: "Technology", competitors: ["AMD", "INTC", "QCOM", "AVGO"] },
   JPM: { name: "JPMorgan Chase", sector: "Financial", competitors: ["BAC", "GS", "MS", "WFC"] },
   V: { name: "Visa Inc.", sector: "Financial", competitors: ["MA", "PYPL", "SQ", "AXP"] },

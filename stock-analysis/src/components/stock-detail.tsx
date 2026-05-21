@@ -203,6 +203,14 @@ export function VolumeGauge({ volume, avgVolume }: { volume: number; avgVolume: 
   );
 }
 
+function ModelEstimatePill() {
+  return (
+    <span className="text-[9px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-300/90 border border-amber-500/20">
+      Model estimate
+    </span>
+  );
+}
+
 export function TradingPlanCard({ plan, currentPrice }: {
   plan: {
     bias: string;
@@ -227,6 +235,7 @@ export function TradingPlanCard({ plan, currentPrice }: {
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-1">
             <h3 className="text-[16px] sm:text-[18px] font-semibold text-white tracking-tight">Trading Plan</h3>
+            <ModelEstimatePill />
             <span className={`text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-md ${
               isLong ? "bg-emerald-500/15 text-emerald-400" :
               isShort ? "bg-red-500/15 text-red-400" :
@@ -363,8 +372,11 @@ export function KeyEventsCard({ events }: { events: { date: string; type: string
   return (
     <div className="glass-card rounded-2xl p-6 animate-fadeInUp">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-[15px] font-semibold text-white tracking-tight">Upcoming Key Events</h3>
-        <span className="text-[10px] text-zinc-500 tracking-wide">Next {events.length} events</span>
+        <div>
+          <h3 className="text-[15px] font-semibold text-white tracking-tight">Upcoming Key Events</h3>
+          <p className="text-[10px] text-zinc-500 mt-0.5">Estimated calendar — confirm dates with official sources</p>
+        </div>
+        <span className="text-[10px] text-zinc-500 tracking-wide shrink-0">Next {events.length}</span>
       </div>
       <div className="space-y-2.5">
         {events.slice(0, 5).map((event, i) => {
@@ -423,7 +435,13 @@ export function InstitutionalCard({ data }: {
 }) {
   return (
     <div className="glass-card rounded-2xl p-6 animate-fadeInUp">
-      <h3 className="text-[15px] font-semibold text-white tracking-tight mb-4">Ownership Structure</h3>
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <h3 className="text-[15px] font-semibold text-white tracking-tight">Ownership Structure</h3>
+        <ModelEstimatePill />
+      </div>
+      <p className="text-[10px] text-zinc-500 mb-4 leading-relaxed">
+        Illustrative institutional breakdown — not sourced from live 13F filings.
+      </p>
 
       {/* Stacked bar */}
       <div className="mb-5">
@@ -593,7 +611,7 @@ function readWatchlistSymbols(): string[] {
   }
 }
 
-export function QuickActions({ symbol }: { symbol: string }) {
+export function QuickActions({ symbol, onRefresh }: { symbol: string; onRefresh?: () => void }) {
   const [watchlistRevision, setWatchlistRevision] = useState(0);
   const [copied, setCopied] = useState(false);
   const inWatchlist = useMemo(
@@ -645,16 +663,16 @@ export function QuickActions({ symbol }: { symbol: string }) {
           </svg>
         )}
       </button>
-      <a
-        href={`/stock/${symbol}`}
-        onClick={(e) => { e.preventDefault(); window.location.reload(); }}
+      <button
+        type="button"
+        onClick={() => onRefresh?.()}
         className="group glass-card rounded-2xl p-3 hover:glow-border transition-all"
         title="Refresh data"
       >
         <svg className="w-5 h-5 text-zinc-400 group-hover:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
         </svg>
-      </a>
+      </button>
     </div>
   );
 }

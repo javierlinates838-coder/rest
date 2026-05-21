@@ -12,6 +12,7 @@ import {
 } from "recharts";
 import { formatCurrency, formatLargeNumber, formatPercent, getSignalColor, getSignalBg } from "@/lib/utils";
 import { ApiError, fetchJson, fetchJsonWithTimeout } from "@/lib/fetch-json";
+import { aiEngineLabel, formatDataSourceLabel, userFacingFetchError } from "@/lib/display-labels";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { normalizeAnalysisPayload } from "@/lib/normalize-analysis";
 import { priceChangePercent } from "@/lib/analysis-coherence";
@@ -127,14 +128,7 @@ function parseAnalysis(data: unknown): AnalysisData | null {
 }
 
 function shortDataSource(label: string): string {
-  if (label.includes("Gemini")) return "Gemini AI";
-  if (label.includes("Finnhub") && label.includes("NewsAPI")) return "Finnhub+News";
-  if (label.includes("Finnhub")) return "Finnhub";
-  if (label.includes("NewsAPI")) return "NewsAPI";
-  if (label.includes("FMP")) return "FMP";
-  if (label.includes("OpenAI")) return "OpenAI";
-  if (label.includes("Yahoo")) return "Yahoo";
-  return label.length > 14 ? `${label.slice(0, 14)}…` : label;
+  return formatDataSourceLabel(label);
 }
 
 export default function StockPage() {
@@ -155,8 +149,10 @@ export default function StockPage() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [chartSource, setChartSource] = useState<"fmp" | "yahoo" | "simulated" | "unknown">("unknown");
   const [newsSource, setNewsSource] = useState<string | null>(null);
+  const [chartRefreshError, setChartRefreshError] = useState<string | null>(null);
   const heroRef = useRef<HTMLDivElement>(null);
   const skipPeriodFetchRef = useRef(true);
+  const [refreshKey, setRefreshKey] = useState(0);
   const clientNow = useClientNow();
 
   const goBack = () => {
@@ -173,7 +169,7 @@ export default function StockPage() {
       : chartSource === "yahoo"
         ? "Live · Yahoo Finance"
         : chartSource === "simulated"
-          ? "Simulated — add FMP_API_KEY for real prices"
+          ? "Simulated prices"
           : null;
 
   // Full analysis load when symbol changes (not on chart period change)
@@ -208,7 +204,7 @@ export default function StockPage() {
 
         const parsed = parseAnalysis(analysisData);
         if (!parsed) {
-          throw new Error("Incomplete analysis data from server. Check API keys on Vercel (FMP, Gemini; optional Finnhub, NewsAPI).");
+          throw new Error("We couldn't build a complete analysis for this symbol. Try again or pick another ticker.");
         }
         setData(parsed);
 
@@ -262,7 +258,7 @@ export default function StockPage() {
     return () => { cancelled = true; };
     // period intentionally omitted — chart period has its own effect
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [symbol]);
+  }, [symbol, refreshKey]);
 
   // Chart period change — only refetch price history (fast), not full AI analysis
   useEffect(() => {
@@ -274,6 +270,7 @@ export default function StockPage() {
 
     let cancelled = false;
     setHistoryLoading(true);
+    setChartRefreshError(null);
 
     (async () => {
       try {
@@ -287,6 +284,10 @@ export default function StockPage() {
           else if (stockData.historySource === "simulated") setChartSource("simulated");
         }
       } catch (e) {
+        if (!cancelled) {
+          const msg = e instanceof Error ? userFacingFetchError(e.message) : "Chart update failed";
+          setChartRefreshError(msg);
+        }
         console.error("Failed to refresh chart:", e);
       } finally {
         if (!cancelled) setHistoryLoading(false);
@@ -460,7 +461,7 @@ export default function StockPage() {
       />
 
       {/* Quick Actions */}
-      <QuickActions symbol={quote.symbol} />
+      <QuickActions symbol={quote.symbol} onRefresh={() => setRefreshKey((k) => k + 1)} />
 
       {/* Header */}
       <div ref={heroRef} className="w-full min-w-0 space-y-5 mb-6 sm:mb-8">
@@ -498,8 +499,8 @@ export default function StockPage() {
                 {displayChange >= 0 ? "+" : ""}{formatCurrency(displayChange)} ({formatPercent(displayChangePercent)})
               </span>
             </div>
-            {livePrice && (
-              <span className="live-badge text-zinc-400 pb-2.5">Live</span>
+            {livePrice && chartSource !== "simulated" && (
+              <span className="live-badge text-zinc-400 pb-2.5">Live quote</span>
             )}
           </div>
 
@@ -586,12 +587,16 @@ export default function StockPage() {
           <div className="glass-card rounded-2xl p-4 mobile-card-full animate-scaleIn stagger-3 sm:col-span-2 lg:col-span-1">
             <div className="grid grid-cols-2 gap-3 text-[11px]">
               <div>
-                <div className="text-zinc-500 text-[9px] tracking-wider uppercase">Bid</div>
-                <div className="text-white font-medium">{formatCurrency(quote.price - 0.01)}</div>
+                <div className="text-zinc-500 text-[9px] tracking-wider uppercase">Day range</div>
+                <div className="text-white font-medium text-[11px]">
+                  {quote.dayLow > 0 ? formatCurrency(quote.dayLow) : "—"} – {quote.dayHigh > 0 ? formatCurrency(quote.dayHigh) : "—"}
+                </div>
               </div>
               <div>
-                <div className="text-zinc-500 text-[9px] tracking-wider uppercase">Ask</div>
-                <div className="text-white font-medium">{formatCurrency(quote.price + 0.01)}</div>
+                <div className="text-zinc-500 text-[9px] tracking-wider uppercase">52W range</div>
+                <div className="text-white font-medium text-[11px]">
+                  {quote.low52 > 0 ? formatCurrency(quote.low52) : "—"} – {quote.high52 > 0 ? formatCurrency(quote.high52) : "—"}
+                </div>
               </div>
               <div>
                 <div className="text-zinc-500 text-[9px] tracking-wider uppercase">Mkt Cap</div>
@@ -630,7 +635,7 @@ export default function StockPage() {
             <span>Price charts are simulated without a live market data key. </span>
           )}
           {newsSource === "generated" && (
-            <span>News headlines are template-based until live APIs return articles (Finnhub and/or NewsAPI.org). </span>
+            <span>News shown here is illustrative until live headline APIs are connected. </span>
           )}
           Trading plan, institutional holdings, and key events are model estimates — not SEC filings.
         </div>
@@ -686,6 +691,9 @@ export default function StockPage() {
                   <p className={`text-[10px] mt-1 ${chartSource === "simulated" ? "text-amber-400/90" : "text-zinc-500"}`}>
                     {chartSourceLabel}
                   </p>
+                )}
+                {chartRefreshError && (
+                  <p className="text-[10px] mt-1 text-amber-400/90">{chartRefreshError}</p>
                 )}
               </div>
               <div className="flex gap-1 bg-zinc-800/50 p-1 rounded-lg">
@@ -979,7 +987,7 @@ export default function StockPage() {
               </div>
               <div>
                 <h3 className="text-lg font-bold text-white">AI Deep Analysis</h3>
-                <p className="text-xs text-zinc-500">Powered by advanced algorithms and market data</p>
+                <p className="text-xs text-zinc-500">{aiEngineLabel(dataSources)}</p>
               </div>
             </div>
             <p className="text-zinc-300 leading-relaxed">{aiAnalysis.summary}</p>
@@ -1262,14 +1270,10 @@ export default function StockPage() {
                   </div>
                 </div>
               </div>
-              <h3 className="text-[17px] font-semibold text-white tracking-tight mb-2">All Clear — No Red Flags Detected</h3>
+              <h3 className="text-[17px] font-semibold text-white tracking-tight mb-2">No elevated risk flags</h3>
               <p className="text-[12px] text-zinc-500 font-light max-w-md mx-auto leading-relaxed">
-                Our automated scanning system has not detected any unusual activity, manipulation patterns, or insider trading signals for this stock at this time.
+                Technical and volume scanners did not flag critical patterns for {quote.symbol} right now. Re-run analysis after major news or earnings.
               </p>
-              <div className="mt-5 flex items-center justify-center gap-2 text-[10px] text-zinc-600">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="tracking-wider uppercase">Continuous Monitoring Active</span>
-              </div>
             </div>
           )}
 
@@ -1277,7 +1281,7 @@ export default function StockPage() {
           <div className="glass-card rounded-2xl p-6">
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-[14px] font-semibold text-white tracking-tight">What Our Scanner Monitors</h3>
-              <span className="text-[10px] text-zinc-600 tracking-wider uppercase">24/7 Auto-Detection</span>
+              <span className="text-[10px] text-zinc-600 tracking-wider uppercase">On-demand scan</span>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {[
@@ -1434,7 +1438,7 @@ export default function StockPage() {
           <div className="space-y-5 animate-fadeIn">
             {newsSource === "generated" && (
               <div className="glass-card rounded-xl px-4 py-3 border border-amber-500/20 bg-amber-500/5 text-[12px] text-amber-200/90">
-                News shown here is generated from templates. Add FINNHUB_API_KEY and/or NEWS_API_KEY on Vercel — both stack together for more coverage.
+                Headlines are illustrative samples — connect live news providers for real articles.
               </div>
             )}
             {/* News Hero / Sentiment Summary */}
@@ -1516,18 +1520,15 @@ export default function StockPage() {
                                        ageMs < 86400000 ? `${Math.floor(ageMs / 3600000)}h ago` :
                                        ageMs < 604800000 ? `${Math.floor(ageMs / 86400000)}d ago` :
                                        new Date(item.publishedAt).toLocaleDateString();
-                        return (
-                          <a
-                            key={item.id}
-                            href={item.url && item.url !== "#" ? item.url : undefined}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={`glass-card rounded-2xl p-5 hover:glow-border transition-all block animate-fadeInUp stagger-${Math.min(i + 1, 8)} ${
-                              item.sentiment === "positive" ? "hover:border-emerald-500/20" :
-                              item.sentiment === "negative" ? "hover:border-red-500/20" :
-                              ""
-                            }`}
-                          >
+                        const hasLink = Boolean(item.url && item.url !== "#");
+                        const cardClass = `glass-card rounded-2xl p-5 transition-all block animate-fadeInUp stagger-${Math.min(i + 1, 8)} ${
+                          hasLink ? "hover:glow-border cursor-pointer" : ""
+                        } ${
+                          item.sentiment === "positive" ? "hover:border-emerald-500/20" :
+                          item.sentiment === "negative" ? "hover:border-red-500/20" :
+                          ""
+                        }`;
+                        const inner = (
                             <div className="flex gap-4">
                               {item.image ? (
                                 <img src={item.image} alt="" className="w-24 h-24 rounded-xl object-cover flex-shrink-0 bg-zinc-800" />
@@ -1553,6 +1554,9 @@ export default function StockPage() {
                                       {item.sentiment === "positive" ? "↑ Bullish" : item.sentiment === "negative" ? "↓ Bearish" : "Neutral"}
                                     </span>
                                     <span className="text-[10px] text-zinc-600">{item.source}</span>
+                                    {(item.source === "Illustrative" || newsSource === "generated") && (
+                                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300/90 border border-amber-500/20">Sample</span>
+                                    )}
                                   </div>
                                   <span className="text-[10px] text-zinc-600 font-medium tabular-nums">{ageStr}</span>
                                 </div>
@@ -1568,7 +1572,21 @@ export default function StockPage() {
                                 )}
                               </div>
                             </div>
+                        );
+                        return hasLink ? (
+                          <a
+                            key={item.id}
+                            href={item.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={cardClass}
+                          >
+                            {inner}
                           </a>
+                        ) : (
+                          <div key={item.id} className={cardClass}>
+                            {inner}
+                          </div>
                         );
                       })}
                     </div>

@@ -58,6 +58,7 @@ export default function DashboardPage() {
   const [losers, setLosers] = useState<MoverStock[]>([]);
   const [dataSources, setDataSources] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
+  const [marketError, setMarketError] = useState<string | null>(null);
   const searchRef = useRef<HTMLDivElement>(null);
   const searchTimeout = useRef<NodeJS.Timeout | null>(null);
 
@@ -66,9 +67,14 @@ export default function DashboardPage() {
 
     async function fetchMarketData() {
       try {
+        setMarketError(null);
         const res = await fetch("/api/market");
         const data = await res.json();
         if (cancelled) return;
+        if (!res.ok) {
+          setMarketError(data.error || "Market data unavailable");
+          return;
+        }
         setIndices(data.indices || []);
         setTrending(data.trending || []);
         setSectors(data.sectors || []);
@@ -76,6 +82,7 @@ export default function DashboardPage() {
         setLosers(data.topLosers || []);
         setDataSources(data.dataSources || {});
       } catch (e) {
+        if (!cancelled) setMarketError("Could not load market data. Check your connection and try again.");
         console.error("Failed to fetch market data:", e);
       } finally {
         if (!cancelled) setLoading(false);
@@ -178,6 +185,37 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {marketError && !loading && (
+        <div className="glass-card rounded-xl px-4 py-3 mb-6 border border-amber-500/20 bg-amber-500/5 text-sm text-amber-200/90 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <span>{marketError}</span>
+          <button
+            type="button"
+            onClick={() => {
+              setLoading(true);
+              fetch("/api/market")
+                .then((r) => r.json())
+                .then((data) => {
+                  if (data.error) setMarketError(data.error);
+                  else {
+                    setMarketError(null);
+                    setIndices(data.indices || []);
+                    setTrending(data.trending || []);
+                    setSectors(data.sectors || []);
+                    setGainers(data.topGainers || []);
+                    setLosers(data.topLosers || []);
+                    setDataSources(data.dataSources || {});
+                  }
+                })
+                .catch(() => setMarketError("Could not load market data."))
+                .finally(() => setLoading(false));
+            }}
+            className="text-xs font-medium px-3 py-1.5 rounded-lg bg-amber-500/20 text-amber-100 hover:bg-amber-500/30 shrink-0"
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
       {loading ? (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-10">
@@ -317,7 +355,7 @@ export default function DashboardPage() {
                     {gainers.slice(0, 4).map((g) => (
                       <div key={g.symbol} className="glass-card rounded-xl px-4 py-2.5 flex justify-between items-center cursor-pointer" onClick={() => router.push(`/stock/${g.symbol}`)}>
                         <span className="text-[13px] font-semibold text-white">{g.symbol}</span>
-                        <span className="text-[12px] font-semibold text-emerald-400">+{typeof g.changePercent === 'number' ? g.changePercent.toFixed(2) : g.changePercent}%</span>
+                        <span className="text-[12px] font-semibold text-emerald-400">{formatPercent(g.changePercent)}</span>
                       </div>
                     ))}
                   </div>
@@ -332,7 +370,7 @@ export default function DashboardPage() {
                     {losers.slice(0, 4).map((l) => (
                       <div key={l.symbol} className="glass-card rounded-xl px-4 py-2.5 flex justify-between items-center cursor-pointer" onClick={() => router.push(`/stock/${l.symbol}`)}>
                         <span className="text-[13px] font-semibold text-white">{l.symbol}</span>
-                        <span className="text-[12px] font-semibold text-red-400">{typeof l.changePercent === 'number' ? l.changePercent.toFixed(2) : l.changePercent}%</span>
+                        <span className="text-[12px] font-semibold text-red-400">{formatPercent(l.changePercent)}</span>
                       </div>
                     ))}
                   </div>
@@ -341,17 +379,17 @@ export default function DashboardPage() {
 
               {/* Features */}
               <div className="glass-card rounded-2xl p-6 glow-border">
-                <h3 className="text-[15px] font-semibold text-white mb-4 tracking-tight">Live API Features</h3>
+                <h3 className="text-[15px] font-semibold text-white mb-4 tracking-tight">Platform highlights</h3>
                 <ul className="space-y-2.5">
                   {[
-                    "Real-time quotes via FMP API",
-                    "Google Gemini 2.0 Flash AI analysis",
-                    "Finnhub + NewsAPI.org stacked headlines",
+                    "Live quotes & historical charts",
+                    "AI deep dive with price targets",
+                    "Stacked news from multiple providers",
                     "15+ technical indicators",
-                    "Competitor deep dive",
+                    "Peer comparison tables",
                     "Fibonacci & support/resistance",
-                    "Price target projections",
-                    "Analyst consensus ratings",
+                    "Risk scanner & trading plan",
+                    "Analyst consensus when available",
                   ].map((feat) => (
                     <li key={feat} className="flex items-center gap-2.5 text-[12px] text-zinc-400 font-light tracking-tight">
                       <svg className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
