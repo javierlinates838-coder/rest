@@ -6,6 +6,11 @@ import {
   resolveSignal,
   riskLevelFromGrade,
 } from "@/lib/analysis-coherence";
+import {
+  deriveSentimentScore,
+  deriveTimeHorizon,
+  ensureSymbolInBullets,
+} from "@/lib/investment-profile";
 
 type LooseRecord = Record<string, unknown>;
 
@@ -197,6 +202,42 @@ export function normalizeAnalysisPayload(raw: any): any {
 
   const tradingPlan = normalizeTradingPlan(raw.tradingPlan, price);
 
+  const horizon = deriveTimeHorizon({
+    symbol: str(quote.symbol).toUpperCase(),
+    price,
+    beta: num(quote.beta),
+    marketCap: num(quote.marketCap),
+    peRatio: num(quote.peRatio),
+    dividendYield: num(quote.dividendYield),
+    sector: str(quote.sector, "Unknown"),
+    industry: str(quote.industry, "Unknown"),
+    changePercent: num(quote.changePercent),
+    rsi: num(indicators.rsi, 50),
+    adx: num(indicators.adx, 25),
+    atr: num(indicators.atr, price * 0.02),
+    signal: resolved.signal,
+    confidence: resolved.confidence,
+  });
+
+  const newsItems = arr<{ sentiment: string }>(raw.news);
+  const sentimentScore = deriveSentimentScore(
+    typeof ai.sentimentScore === "number" ? ai.sentimentScore : undefined,
+    newsItems,
+    { rsi: num(indicators.rsi, 50) },
+    { signal: resolved.signal, confidence: resolved.confidence }
+  );
+
+  const catalystFallback = [
+    `${str(quote.symbol).toUpperCase()} technical signal: ${resolved.signal}`,
+    `${str(quote.sector)} sector drivers for ${str(quote.symbol).toUpperCase()}`,
+    `Volatility (beta ${num(quote.beta).toFixed(2)}) shapes ${str(quote.symbol).toUpperCase()} risk/reward`,
+  ];
+  const riskFallback = [
+    `${str(quote.symbol).toUpperCase()} breaks key support — momentum could accelerate`,
+    `Sector or macro shock hits ${str(quote.sector)} names including ${str(quote.symbol).toUpperCase()}`,
+    `Valuation compression if growth disappoints at ${str(quote.symbol).toUpperCase()}`,
+  ];
+
   return {
     quote: {
       symbol: str(quote.symbol).toUpperCase(),
@@ -276,22 +317,31 @@ export function normalizeAnalysisPayload(raw: any): any {
       riskLevel: riskScoreNorm
         ? riskLevelFromGrade(riskScoreNorm.grade)
         : str(ai.riskLevel, "Medium"),
-      timeHorizon: str(ai.timeHorizon, "Medium-term (3-12 months)"),
+      timeHorizon: horizon.label,
+      timeHorizonRationale: horizon.rationale,
       keyFactors: arr<string>(ai.keyFactors).length
         ? arr<string>(ai.keyFactors)
-        : ["Review technical and fundamental data before trading"],
+        : [
+            `${str(quote.symbol).toUpperCase()} at $${price.toFixed(2)} — ${resolved.signal} (${resolved.confidence}%)`,
+            `RSI ${num(indicators.rsi, 50).toFixed(1)} · ADX ${num(indicators.adx, 25).toFixed(1)}`,
+            `Beta ${num(quote.beta).toFixed(2)} · ${str(quote.sector)} / ${str(quote.industry)}`,
+          ],
       technicalOutlook: str(ai.technicalOutlook, "Technical outlook unavailable."),
       fundamentalOutlook: str(ai.fundamentalOutlook, "Fundamental outlook unavailable."),
       competitorAnalysis: str(ai.competitorAnalysis, ""),
-      catalysts: arr<string>(ai.catalysts),
-      risks: arr<string>(ai.risks),
-      sentimentScore: num(ai.sentimentScore),
+      catalysts: ensureSymbolInBullets(
+        str(quote.symbol),
+        arr<string>(ai.catalysts),
+        catalystFallback
+      ),
+      risks: ensureSymbolInBullets(str(quote.symbol), arr<string>(ai.risks), riskFallback),
+      sentimentScore,
     },
     redFlags: normalizeRedFlags(raw.redFlags),
     news: arr(raw.news),
     history: arr(raw.history),
     analystRecommendations: arr(raw.analystRecommendations),
-    tradingPlan,
+    tradingPlan: { ...tradingPlan, timeframe: horizon.tradingTimeframe },
     keyEvents: normalizeKeyEvents(raw.keyEvents),
     institutional: normalizeInstitutional(raw.institutional),
     priceAction: normalizePriceAction(raw.priceAction),

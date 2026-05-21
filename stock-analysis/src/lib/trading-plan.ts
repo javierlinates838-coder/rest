@@ -1,4 +1,5 @@
 import type { TechnicalIndicators, PriceData } from "./technical-analysis";
+import { deriveTimeHorizon } from "./investment-profile";
 
 export interface TradingPlan {
   bias: "long" | "short" | "neutral";
@@ -48,7 +49,16 @@ export function generateTradingPlan(
   indicators: TechnicalIndicators,
   signal: { signal: string; confidence: number },
   history: PriceData[],
-  beta: number = 1
+  beta: number = 1,
+  profile?: {
+    symbol: string;
+    marketCap: number;
+    peRatio: number;
+    dividendYield: number;
+    sector: string;
+    industry: string;
+    changePercent: number;
+  }
 ): TradingPlan {
   const bias: "long" | "short" | "neutral" =
     signal.signal.includes("Buy") ? "long" :
@@ -128,7 +138,28 @@ export function generateTradingPlan(
 
   const sharesPer1k = Math.floor(1000 / entry.primary);
 
-  const timeframe = signal.confidence > 75 ? "1–3 weeks (Short-term)" : signal.confidence > 50 ? "1–3 months (Swing)" : "3–6+ months (Position)";
+  const timeframe = profile
+    ? deriveTimeHorizon({
+        symbol: profile.symbol,
+        price,
+        beta,
+        marketCap: profile.marketCap,
+        peRatio: profile.peRatio,
+        dividendYield: profile.dividendYield,
+        sector: profile.sector,
+        industry: profile.industry,
+        changePercent: profile.changePercent,
+        rsi: indicators.rsi,
+        adx: indicators.adx,
+        atr,
+        signal: signal.signal,
+        confidence: signal.confidence,
+      }).tradingTimeframe
+    : signal.confidence > 75
+      ? "2–6 weeks · momentum trade"
+      : signal.confidence > 50
+        ? "4–12 weeks · swing trade"
+        : "6–14 months · position";
 
   const notes: string[] = [];
   if (indicators.rsi > 70) notes.push("warning|RSI in overbought territory — wait for pullback to primary entry");
@@ -166,59 +197,103 @@ export function generateTradingPlan(
   };
 }
 
-export function generateKeyEvents(symbol: string): KeyEvent[] {
+const SECTOR_EVENTS: Record<string, { title: string; description: string; type: KeyEvent["type"] }[]> = {
+  Technology: [
+    { type: "guidance", title: "Product / platform update", description: "Major release or roadmap update — can move sentiment on growth names." },
+    { type: "guidance", title: "Developer / AI conference", description: "Sector keynote risk — competitors often trade in sympathy." },
+  ],
+  Healthcare: [
+    { type: "guidance", title: "Clinical / regulatory milestone", description: "FDA or trial readout window — binary risk for biotech-heavy names." },
+  ],
+  Financial: [
+    { type: "economic", title: "Bank stress / rate outlook", description: "Rate path and credit quality drive multiples for financials." },
+  ],
+  Energy: [
+    { type: "economic", title: "OPEC / inventory snapshot", description: "Commodity supply headlines often lead sector moves." },
+  ],
+  "Consumer Cyclical": [
+    { type: "guidance", title: "Holiday / demand preview", description: "Consumer spending data can re-rate retail and e-commerce names." },
+  ],
+};
+
+export function generateKeyEvents(
+  symbol: string,
+  sector: string = "Unknown",
+  companyName?: string
+): KeyEvent[] {
   const hash = symbol.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
   const events: KeyEvent[] = [];
+  const label = companyName?.trim() || symbol;
 
-  const earningsDaysAway = ((hash % 60) + 7);
+  const earningsDaysAway = (hash % 58) + 12;
   const earningsDate = new Date(Date.now() + earningsDaysAway * 86400000);
+  const q = Math.ceil((earningsDate.getMonth() + 1) / 3);
   events.push({
     date: earningsDate.toISOString().split("T")[0],
     type: "earnings",
-    title: `Q${Math.ceil((earningsDate.getMonth() + 1) / 3)} ${earningsDate.getFullYear()} Earnings Report`,
+    title: `${symbol} Q${q} ${earningsDate.getFullYear()} earnings`,
     importance: "high",
-    description: `${symbol} reports quarterly earnings. Expect significant volatility around this date.`,
+    description: `${label} reports quarterly results — implied volatility often rises into the print.`,
     daysAway: earningsDaysAway,
   });
 
-  const fedDaysAway = ((hash % 45) + 14);
+  const sectorKey = Object.keys(SECTOR_EVENTS).find((k) =>
+    sector.toLowerCase().includes(k.toLowerCase())
+  );
+  const sectorPool = sectorKey ? SECTOR_EVENTS[sectorKey] : SECTOR_EVENTS.Technology;
+  const sectorPick = sectorPool[hash % sectorPool.length];
+  const sectorDays = (hash % 25) + 8;
   events.push({
-    date: new Date(Date.now() + fedDaysAway * 86400000).toISOString().split("T")[0],
-    type: "fed",
-    title: "FOMC Rate Decision",
-    importance: "high",
-    description: "Federal Reserve interest rate announcement. Market-wide impact expected.",
-    daysAway: fedDaysAway,
+    date: new Date(Date.now() + sectorDays * 86400000).toISOString().split("T")[0],
+    type: sectorPick.type,
+    title: `${symbol}: ${sectorPick.title}`,
+    importance: "medium",
+    description: sectorPick.description,
+    daysAway: sectorDays,
   });
 
-  if (hash % 3 === 0) {
-    const dividendDays = ((hash % 30) + 10);
+  if (hash % 3 !== 1) {
+    const dividendDays = (hash % 28) + 14;
     events.push({
       date: new Date(Date.now() + dividendDays * 86400000).toISOString().split("T")[0],
       type: "dividend",
-      title: "Ex-Dividend Date",
+      title: `${symbol} ex-dividend (est.)`,
       importance: "medium",
-      description: `${symbol} ex-dividend date. Must own before this date to receive payout.`,
+      description: `Estimated payout window for ${label} — confirm with official filings.`,
       daysAway: dividendDays,
     });
   }
 
-  events.push({
-    date: new Date(Date.now() + ((hash % 20) + 5) * 86400000).toISOString().split("T")[0],
-    type: "economic",
-    title: "CPI Inflation Report",
-    importance: "medium",
-    description: "Monthly inflation data release. Impacts rate expectations.",
-    daysAway: (hash % 20) + 5,
-  });
+  if (hash % 2 === 0) {
+    const macroDays = (hash % 18) + 6;
+    events.push({
+      date: new Date(Date.now() + macroDays * 86400000).toISOString().split("T")[0],
+      type: "economic",
+      title: "CPI / inflation print",
+      importance: "medium",
+      description: `Macro rates narrative — affects ${sector} and ${symbol} multiples.`,
+      daysAway: macroDays,
+    });
+  } else {
+    const macroDays = (hash % 22) + 4;
+    events.push({
+      date: new Date(Date.now() + macroDays * 86400000).toISOString().split("T")[0],
+      type: "fed",
+      title: "FOMC / rates decision",
+      importance: "high",
+      description: `Policy surprise risk for ${symbol} (beta-sensitive names move more).`,
+      daysAway: macroDays,
+    });
+  }
 
+  const guidanceDays = (hash % 40) + 20;
   events.push({
-    date: new Date(Date.now() + ((hash % 35) + 3) * 86400000).toISOString().split("T")[0],
-    type: "economic",
-    title: "Jobs Report (Non-Farm Payrolls)",
-    importance: "medium",
-    description: "Monthly employment data. Major market-moving event.",
-    daysAway: (hash % 35) + 3,
+    date: new Date(Date.now() + guidanceDays * 86400000).toISOString().split("T")[0],
+    type: "guidance",
+    title: `${symbol} investor / analyst day (est.)`,
+    importance: hash % 4 === 0 ? "high" : "medium",
+    description: `Management commentary can reset expectations for ${label}.`,
+    daysAway: guidanceDays,
   });
 
   return events.sort((a, b) => a.daysAway - b.daysAway);
@@ -252,19 +327,25 @@ export function generateInstitutionalOwnership(
     "Vanguard Group", "BlackRock", "State Street Corp", "Fidelity (FMR LLC)",
     "Geode Capital", "Northern Trust", "T. Rowe Price", "JPMorgan Chase",
     "Morgan Stanley", "Bank of America", "Wellington Management", "Capital Group",
+    "Norges Bank", "Goldman Sachs AM", "Invesco Ltd.",
   ];
+
+  const order = institutionNames
+    .map((name, i) => ({ name, sort: (hash * (i + 3)) % institutionNames.length }))
+    .sort((a, b) => a.sort - b.sort)
+    .map((x) => x.name);
 
   const topHolders = [];
   let remaining = institutional;
   for (let i = 0; i < 5; i++) {
     const share = i === 0
-      ? remaining * (0.18 + ((hash + i) % 8) / 100)
-      : remaining * (0.08 + ((hash + i) % 7) / 100);
-    const trends: ("up" | "down" | "stable")[] = ["up", "stable", "up", "down", "stable"];
+      ? remaining * (0.14 + ((hash + i * 2) % 10) / 100)
+      : remaining * (0.06 + ((hash + i * 5) % 9) / 100);
+    const trends: ("up" | "down" | "stable")[] = ["up", "stable", "down", "up", "stable"];
     topHolders.push({
-      name: institutionNames[(hash + i) % institutionNames.length],
-      sharesPercent: Number(share.toFixed(2)),
-      trend: trends[(hash + i) % trends.length],
+      name: order[(hash + i * 2) % order.length],
+      sharesPercent: Number(Math.min(share, remaining).toFixed(2)),
+      trend: trends[(hash + i * 3) % trends.length],
     });
     remaining -= share;
   }

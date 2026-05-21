@@ -54,7 +54,7 @@ interface AnalysisData {
   aiAnalysis: {
     summary: string; recommendation: string; confidence: number;
     priceTarget: { low: number; mid: number; high: number };
-    riskLevel: string; timeHorizon: string; keyFactors: string[];
+    riskLevel: string; timeHorizon: string; timeHorizonRationale?: string; keyFactors: string[];
     technicalOutlook: string; fundamentalOutlook: string;
     competitorAnalysis: string; catalysts: string[]; risks: string[];
     sentimentScore: number;
@@ -1047,6 +1047,9 @@ export default function StockPage() {
             <div className="glass-card rounded-xl p-6">
               <div className="text-xs text-zinc-500 mb-2">TIME HORIZON</div>
               <div className="text-xl font-bold text-indigo-400">{aiAnalysis.timeHorizon}</div>
+              {aiAnalysis.timeHorizonRationale && (
+                <p className="text-[11px] text-zinc-500 mt-2 leading-relaxed">{aiAnalysis.timeHorizonRationale}</p>
+              )}
             </div>
             <div className="glass-card rounded-xl p-6">
               <div className="text-xs text-zinc-500 mb-2">SENTIMENT SCORE</div>

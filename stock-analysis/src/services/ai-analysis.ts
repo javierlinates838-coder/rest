@@ -1,4 +1,9 @@
-import { buildPriceTargets, normalizeRecommendation } from "@/lib/analysis-coherence";
+import { buildPriceTargets, normalizeRecommendation, normalizePriceTargets } from "@/lib/analysis-coherence";
+import {
+  deriveSentimentScore,
+  deriveTimeHorizon,
+  ensureSymbolInBullets,
+} from "@/lib/investment-profile";
 import type { TechnicalIndicators } from "@/lib/technical-analysis";
 import type { StockQuote, CompetitorData } from "./stock-data";
 
@@ -9,6 +14,7 @@ export interface AIAnalysis {
   priceTarget: { low: number; mid: number; high: number };
   riskLevel: string;
   timeHorizon: string;
+  timeHorizonRationale?: string;
   keyFactors: string[];
   technicalOutlook: string;
   fundamentalOutlook: string;
@@ -119,13 +125,13 @@ Respond with ONLY valid JSON (no markdown, no code fences):
   "confidence": 0-100,
   "priceTarget": {"low": number, "mid": number, "high": number},
   "riskLevel": "Low|Medium|High|Very High",
-  "timeHorizon": "Short-term (1-3 months)|Medium-term (3-12 months)|Long-term (1-3 years)",
+  "timeHorizon": "Pick ONE horizon that fits THIS stock only (examples: Tactical 2-6 weeks, Short-term 1-3 months, Swing 10-22 weeks, Position 6-14 months, Core hold 1-3 years) — must reflect beta, cap, volatility, and signal",
   "keyFactors": ["5-6 specific data-driven factors"],
   "technicalOutlook": "detailed technical paragraph",
   "fundamentalOutlook": "detailed fundamental paragraph",
   "competitorAnalysis": "detailed peer comparison paragraph",
-  "catalysts": ["4-5 specific upside catalysts"],
-  "risks": ["4-5 specific downside risks"],
+  "catalysts": ["4-5 upside catalysts — each MUST mention ${quote.symbol} or ${quote.name}"],
+  "risks": ["4-5 downside risks — each MUST mention ${quote.symbol} or ${quote.sector}"],
   "sentimentScore": -100 to 100
 }`;
 }
@@ -160,7 +166,57 @@ async function callGeminiAnalysis(
     throw new Error("Incomplete Gemini response");
   }
 
-  return parsed as AIAnalysis;
+  return enrichAiAnalysis(parsed, quote, indicators, signal, news);
+}
+
+function enrichAiAnalysis(
+  parsed: Partial<AIAnalysis>,
+  quote: StockQuote,
+  indicators: TechnicalIndicators,
+  signal: { signal: string; confidence: number; reasons: string[] },
+  news: { title: string; sentiment: string }[]
+): AIAnalysis {
+  const recommendation = normalizeRecommendation(
+    parsed.recommendation || signal.signal,
+    signal.signal
+  );
+  const horizon = deriveTimeHorizon({
+    symbol: quote.symbol,
+    price: quote.price,
+    beta: quote.beta,
+    marketCap: quote.marketCap,
+    peRatio: quote.peRatio,
+    dividendYield: quote.dividendYield,
+    sector: quote.sector,
+    industry: quote.industry,
+    changePercent: quote.changePercent,
+    rsi: indicators.rsi,
+    adx: indicators.adx,
+    atr: indicators.atr,
+    signal: signal.signal,
+    confidence: signal.confidence,
+  });
+
+  return {
+    summary: parsed.summary || `${quote.name} analysis`,
+    recommendation,
+    confidence: typeof parsed.confidence === "number" ? parsed.confidence : signal.confidence,
+    priceTarget: normalizePriceTargets(quote.price, recommendation, parsed.priceTarget),
+    riskLevel: parsed.riskLevel || "Medium",
+    timeHorizon: horizon.label,
+    timeHorizonRationale: horizon.rationale,
+    keyFactors: parsed.keyFactors?.length ? parsed.keyFactors : [],
+    technicalOutlook: parsed.technicalOutlook || "",
+    fundamentalOutlook: parsed.fundamentalOutlook || "",
+    competitorAnalysis: parsed.competitorAnalysis || "",
+    catalysts: ensureSymbolInBullets(quote.symbol, parsed.catalysts || [], [
+      `${quote.symbol} ${signal.signal} setup (${signal.confidence}% confidence)`,
+    ]),
+    risks: ensureSymbolInBullets(quote.symbol, parsed.risks || [], [
+      `${quote.symbol} volatility (beta ${quote.beta.toFixed(2)})`,
+    ]),
+    sentimentScore: deriveSentimentScore(parsed.sentimentScore, news, indicators, signal),
+  };
 }
 
 async function callOpenAIAnalysis(
@@ -184,7 +240,8 @@ async function callOpenAIAnalysis(
 
   const content = response.choices[0]?.message?.content;
   if (!content) throw new Error("No response from OpenAI");
-  return JSON.parse(content) as AIAnalysis;
+  const parsed = JSON.parse(content) as Partial<AIAnalysis>;
+  return enrichAiAnalysis(parsed, quote, indicators, signal, news);
 }
 
 function generateBuiltInAnalysis(
@@ -225,7 +282,25 @@ function generateBuiltInAnalysis(
     priceTarget,
 
     riskLevel,
-    timeHorizon: signal.confidence > 70 ? "Short-term (1-3 months)" : signal.confidence > 40 ? "Medium-term (3-12 months)" : "Long-term (1-3 years)",
+    ...(() => {
+      const h = deriveTimeHorizon({
+        symbol: quote.symbol,
+        price: quote.price,
+        beta: quote.beta,
+        marketCap: quote.marketCap,
+        peRatio: quote.peRatio,
+        dividendYield: quote.dividendYield,
+        sector: quote.sector,
+        industry: quote.industry,
+        changePercent: quote.changePercent,
+        rsi: indicators.rsi,
+        adx: indicators.adx,
+        atr: indicators.atr,
+        signal: signal.signal,
+        confidence: signal.confidence,
+      });
+      return { timeHorizon: h.label, timeHorizonRationale: h.rationale };
+    })(),
 
     keyFactors: [
       `Technical signal: ${signal.signal} with ${signal.confidence}% confidence`,
@@ -245,26 +320,34 @@ function generateBuiltInAnalysis(
       ? `In ${quote.sector}, ${quote.symbol} competes with ${competitors.map((c) => c.symbol).join(", ")}. ${competitors.filter((c) => c.marketCap > quote.marketCap).length > 0 ? `Larger peers: ${competitors.filter((c) => c.marketCap > quote.marketCap).map((c) => `${c.symbol} ($${(c.marketCap / 1e9).toFixed(1)}B)`).join(", ")}. ` : `${quote.symbol} leads its peer group by market cap. `}${quote.symbol}'s P/E of ${quote.peRatio.toFixed(1)} ${quote.peRatio < avgCompetitorPE ? "undercuts" : "exceeds"} the peer avg of ${avgCompetitorPE.toFixed(1)}. Recent performance: ${competitors.filter((c) => c.changePercent > quote.changePercent).length > Math.floor(competitors.length / 2) ? `${quote.symbol} trails most peers` : `${quote.symbol} outpaces most peers`}.`
       : "Peer data unavailable for comparison.",
 
-    catalysts: [
+    catalysts: ensureSymbolInBullets(quote.symbol, [], [
       signal.signal.includes("Buy")
-        ? "Technical momentum supports further upside"
+        ? `${quote.symbol} technical momentum — ${signal.confidence}% ${signal.signal} signal`
         : signal.signal.includes("Sell")
-          ? "Sector headwinds or valuation could pressure shares lower"
-          : "Range-bound action may continue until a catalyst emerges",
-      isUndervalued ? "Undervaluation vs peers could drive re-rating" : "Market position justifies premium",
-      newsSentiment > 0 ? "Positive news flow building buying interest" : "Improving sentiment could become tailwind",
-      `${quote.sector} sector ${quote.changePercent > 0 ? "momentum" : "rotation potential"}`,
-      "Upcoming earnings as potential catalyst",
-    ],
+          ? `${quote.symbol} faces pressure; ${quote.sector} headwinds`
+          : `${quote.symbol} range-bound until a ${quote.sector} catalyst`,
+      isUndervalued
+        ? `${quote.symbol} trades below peer P/E — re-rating potential`
+        : `${quote.symbol} premium vs peers requires execution`,
+      newsSentiment > 0
+        ? `${quote.symbol} positive news flow supports sentiment`
+        : `${quote.symbol} sentiment could improve on guidance`,
+      `${quote.sector}: ${quote.changePercent >= 0 ? "sector tailwind" : "sector rotation risk"} for ${quote.symbol}`,
+      `${quote.symbol} earnings / guidance as near-term catalyst`,
+    ]),
 
-    risks: [
-      riskLevel === "High" || riskLevel === "Very High" ? "Elevated volatility amplifies downside" : "Broad market selloff risk",
-      isOvervalued ? "Premium valuation vulnerable to disappointment" : "Sector rotation could weigh on shares",
-      `Beta of ${quote.beta.toFixed(2)} means ${quote.beta > 1 ? "amplified losses in downturns" : "limited rally participation"}`,
-      "Macro headwinds (rates, inflation) remain",
-      `Key support at $${(quote.price * 0.92).toFixed(2)} — a break accelerates selling`,
-    ],
+    risks: ensureSymbolInBullets(quote.symbol, [], [
+      riskLevel === "High" || riskLevel === "Very High"
+        ? `${quote.symbol} high volatility (beta ${quote.beta.toFixed(2)}) — wide swings`
+        : `${quote.symbol} exposed to broad market drawdowns`,
+      isOvervalued
+        ? `${quote.symbol} rich valuation — disappointment risk`
+        : `${quote.symbol} could lag if ${quote.sector} rotates out`,
+      `${quote.symbol} support near $${(indicators.supportLevels[0] || quote.price * 0.92).toFixed(2)} — break triggers stops`,
+      `Macro (rates/inflation) may compress ${quote.sector} multiples including ${quote.symbol}`,
+      `${quote.symbol} volume/liquidity spikes can exaggerate moves`,
+    ]),
 
-    sentimentScore: Math.round(sentimentScore + newsSentiment * 10),
+    sentimentScore: deriveSentimentScore(undefined, news, indicators, signal),
   };
 }

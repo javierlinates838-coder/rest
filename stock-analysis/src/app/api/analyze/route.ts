@@ -57,8 +57,16 @@ export async function GET(request: NextRequest) {
 
     const redFlags = detectRedFlags(priceHistory, indicators, quote);
     const riskScore = calculateRiskScore(indicators, quote, redFlags);
-    const tradingPlan = generateTradingPlan(quote.price, indicators, signal, priceHistory, quote.beta);
-    const keyEvents = generateKeyEvents(upperSymbol);
+    const tradingPlan = generateTradingPlan(quote.price, indicators, signal, priceHistory, quote.beta, {
+      symbol: upperSymbol,
+      marketCap: quote.marketCap,
+      peRatio: quote.peRatio,
+      dividendYield: quote.dividendYield,
+      sector: quote.sector,
+      industry: quote.industry,
+      changePercent: quote.changePercent,
+    });
+    const keyEvents = generateKeyEvents(upperSymbol, quote.sector, quote.name);
     const institutional = generateInstitutionalOwnership(upperSymbol, quote.marketCap);
     const priceAction = generatePriceAction(priceHistory, indicators);
 
