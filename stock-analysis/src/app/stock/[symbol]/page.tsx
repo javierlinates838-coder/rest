@@ -128,6 +128,7 @@ function parseAnalysis(data: unknown): AnalysisData | null {
 
 function shortDataSource(label: string): string {
   if (label.includes("Gemini")) return "Gemini AI";
+  if (label.includes("Finnhub") && label.includes("NewsAPI")) return "Finnhub+News";
   if (label.includes("Finnhub")) return "Finnhub";
   if (label.includes("NewsAPI")) return "NewsAPI";
   if (label.includes("FMP")) return "FMP";
@@ -226,11 +227,16 @@ export default function StockPage() {
 
         let resolvedNews = newsData;
         const companyName = parsed.quote?.name?.trim();
-        if (companyName && resolvedNews.source === "generated") {
+        if (companyName) {
           const withName = await fetchJson<{ news?: typeof newsItems; source?: string }>(
             `/api/news?symbol=${encoded}&name=${encodeURIComponent(companyName)}`
           ).catch(() => resolvedNews);
-          if (withName.news?.length && withName.source !== "generated") {
+          if (
+            withName.news?.length &&
+            (withName.source !== "generated" ||
+              resolvedNews.source === "generated" ||
+              withName.news.length > (resolvedNews.news?.length ?? 0))
+          ) {
             resolvedNews = withName;
           }
         }

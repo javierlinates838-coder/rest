@@ -346,7 +346,7 @@ export default function DashboardPage() {
                   {[
                     "Real-time quotes via FMP API",
                     "Google Gemini 2.0 Flash AI analysis",
-                    "Finnhub live news & sentiment",
+                    "Finnhub + NewsAPI.org stacked headlines",
                     "15+ technical indicators",
                     "Competitor deep dive",
                     "Fibonacci & support/resistance",

@@ -140,6 +140,18 @@ export async function fetchStockNews(
   };
 }
 
+export function sentimentBreakdownFromItems(
+  news: StockNewsItem[]
+): { positive: number; negative: number; neutral: number } {
+  const breakdown = { positive: 0, negative: 0, neutral: 0 };
+  for (const item of news) {
+    if (item.sentiment === "positive") breakdown.positive++;
+    else if (item.sentiment === "negative") breakdown.negative++;
+    else breakdown.neutral++;
+  }
+  return breakdown;
+}
+
 export function newsProviderLabel(source: string, sources?: StockNewsSource[]): string {
   const list = sources?.length ? sources : source.split("+") as StockNewsSource[];
   const labels = list
@@ -167,11 +179,13 @@ export async function fetchStockNewsForAI(
   items: { title: string; sentiment: string }[];
   source: string;
   sources: StockNewsSource[];
+  sentimentBreakdown: ReturnType<typeof sentimentBreakdownFromItems> | null;
 }> {
-  const { news, source, sources } = await fetchStockNews(symbol, companyName);
+  const { news, source, sources, sentimentBreakdown } = await fetchStockNews(symbol, companyName);
   return {
     source,
     sources,
+    sentimentBreakdown: sentimentBreakdown ?? (news.length > 0 ? sentimentBreakdownFromItems(news) : null),
     items: news.slice(0, 12).map((n) => ({ title: n.title, sentiment: n.sentiment })),
   };
 }

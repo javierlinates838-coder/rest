@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
     const institutional = generateInstitutionalOwnership(upperSymbol, quote.marketCap);
     const priceAction = generatePriceAction(priceHistory, indicators);
 
-    const newsSentimentBreakdown = null;
+    const newsSentimentBreakdown = newsBundle.sentimentBreakdown;
 
     const payload = normalizeAnalysisPayload({
       quote,

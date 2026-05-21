@@ -282,7 +282,7 @@ export function computeAllIndicators(data: PriceData[]): TechnicalIndicators {
     sma200: calculateSMA(closes, 200),
     ema12: calculateEMA(closes, 12),
     ema26: calculateEMA(closes, 26),
-    rsi: calculateRSI(closes),
+    rsi: Math.min(100, Math.max(0, calculateRSI(closes))),
     macd: calculateMACD(closes),
     bollingerBands: calculateBollingerBands(closes),
     atr: calculateATR(data),
