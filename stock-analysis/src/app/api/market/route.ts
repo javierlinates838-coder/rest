@@ -66,11 +66,12 @@ export async function GET() {
       topLosers,
       dataSources: {
         quotes: process.env.FMP_API_KEY ? "FMP" : "Yahoo Finance",
-        news: process.env.FINNHUB_API_KEY
-          ? "Finnhub"
-          : process.env.NEWS_API_KEY
-            ? "NewsAPI.org"
-            : "Generated",
+        news: [
+          process.env.FINNHUB_API_KEY && "Finnhub",
+          process.env.NEWS_API_KEY && "NewsAPI.org",
+        ]
+          .filter(Boolean)
+          .join(" + ") || "Generated",
         ai: process.env.GEMINI_API_KEY ? "Google Gemini" : process.env.OPENAI_API_KEY ? "OpenAI" : "Built-in",
       },
     });

@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
             : chartSource === "yahoo"
               ? "Yahoo Finance"
               : "Simulated (set FMP_API_KEY)",
-        news: newsProviderLabel(newsBundle.provider),
+        news: newsProviderLabel(newsBundle.source, newsBundle.sources),
         ai: process.env.GEMINI_API_KEY ? "Google Gemini 2.0 Flash" : process.env.OPENAI_API_KEY ? "OpenAI GPT-4o-mini" : "Built-in Engine",
         tradingPlan: "Model estimates",
         institutional: "Model estimates",

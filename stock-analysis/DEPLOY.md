@@ -9,7 +9,7 @@ This app is a **Next.js server app** (API routes + server-side data). Vercel is 
 3. **API keys** ready (same as local `.env.local`):
    - `GEMINI_API_KEY` — [Google AI Studio](https://aistudio.google.com/apikey)
    - `FMP_API_KEY` — [Financial Modeling Prep](https://site.financialmodelingprep.com/developer/docs)
-   - `NEWS_API_KEY` — [NewsAPI.org](https://newsapi.org) (headlines when Finnhub has none)
+   - `NEWS_API_KEY` — [NewsAPI.org](https://newsapi.org) (stacked with Finnhub for more headlines)
    - `FINNHUB_API_KEY` — [Finnhub](https://finnhub.io/register) (optional; live news + analyst data)
    - `OPENAI_API_KEY` — optional fallback
 

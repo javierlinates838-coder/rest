@@ -624,7 +624,7 @@ export default function StockPage() {
             <span>Price charts are simulated without a live market data key. </span>
           )}
           {newsSource === "generated" && (
-            <span>News headlines are template-based until Finnhub or NewsAPI.org returns live articles. </span>
+            <span>News headlines are template-based until live APIs return articles (Finnhub and/or NewsAPI.org). </span>
           )}
           Trading plan, institutional holdings, and key events are model estimates — not SEC filings.
         </div>
@@ -1425,7 +1425,7 @@ export default function StockPage() {
           <div className="space-y-5 animate-fadeIn">
             {newsSource === "generated" && (
               <div className="glass-card rounded-xl px-4 py-3 border border-amber-500/20 bg-amber-500/5 text-[12px] text-amber-200/90">
-                News shown here is generated from templates. Add FINNHUB_API_KEY or NEWS_API_KEY on Vercel for live headlines.
+                News shown here is generated from templates. Add FINNHUB_API_KEY and/or NEWS_API_KEY on Vercel — both stack together for more coverage.
               </div>
             )}
             {/* News Hero / Sentiment Summary */}

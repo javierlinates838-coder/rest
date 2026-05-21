@@ -5,7 +5,7 @@ export async function GET(request: NextRequest) {
   const symbol = request.nextUrl.searchParams.get("symbol") || "AAPL";
   const companyName = request.nextUrl.searchParams.get("name") || undefined;
 
-  const { news, provider, sentimentBreakdown } = await fetchStockNews(
+  const { news, source, sources, sentimentBreakdown } = await fetchStockNews(
     symbol.toUpperCase(),
     companyName
   );
@@ -14,7 +14,8 @@ export async function GET(request: NextRequest) {
     news,
     symbol: symbol.toUpperCase(),
     sentimentBreakdown,
-    source: provider,
-    sourceLabel: newsProviderLabel(provider),
+    source,
+    sources,
+    sourceLabel: newsProviderLabel(source, sources),
   });
 }

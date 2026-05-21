@@ -14,7 +14,7 @@ export interface StockNewsItem {
   relevance: number;
 }
 
-export type StockNewsProvider = "finnhub" | "newsapi" | "generated";
+export type StockNewsSource = "finnhub" | "newsapi" | "generated";
 
 function finnhubToItem(item: FinnhubNews, index: number): StockNewsItem {
   return {
@@ -45,6 +45,29 @@ function newsApiToItem(item: NewsApiArticle, index: number): StockNewsItem {
   };
 }
 
+function dedupeKey(item: StockNewsItem): string {
+  if (item.url && item.url !== "#") return item.url.toLowerCase();
+  return item.title.toLowerCase().trim();
+}
+
+function mergeNewsItems(lists: StockNewsItem[][]): StockNewsItem[] {
+  const seen = new Set<string>();
+  const merged: StockNewsItem[] = [];
+
+  for (const list of lists) {
+    for (const item of list) {
+      const key = dedupeKey(item);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      merged.push(item);
+    }
+  }
+
+  return merged.sort(
+    (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+  );
+}
+
 function generateFallback(symbol: string): StockNewsItem[] {
   const templates = [
     { title: `${symbol} Surpasses Analyst Expectations in Latest Quarter`, source: "Financial Times", sentiment: "positive" as const, summary: `${symbol} reported earnings that beat Wall Street estimates.` },
@@ -69,57 +92,86 @@ function generateFallback(symbol: string): StockNewsItem[] {
   }));
 }
 
-/** Finnhub → NewsAPI.org → generated templates */
+/** Stack Finnhub + NewsAPI.org in parallel; generated only when both are empty */
 export async function fetchStockNews(
   symbol: string,
   companyName?: string
-): Promise<{ news: StockNewsItem[]; provider: StockNewsProvider; sentimentBreakdown: ReturnType<typeof analyzeSentimentFromNews> | null }> {
+): Promise<{
+  news: StockNewsItem[];
+  sources: StockNewsSource[];
+  source: string;
+  sentimentBreakdown: ReturnType<typeof analyzeSentimentFromNews> | null;
+}> {
   const upper = symbol.toUpperCase();
 
-  const finnhub = await finnhubFetchNews(upper);
+  const [finnhub, newsApi] = await Promise.all([
+    finnhubFetchNews(upper),
+    newsApiFetchForSymbol(upper, companyName),
+  ]);
+
+  const liveSources: StockNewsSource[] = [];
+  const lists: StockNewsItem[][] = [];
+
   if (finnhub.length > 0) {
-    return {
-      news: finnhub.map(finnhubToItem),
-      provider: "finnhub",
-      sentimentBreakdown: analyzeSentimentFromNews(finnhub),
-    };
+    liveSources.push("finnhub");
+    lists.push(finnhub.map(finnhubToItem));
+  }
+  if (newsApi.length > 0) {
+    liveSources.push("newsapi");
+    lists.push(newsApi.map(newsApiToItem));
   }
 
-  const newsApi = await newsApiFetchForSymbol(upper, companyName);
-  if (newsApi.length > 0) {
+  const merged = mergeNewsItems(lists);
+
+  if (merged.length > 0) {
     return {
-      news: newsApi.map(newsApiToItem),
-      provider: "newsapi",
-      sentimentBreakdown: null,
+      news: merged,
+      sources: liveSources,
+      source: liveSources.join("+"),
+      sentimentBreakdown: finnhub.length > 0 ? analyzeSentimentFromNews(finnhub) : null,
     };
   }
 
   return {
     news: generateFallback(upper),
-    provider: "generated",
+    sources: ["generated"],
+    source: "generated",
     sentimentBreakdown: null,
   };
 }
 
-export function newsProviderLabel(provider: StockNewsProvider): string {
-  switch (provider) {
-    case "finnhub":
-      return "Finnhub Live";
-    case "newsapi":
-      return "NewsAPI.org Live";
-    default:
-      return "Generated";
-  }
+export function newsProviderLabel(source: string, sources?: StockNewsSource[]): string {
+  const list = sources?.length ? sources : source.split("+") as StockNewsSource[];
+  const labels = list
+    .map((s) => {
+      switch (s) {
+        case "finnhub":
+          return "Finnhub";
+        case "newsapi":
+          return "NewsAPI.org";
+        default:
+          return null;
+      }
+    })
+    .filter(Boolean);
+
+  if (labels.length > 0) return `${labels.join(" + ")} Live`;
+  return "Generated";
 }
 
-/** Headlines for AI analysis (title + sentiment only) */
+/** Headlines for AI — merged from every live provider */
 export async function fetchStockNewsForAI(
   symbol: string,
   companyName?: string
-): Promise<{ items: { title: string; sentiment: string }[]; provider: StockNewsProvider }> {
-  const { news, provider } = await fetchStockNews(symbol, companyName);
+): Promise<{
+  items: { title: string; sentiment: string }[];
+  source: string;
+  sources: StockNewsSource[];
+}> {
+  const { news, source, sources } = await fetchStockNews(symbol, companyName);
   return {
-    provider,
-    items: news.slice(0, 8).map((n) => ({ title: n.title, sentiment: n.sentiment })),
+    source,
+    sources,
+    items: news.slice(0, 12).map((n) => ({ title: n.title, sentiment: n.sentiment })),
   };
 }
