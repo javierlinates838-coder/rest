@@ -30,7 +30,7 @@ function PickRow({ pick, onSelect }: { pick: StockPick; onSelect: (s: string) =>
     <button
       type="button"
       onClick={() => onSelect(pick.symbol)}
-      className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/[0.04] transition-colors text-left"
+      className="interactive-list-row w-full flex items-center gap-3 p-3 text-left pressable"
     >
       <StockLogo symbol={pick.symbol} size={36} />
       <div className="flex-1 min-w-0">
@@ -108,7 +108,7 @@ export function StockPicks() {
         <h2 className="text-[20px] font-semibold text-white mb-4 tracking-tight">AI Stock Picks</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="glass-card rounded-2xl p-6 h-48 shimmer" />
+            <div key={i} className="glass-card rounded-2xl p-6 h-48 skeleton-shine" />
           ))}
         </div>
       </div>
@@ -135,7 +135,7 @@ export function StockPicks() {
                 .catch((e) => setError(e instanceof Error ? e.message : "Failed"))
                 .finally(() => setLoading(false));
             }}
-            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white text-sm font-medium"
+            className="btn-primary pressable px-5 py-2.5 rounded-lg text-white text-sm"
           >
             Retry
           </button>

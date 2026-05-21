@@ -150,7 +150,7 @@ export default function WatchlistPage() {
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="glass-card rounded-xl p-6 animate-pulse">
+            <div key={i} className="glass-card rounded-xl p-6 skeleton-shine">
               <div className="h-6 bg-zinc-800 rounded w-20 mb-3" />
               <div className="h-8 bg-zinc-800 rounded w-32 mb-2" />
               <div className="h-4 bg-zinc-800 rounded w-24" />
@@ -162,7 +162,7 @@ export default function WatchlistPage() {
           {watchlist.map((item, i) => (
             <div
               key={item.symbol}
-              className={`glass-card rounded-2xl p-6 hover:glow-border transition-all cursor-pointer group animate-fadeInUp stagger-${Math.min(i + 1, 8)}`}
+              className={`glass-card interactive-card rounded-2xl p-6 group animate-fadeInUp stagger-${Math.min(i + 1, 8)}`}
               onClick={() => router.push(`/stock/${item.symbol}`)}
             >
               <div className="flex justify-between items-start mb-4">

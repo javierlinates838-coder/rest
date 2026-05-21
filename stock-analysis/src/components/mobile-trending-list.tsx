@@ -19,12 +19,12 @@ export function MobileTrendingList({
 }) {
   return (
     <div className="lg:hidden space-y-2">
-      {stocks.map((stock) => (
+      {stocks.map((stock, i) => (
         <button
           key={stock.symbol}
           type="button"
           onClick={() => onSelect(stock.symbol)}
-          className="mobile-stock-card w-full text-left flex items-center gap-3"
+          className={`mobile-stock-card w-full text-left flex items-center gap-3 animate-fadeInUp stagger-${Math.min(i + 1, 8)}`}
         >
           <StockLogo symbol={stock.symbol} size={40} />
           <div className="min-w-0 flex-1">

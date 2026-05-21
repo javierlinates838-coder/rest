@@ -68,11 +68,11 @@ export function PremiumSearch({
               onChange={(e) => onQueryChange(e.target.value)}
               onFocus={onOpenResults}
               placeholder="Search any stock symbol or company name..."
-              className="w-full pl-14 pr-32 py-4 bg-zinc-900/60 border border-zinc-800/60 rounded-2xl text-white placeholder:text-zinc-600 focus:outline-none focus:border-indigo-500/40 focus:ring-1 focus:ring-indigo-500/20 transition-all text-[15px] font-light tracking-tight"
+              className="w-full pl-14 pr-32 py-4 bg-zinc-900/60 border border-zinc-800/60 rounded-2xl text-white placeholder:text-zinc-600 focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/15 transition-all duration-300 text-[15px] font-light tracking-tight"
             />
             <button
               type="submit"
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 px-6 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl text-white text-[13px] font-semibold tracking-wide hover:from-indigo-400 hover:to-purple-400 transition-all shadow-lg shadow-indigo-500/20"
+              className="btn-primary pressable absolute right-2.5 top-1/2 -translate-y-1/2 px-6 py-2 rounded-xl text-[13px] font-semibold tracking-wide"
             >
               Analyze
             </button>

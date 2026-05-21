@@ -170,7 +170,7 @@ export default function DashboardPage() {
             <button
               key={symbol}
               onClick={() => router.push(`/stock/${symbol}`)}
-              className="px-4 py-1.5 text-[12px] font-medium bg-zinc-900/40 border border-zinc-800/40 rounded-full text-zinc-500 hover:text-white hover:border-indigo-500/30 hover:bg-indigo-500/5 transition-all duration-200"
+              className="chip-press px-4 py-1.5 text-[12px] font-medium bg-zinc-900/40 border border-zinc-800/40 rounded-full text-zinc-500 hover:text-white hover:border-indigo-500/30 hover:bg-indigo-500/10"
             >
               {symbol}
             </button>
@@ -220,7 +220,7 @@ export default function DashboardPage() {
       {loading ? (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-10">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="glass-card rounded-2xl p-5 animate-pulse">
+            <div key={i} className="glass-card rounded-2xl p-5 skeleton-shine">
               <div className="h-3 bg-zinc-800 rounded w-12 mb-3" />
               <div className="h-5 bg-zinc-800 rounded w-20 mb-2" />
               <div className="h-3 bg-zinc-800 rounded w-16" />
@@ -236,7 +236,7 @@ export default function DashboardPage() {
             {indices.map((index, i) => (
               <div
                 key={index.symbol}
-                className={`glass-card rounded-2xl p-5 cursor-pointer group animate-fadeInUp stagger-${i + 1}`}
+                className={`glass-card interactive-card rounded-2xl p-5 group animate-fadeInUp stagger-${i + 1}`}
                 onClick={() => router.push(`/stock/${index.symbol}`)}
               >
                 <div className="flex items-center justify-between mb-1">

@@ -2,8 +2,8 @@ import Link from "next/link";
 
 export default function NotFound() {
   return (
-    <div className="page-shell max-w-lg mx-auto py-24 text-center">
-      <div className="glass-card rounded-2xl p-10 glow-border">
+    <div className="page-shell max-w-lg mx-auto py-24 text-center animate-softPop">
+      <div className="glass-card rounded-2xl p-10 glow-border hero-glow-ring">
         <p className="text-[11px] font-semibold tracking-widest uppercase text-indigo-400 mb-3">404</p>
         <h1 className="text-2xl font-semibold text-white tracking-tight mb-3">Page not found</h1>
         <p className="text-sm text-zinc-400 mb-8 leading-relaxed">
@@ -12,7 +12,7 @@ export default function NotFound() {
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link
             href="/"
-            className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white text-sm font-medium transition-colors"
+            className="btn-primary pressable px-6 py-2.5 rounded-lg text-white text-sm"
           >
             Dashboard
           </Link>

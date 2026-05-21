@@ -119,11 +119,11 @@ export default function PortfolioPage() {
       )}
 
       {loading ? (
-        <div className="animate-pulse space-y-4">
+        <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            {[...Array(3)].map((_, i) => <div key={i} className="h-28 bg-zinc-800 rounded-xl" />)}
+            {[...Array(3)].map((_, i) => <div key={i} className="glass-card h-28 rounded-xl skeleton-shine" />)}
           </div>
-          <div className="h-96 bg-zinc-800 rounded-xl" />
+          <div className="glass-card h-96 rounded-xl skeleton-shine" />
         </div>
       ) : (
         <>

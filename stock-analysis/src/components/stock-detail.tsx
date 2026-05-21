@@ -641,7 +641,7 @@ export function QuickActions({ symbol, onRefresh }: { symbol: string; onRefresh?
     <div className="fixed right-3 bottom-20 sm:right-5 sm:bottom-5 flex flex-row sm:flex-col gap-2 z-40">
       <button
         onClick={toggleWatchlist}
-        className={`group glass-card rounded-2xl p-3 hover:glow-border transition-all ${inWatchlist ? "border-amber-500/30" : ""}`}
+        className={`pressable group glass-card rounded-2xl p-3 hover:glow-border ${inWatchlist ? "border-amber-500/30" : ""}`}
         title={inWatchlist ? "Remove from watchlist" : "Add to watchlist"}
       >
         <svg className={`w-5 h-5 ${inWatchlist ? "text-amber-400 fill-amber-400" : "text-zinc-400 group-hover:text-amber-400"}`} fill={inWatchlist ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
@@ -650,7 +650,7 @@ export function QuickActions({ symbol, onRefresh }: { symbol: string; onRefresh?
       </button>
       <button
         onClick={copyLink}
-        className="group glass-card rounded-2xl p-3 hover:glow-border transition-all"
+        className="pressable group glass-card rounded-2xl p-3 hover:glow-border"
         title="Copy link"
       >
         {copied ? (
@@ -666,7 +666,7 @@ export function QuickActions({ symbol, onRefresh }: { symbol: string; onRefresh?
       <button
         type="button"
         onClick={() => onRefresh?.()}
-        className="group glass-card rounded-2xl p-3 hover:glow-border transition-all"
+        className="pressable group glass-card rounded-2xl p-3 hover:glow-border"
         title="Refresh data"
       >
         <svg className="w-5 h-5 text-zinc-400 group-hover:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

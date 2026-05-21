@@ -449,7 +449,7 @@ export default function StockPage() {
         </div>
       )}
     >
-    <div className="page-shell animate-fadeIn">
+    <div className="page-shell">
       {/* Sticky Mini Header */}
       <StickyMiniHeader
         symbol={quote.symbol}
@@ -549,7 +549,7 @@ export default function StockPage() {
 
         {/* Signal + Risk Badges — stacked on mobile */}
         <div className="grid grid-cols-1 gap-3 w-full sm:grid-cols-2 lg:grid-cols-3">
-          <div className={`px-5 py-4 sm:px-7 sm:py-5 rounded-2xl border mobile-card-full ${getSignalBg(signal.signal)} text-center animate-scaleIn`}>
+          <div className={`signal-card-glow px-5 py-4 sm:px-7 sm:py-5 rounded-2xl border mobile-card-full ${getSignalBg(signal.signal)} text-center animate-scaleIn`}>
             <div className="text-[10px] text-zinc-400 font-semibold tracking-widest uppercase mb-1.5">Signal</div>
             <div className={`text-[22px] sm:text-[26px] font-semibold tracking-tight ${getSignalColor(signal.signal)}`}>{signal.signal.toUpperCase()}</div>
             <div className="text-[12px] text-zinc-400 mt-1 font-light">Confidence: {signal.confidence}%</div>
@@ -612,15 +612,16 @@ export default function StockPage() {
       </div>
 
       {/* Tab Navigation */}
-      <div className="scroll-tabs mb-6 sm:mb-8 bg-zinc-900/40 p-1 rounded-xl border border-white/[0.03]">
+      <div className="scroll-tabs tab-segment mb-6 sm:mb-8 p-1 rounded-xl">
         {tabs.map((tab) => (
           <button
             key={tab.id}
+            type="button"
             onClick={() => setActiveTab(tab.id)}
-            className={`px-3 sm:px-5 py-2 rounded-lg text-[12px] sm:text-[13px] whitespace-nowrap flex-shrink-0 font-medium tracking-tight transition-all duration-200 ${
+            className={`tab-pill px-3 sm:px-5 py-2.5 rounded-lg text-[12px] sm:text-[13px] whitespace-nowrap flex-shrink-0 font-medium tracking-tight ${
               activeTab === tab.id
-                ? "bg-indigo-500/90 text-white shadow-lg shadow-indigo-500/20"
-                : "text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.03]"
+                ? "tab-pill-active"
+                : "text-zinc-500 hover:text-zinc-300"
             }`}
           >
             {tab.label}
