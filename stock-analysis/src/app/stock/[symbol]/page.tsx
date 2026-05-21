@@ -129,6 +129,7 @@ function parseAnalysis(data: unknown): AnalysisData | null {
 function shortDataSource(label: string): string {
   if (label.includes("Gemini")) return "Gemini AI";
   if (label.includes("Finnhub")) return "Finnhub";
+  if (label.includes("NewsAPI")) return "NewsAPI";
   if (label.includes("FMP")) return "FMP";
   if (label.includes("OpenAI")) return "OpenAI";
   if (label.includes("Yahoo")) return "Yahoo";
@@ -206,7 +207,7 @@ export default function StockPage() {
 
         const parsed = parseAnalysis(analysisData);
         if (!parsed) {
-          throw new Error("Incomplete analysis data from server. Check API keys on Vercel (FMP, Finnhub, Gemini).");
+          throw new Error("Incomplete analysis data from server. Check API keys on Vercel (FMP, Gemini; optional Finnhub, NewsAPI).");
         }
         setData(parsed);
 
@@ -223,8 +224,18 @@ export default function StockPage() {
         else if (stockData.historySource === "simulated" || src?.includes("Simulated")) setChartSource("simulated");
         else if (stockHistory.length > 0 || analysisHistory.length > 0) setChartSource("unknown");
 
-        if (newsData.news?.length) setNewsItems(newsData.news);
-        setNewsSource(newsData.source || null);
+        let resolvedNews = newsData;
+        const companyName = parsed.quote?.name?.trim();
+        if (companyName && resolvedNews.source === "generated") {
+          const withName = await fetchJson<{ news?: typeof newsItems; source?: string }>(
+            `/api/news?symbol=${encoded}&name=${encodeURIComponent(companyName)}`
+          ).catch(() => resolvedNews);
+          if (withName.news?.length && withName.source !== "generated") {
+            resolvedNews = withName;
+          }
+        }
+        if (resolvedNews.news?.length) setNewsItems(resolvedNews.news);
+        setNewsSource(resolvedNews.source || null);
       } catch (e) {
         if (!cancelled) {
           const message =
@@ -613,7 +624,7 @@ export default function StockPage() {
             <span>Price charts are simulated without a live market data key. </span>
           )}
           {newsSource === "generated" && (
-            <span>News headlines are template-based until Finnhub returns live articles. </span>
+            <span>News headlines are template-based until Finnhub or NewsAPI.org returns live articles. </span>
           )}
           Trading plan, institutional holdings, and key events are model estimates — not SEC filings.
         </div>
@@ -1414,7 +1425,7 @@ export default function StockPage() {
           <div className="space-y-5 animate-fadeIn">
             {newsSource === "generated" && (
               <div className="glass-card rounded-xl px-4 py-3 border border-amber-500/20 bg-amber-500/5 text-[12px] text-amber-200/90">
-                News shown here is generated from templates (symbol name inserted). Connect FINNHUB_API_KEY for real headlines.
+                News shown here is generated from templates. Add FINNHUB_API_KEY or NEWS_API_KEY on Vercel for live headlines.
               </div>
             )}
             {/* News Hero / Sentiment Summary */}

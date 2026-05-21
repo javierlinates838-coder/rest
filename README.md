@@ -69,6 +69,7 @@ Create `.env.local` in the `stock-analysis` directory:
 ```env
 GEMINI_API_KEY=your-gemini-key
 FMP_API_KEY=your-fmp-key
+NEWS_API_KEY=your-newsapi-key
 FINNHUB_API_KEY=your-finnhub-key
 # Optional fallback
 OPENAI_API_KEY=sk-your-key-here

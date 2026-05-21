@@ -4,7 +4,8 @@ import { computeAllIndicators, generateSignal } from "@/lib/technical-analysis";
 import { generateAIAnalysis } from "@/services/ai-analysis";
 import { detectRedFlags, calculateRiskScore } from "@/lib/red-flags";
 import { generateTradingPlan, generateKeyEvents, generateInstitutionalOwnership, generatePriceAction } from "@/lib/trading-plan";
-import { finnhubFetchNews, finnhubFetchRecommendations, finnhubFetchSentiment, analyzeSentimentFromNews } from "@/services/finnhub-api";
+import { finnhubFetchRecommendations, finnhubFetchSentiment } from "@/services/finnhub-api";
+import { fetchStockNewsForAI, newsProviderLabel } from "@/services/stock-news";
 import { normalizeAnalysisPayload } from "@/lib/normalize-analysis";
 
 // Vercel Pro allows up to 60s; Hobby caps at 10s regardless of this value.
@@ -27,12 +28,12 @@ export async function GET(request: NextRequest) {
       quote.price
     );
 
-    const [competitors, finnhubNews, analystRecs, finnhubSentiment] = await Promise.all([
+    const [competitors, newsBundle, analystRecs, finnhubSentiment] = await Promise.all([
       fetchCompetitors(upperSymbol).catch((e) => {
         console.error("Competitors fetch failed:", e);
         return [];
       }),
-      finnhubFetchNews(upperSymbol).catch(() => []),
+      fetchStockNewsForAI(upperSymbol, quote.name),
       finnhubFetchRecommendations(upperSymbol).catch(() => []),
       finnhubFetchSentiment(upperSymbol).catch(() => null),
     ]);
@@ -41,23 +42,16 @@ export async function GET(request: NextRequest) {
     const indicators = computeAllIndicators(priceHistory);
     const signal = generateSignal(indicators, quote.price);
 
-    // Build news array for AI — prefer real Finnhub news
-    const newsForAI = finnhubNews.length > 0
-      ? finnhubNews.slice(0, 8).map((n) => {
-          const text = (n.headline + " " + n.summary).toLowerCase();
-          const posKw = ["surge", "gain", "beat", "upgrade", "growth", "strong", "profit", "rally"];
-          const negKw = ["fall", "drop", "decline", "miss", "downgrade", "weak", "crash", "risk"];
-          const pos = posKw.filter((k) => text.includes(k)).length;
-          const neg = negKw.filter((k) => text.includes(k)).length;
-          return { title: n.headline, sentiment: pos > neg ? "positive" : neg > pos ? "negative" : "neutral" };
-        })
-      : [
-          { title: `${quote.name} reports strong quarterly results`, sentiment: "positive" },
-          { title: `Analyst upgrades ${upperSymbol} stock rating`, sentiment: "positive" },
-          { title: `${quote.sector} sector faces regulatory scrutiny`, sentiment: "negative" },
-          { title: `${quote.name} announces new product line`, sentiment: "positive" },
-          { title: `Market volatility impacts ${quote.sector} stocks`, sentiment: "neutral" },
-        ];
+    const newsForAI =
+      newsBundle.items.length > 0
+        ? newsBundle.items
+        : [
+            { title: `${quote.name} reports strong quarterly results`, sentiment: "positive" },
+            { title: `Analyst upgrades ${upperSymbol} stock rating`, sentiment: "positive" },
+            { title: `${quote.sector} sector faces regulatory scrutiny`, sentiment: "negative" },
+            { title: `${quote.name} announces new product line`, sentiment: "positive" },
+            { title: `Market volatility impacts ${quote.sector} stocks`, sentiment: "neutral" },
+          ];
 
     const aiAnalysis = await generateAIAnalysis(quote, indicators, signal, competitors, newsForAI);
 
@@ -68,9 +62,7 @@ export async function GET(request: NextRequest) {
     const institutional = generateInstitutionalOwnership(upperSymbol, quote.marketCap);
     const priceAction = generatePriceAction(priceHistory, indicators);
 
-    const newsSentimentBreakdown = finnhubNews.length > 0
-      ? analyzeSentimentFromNews(finnhubNews)
-      : null;
+    const newsSentimentBreakdown = null;
 
     const payload = normalizeAnalysisPayload({
       quote,
@@ -98,7 +90,7 @@ export async function GET(request: NextRequest) {
             : chartSource === "yahoo"
               ? "Yahoo Finance"
               : "Simulated (set FMP_API_KEY)",
-        news: finnhubNews.length > 0 ? "Finnhub Live" : "Generated",
+        news: newsProviderLabel(newsBundle.provider),
         ai: process.env.GEMINI_API_KEY ? "Google Gemini 2.0 Flash" : process.env.OPENAI_API_KEY ? "OpenAI GPT-4o-mini" : "Built-in Engine",
         tradingPlan: "Model estimates",
         institutional: "Model estimates",

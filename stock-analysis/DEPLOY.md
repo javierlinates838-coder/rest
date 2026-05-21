@@ -9,7 +9,8 @@ This app is a **Next.js server app** (API routes + server-side data). Vercel is 
 3. **API keys** ready (same as local `.env.local`):
    - `GEMINI_API_KEY` — [Google AI Studio](https://aistudio.google.com/apikey)
    - `FMP_API_KEY` — [Financial Modeling Prep](https://site.financialmodelingprep.com/developer/docs)
-   - `FINNHUB_API_KEY` — [Finnhub](https://finnhub.io/register)
+   - `NEWS_API_KEY` — [NewsAPI.org](https://newsapi.org) (headlines when Finnhub has none)
+   - `FINNHUB_API_KEY` — [Finnhub](https://finnhub.io/register) (optional; live news + analyst data)
    - `OPENAI_API_KEY` — optional fallback
 
 Never commit keys to git. Only set them in Vercel **Environment Variables**.
@@ -63,6 +64,7 @@ Still on the import screen (or later: **Project → Settings → Environment Var
 |--------------------|--------------------|-------------------|
 | `GEMINI_API_KEY`   | your Gemini key    | Production, Preview, Development |
 | `FMP_API_KEY`      | your FMP key       | Production, Preview, Development |
+| `NEWS_API_KEY`     | your NewsAPI key   | Production, Preview, Development |
 | `FINNHUB_API_KEY`  | your Finnhub key   | Production, Preview, Development |
 | `OPENAI_API_KEY`   | optional           | Production, Preview |
 
@@ -131,7 +133,7 @@ Env vars are baked in at **build/runtime** per deployment:
 
 ### `/api/analyze` times out (504 / FUNCTION_INVOCATION_TIMEOUT)
 
-- The analyze route calls FMP, Finnhub, and Gemini in one request.
+- The analyze route calls FMP, news providers (Finnhub / NewsAPI), and Gemini in one request.
 - **Hobby plan**: ~10 second serverless limit.
 - **Pro plan**: up to 60 seconds; the app sets `maxDuration = 60` on `/api/analyze`.
 - Mitigation: upgrade to Pro, or use the site lightly until you add caching.
@@ -142,7 +144,7 @@ Env vars are baked in at **build/runtime** per deployment:
 
 ### API keys exposed?
 
-- Rotate keys at FMP / Finnhub / Google if they were ever committed or shared publicly.
+- Rotate keys at FMP / NewsAPI / Finnhub / Google if they were ever committed or shared publicly.
 - Do **not** prefix keys with `NEXT_PUBLIC_` — they must stay server-only.
 
 ---
@@ -162,6 +164,7 @@ Add env vars in the dashboard or:
 ```bash
 vercel env add GEMINI_API_KEY
 vercel env add FMP_API_KEY
+vercel env add NEWS_API_KEY
 vercel env add FINNHUB_API_KEY
 ```
 
@@ -170,7 +173,7 @@ vercel env add FINNHUB_API_KEY
 ## Quick checklist
 
 - [ ] Root Directory = `stock-analysis`
-- [ ] `GEMINI_API_KEY`, `FMP_API_KEY`, `FINNHUB_API_KEY` set
+- [ ] `GEMINI_API_KEY`, `FMP_API_KEY`, `NEWS_API_KEY` (and optional `FINNHUB_API_KEY`) set
 - [ ] Redeploy after adding keys
 - [ ] Test `/` and `/stock/AAPL`
 - [ ] Rotate keys if they were ever leaked

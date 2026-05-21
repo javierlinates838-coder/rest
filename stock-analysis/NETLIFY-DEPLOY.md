@@ -14,6 +14,7 @@ This app uses **Next.js API routes** (`/api/analyze`, `/api/stock`, etc.). You c
 6. **Site configuration → Environment variables** — add:
    - `GEMINI_API_KEY`
    - `FMP_API_KEY`
+   - `NEWS_API_KEY`
    - `FINNHUB_API_KEY`
    - `OPENAI_API_KEY` (optional)
 7. **Deploy site**.

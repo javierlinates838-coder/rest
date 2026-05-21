@@ -19,6 +19,7 @@
 6. Environment variables (Production + Preview + Development):
    - `GEMINI_API_KEY`
    - `FMP_API_KEY`
+   - `NEWS_API_KEY`
    - `FINNHUB_API_KEY`
 7. Deploy (clear build cache if a previous deploy failed)
 
