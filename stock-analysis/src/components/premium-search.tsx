@@ -84,7 +84,7 @@ export function PremiumSearch({
               onChange={(e) => onQueryChange(e.target.value)}
               onFocus={onOpenResults}
               placeholder="Search any stock symbol or company name..."
-              className="w-full pl-14 pr-32 py-4 bg-zinc-900/60 border border-zinc-800/60 rounded-2xl text-white placeholder:text-zinc-600 focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/15 transition-all duration-300 text-[15px] font-light tracking-tight"
+              className="w-full pl-14 pr-32 py-4 bg-zinc-900/60 border border-zinc-800/60 rounded-2xl text-white placeholder:text-zinc-600 focus:outline-none focus:border-teal-500/50 focus:ring-2 focus:ring-teal-500/15 transition-all duration-300 text-[15px] font-light tracking-tight"
             />
             <button
               type="submit"
@@ -104,12 +104,12 @@ export function PremiumSearch({
         <form onSubmit={onSubmit} className="search-hero-mobile">
           <div className="search-hero-glow" aria-hidden />
           <div className="relative z-[1] p-4">
-            <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-indigo-400/90 mb-3 text-center">
+            <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-teal-400/90 mb-3 text-center">
               Deep analysis · Live data
             </p>
-            <div className="flex items-center gap-2 rounded-2xl bg-zinc-950/80 border border-white/[0.08] px-3 py-1 focus-within:border-indigo-500/50 focus-within:ring-2 focus-within:ring-indigo-500/15 transition-all">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-500/15">
-                <svg className="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="flex items-center gap-2 rounded-2xl bg-zinc-950/80 border border-white/[0.08] px-3 py-1 focus-within:border-teal-500/50 focus-within:ring-2 focus-within:ring-teal-500/15 transition-all">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-teal-500/15">
+                <svg className="w-5 h-5 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
               </div>
@@ -141,7 +141,7 @@ export function PremiumSearch({
             </div>
             <button
               type="submit"
-              className="mt-3 w-full flex items-center justify-center gap-2 rounded-2xl py-3.5 text-[15px] font-semibold text-white bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500 shadow-lg shadow-indigo-500/25 active:scale-[0.98] transition-transform"
+              className="btn-primary pressable mt-3 w-full flex items-center justify-center gap-2 rounded-2xl py-3.5 text-[15px] font-semibold active:scale-[0.98] transition-transform"
             >
               <span>Analyze stock</span>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

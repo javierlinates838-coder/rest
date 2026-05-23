@@ -149,7 +149,7 @@ export function StockPicks() {
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 mb-5">
         <div>
           <h2 className="text-[20px] font-semibold text-white tracking-tight flex items-center gap-2">
-            <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-sm">★</span>
+            <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-500 to-amber-500 flex items-center justify-center text-sm">★</span>
             AI Stock Picks
           </h2>
           <p className="text-[12px] text-zinc-500 mt-1">

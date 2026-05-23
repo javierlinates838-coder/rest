@@ -373,7 +373,7 @@ export default function StockPage() {
             <button
               type="button"
               onClick={() => window.location.reload()}
-              className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white text-sm font-medium transition-colors"
+              className="px-6 py-2.5 bg-teal-600 hover:bg-teal-500 rounded-lg text-white text-sm font-medium transition-colors"
             >
               Try again
             </button>
@@ -444,7 +444,7 @@ export default function StockPage() {
             <h2 className="text-xl font-semibold text-white mb-3">This page could not load</h2>
             <p className="text-sm text-zinc-400 mb-6">{err.message}</p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <button type="button" onClick={reset} className="px-6 py-2.5 bg-indigo-600 rounded-lg text-white text-sm">
+              <button type="button" onClick={reset} className="px-6 py-2.5 bg-teal-600 rounded-lg text-white text-sm">
                 Try again
               </button>
               <button type="button" onClick={() => router.push("/")} className="px-6 py-2.5 bg-zinc-800 rounded-lg text-zinc-200 text-sm">
@@ -508,7 +508,7 @@ export default function StockPage() {
                 <span className="px-2 py-0.5 text-[10px] font-semibold bg-zinc-800/60 text-zinc-500 rounded-md tracking-wider uppercase">{quote.exchange}</span>
               </div>
               <p className="text-[14px] sm:text-[16px] text-zinc-400 font-light tracking-tight truncate mt-0.5">{quote.name}</p>
-              <span className="inline-block mt-1.5 px-2.5 py-0.5 text-[10px] font-medium bg-indigo-500/10 text-indigo-400 rounded-md tracking-wide">{quote.sector}</span>
+              <span className="inline-block mt-1.5 px-2.5 py-0.5 text-[10px] font-medium bg-teal-500/10 text-teal-400 rounded-md tracking-wide">{quote.sector}</span>
             </div>
           </div>
 
@@ -731,7 +731,7 @@ export default function StockPage() {
                     key={p}
                     onClick={() => setPeriod(p)}
                     className={`px-3 py-1 text-xs rounded-md transition-all ${
-                      period === p ? "bg-indigo-600 text-white" : "text-zinc-400 hover:text-white"
+                      period === p ? "bg-teal-600 text-white" : "text-zinc-400 hover:text-white"
                     }`}
                   >
                     {p.toUpperCase()}
@@ -929,11 +929,11 @@ export default function StockPage() {
                 const pctFromPrice = ((fib.price - quote.price) / quote.price) * 100;
                 return (
                   <div key={fib.level} className="flex items-center justify-between py-2 border-b border-zinc-800/30 last:border-0">
-                    <span className="text-sm text-indigo-400 font-medium w-16">{fib.level}</span>
+                    <span className="text-sm text-teal-400 font-medium w-16">{fib.level}</span>
                     <div className="flex-1 mx-4">
                       <div className="relative h-2 bg-zinc-800 rounded-full">
                         <div
-                          className="absolute h-2 bg-indigo-500/30 rounded-full"
+                          className="absolute h-2 bg-teal-500/30 rounded-full"
                           style={{ width: `${Math.min(Math.abs(pctFromPrice) * 5, 100)}%`, left: pctFromPrice < 0 ? "auto" : "0", right: pctFromPrice < 0 ? "0" : "auto" }}
                         />
                       </div>
@@ -1009,7 +1009,7 @@ export default function StockPage() {
           {/* AI Summary */}
           <div className="glass-card rounded-xl p-6 glow-border">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-amber-500 flex items-center justify-center">
                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                 </svg>
@@ -1034,9 +1034,9 @@ export default function StockPage() {
                 <div className="text-2xl font-bold text-red-400">{formatCurrency(aiAnalysis.priceTarget.low)}</div>
                 <div className="text-xs text-zinc-500 mt-1">{priceChangePercent(aiAnalysis.priceTarget.low, quote.price)}</div>
               </div>
-              <div className="text-center p-4 bg-indigo-500/10 rounded-xl border border-indigo-500/20">
+              <div className="text-center p-4 bg-teal-500/10 rounded-xl border border-teal-500/20">
                 <div className="text-xs text-zinc-500 mb-1">Base</div>
-                <div className="text-2xl font-bold text-indigo-400">{formatCurrency(aiAnalysis.priceTarget.mid)}</div>
+                <div className="text-2xl font-bold text-teal-400">{formatCurrency(aiAnalysis.priceTarget.mid)}</div>
                 <div className="text-xs text-zinc-500 mt-1">{priceChangePercent(aiAnalysis.priceTarget.mid, quote.price)}</div>
               </div>
               <div className="text-center p-4 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
@@ -1047,11 +1047,11 @@ export default function StockPage() {
             </div>
             <div className="relative h-4 bg-zinc-800 rounded-full overflow-hidden">
               <div
-                className="absolute h-full bg-gradient-to-r from-red-500 via-indigo-500 to-emerald-500 opacity-30"
+                className="absolute h-full bg-gradient-to-r from-red-500 via-teal-500 to-emerald-500 opacity-30"
                 style={{ left: "0%", width: "100%" }}
               />
               <div
-                className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full border-2 border-indigo-500"
+                className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full border-2 border-teal-500"
                 style={{
                   left: `${(() => {
                     const span = aiAnalysis.priceTarget.high - aiAnalysis.priceTarget.low;
@@ -1063,7 +1063,7 @@ export default function StockPage() {
             </div>
             <div className="flex justify-between text-xs text-zinc-500 mt-2">
               <span>{formatCurrency(aiAnalysis.priceTarget.low)}</span>
-              <span className="text-indigo-400">Current: {formatCurrency(quote.price)}</span>
+              <span className="text-teal-400">Current: {formatCurrency(quote.price)}</span>
               <span>{formatCurrency(aiAnalysis.priceTarget.high)}</span>
             </div>
           </div>
@@ -1083,7 +1083,7 @@ export default function StockPage() {
             </div>
             <div className="glass-card rounded-xl p-6">
               <div className="text-xs text-zinc-500 mb-2">TIME HORIZON</div>
-              <div className="text-xl font-bold text-indigo-400">{aiAnalysis.timeHorizon}</div>
+              <div className="text-xl font-bold text-teal-400">{aiAnalysis.timeHorizon}</div>
               {aiAnalysis.timeHorizonRationale && (
                 <p className="text-[11px] text-zinc-500 mt-2 leading-relaxed">{aiAnalysis.timeHorizonRationale}</p>
               )}
@@ -1144,7 +1144,7 @@ export default function StockPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {aiAnalysis.keyFactors.map((factor, i) => (
                 <div key={i} className="flex items-start gap-3 p-3 bg-zinc-800/30 rounded-lg">
-                  <span className="text-indigo-400 font-bold text-sm">{i + 1}.</span>
+                  <span className="text-teal-400 font-bold text-sm">{i + 1}.</span>
                   <span className="text-sm text-zinc-300">{factor}</span>
                 </div>
               ))}
@@ -1317,8 +1317,8 @@ export default function StockPage() {
                 { Icon: IconInsider, label: "Insider Trading", desc: "SEC filing anomalies & unusual insider selling patterns", color: "text-rose-400 bg-rose-500/8" },
                 { Icon: IconVolume, label: "Volume Spikes", desc: "Detects volume exceeding 2x+ rolling average", color: "text-amber-400 bg-amber-500/8" },
                 { Icon: IconPumpDump, label: "Pump & Dump", desc: "Combined RSI + volume signatures of manipulation", color: "text-red-400 bg-red-500/8" },
-                { Icon: IconPriceGap, label: "Price Gaps", desc: "After-hours moves and opening gap anomalies", color: "text-indigo-400 bg-indigo-500/8" },
-                { Icon: IconDivergence, label: "Divergences", desc: "MACD/price bearish and bullish divergence", color: "text-purple-400 bg-purple-500/8" },
+                { Icon: IconPriceGap, label: "Price Gaps", desc: "After-hours moves and opening gap anomalies", color: "text-teal-400 bg-teal-500/8" },
+                { Icon: IconDivergence, label: "Divergences", desc: "MACD/price bearish and bullish divergence", color: "text-amber-400 bg-amber-500/8" },
                 { Icon: IconVolatilitySpike, label: "Volatility Spikes", desc: "Bollinger squeeze and ATR anomaly detection", color: "text-cyan-400 bg-cyan-500/8" },
               ].map((item, i) => (
                 <div key={item.label} className={`group p-4 rounded-xl bg-zinc-900/40 border border-white/[0.02] hover:border-white/[0.06] transition-all duration-300 animate-fadeInUp stagger-${i + 1}`}>
@@ -1356,9 +1356,9 @@ export default function StockPage() {
                 </tr>
               </thead>
               <tbody>
-                <tr className="border-b border-zinc-800/50 bg-indigo-500/5">
+                <tr className="border-b border-zinc-800/50 bg-teal-500/5">
                   <td className="px-4 py-3">
-                    <div className="font-semibold text-indigo-400">{quote.symbol}</div>
+                    <div className="font-semibold text-teal-400">{quote.symbol}</div>
                     <div className="text-xs text-zinc-500">{quote.name} (Current)</div>
                   </td>
                   <td className="text-right px-4 py-3 text-white font-medium">{formatCurrency(quote.price)}</td>
@@ -1386,7 +1386,7 @@ export default function StockPage() {
                     <td className="text-right px-4 py-3 text-zinc-400">{formatLargeNumber(comp.marketCap)}</td>
                     <td className="text-right px-4 py-3 text-zinc-400">{comp.peRatio > 0 ? comp.peRatio.toFixed(1) : "—"}</td>
                     <td className="text-center px-4 py-3">
-                      <button className="px-3 py-1 text-xs bg-indigo-500/20 text-indigo-400 rounded-full border border-indigo-500/30">
+                      <button className="px-3 py-1 text-xs bg-teal-500/20 text-teal-400 rounded-full border border-teal-500/30">
                         View
                       </button>
                     </td>
@@ -1520,8 +1520,8 @@ export default function StockPage() {
               <div className="glass-card rounded-2xl p-14 text-center">
                 <div className="flex justify-center mb-4">
                   <div className="relative">
-                    <div className="absolute inset-0 bg-indigo-500/15 blur-2xl rounded-full" />
-                    <div className="relative w-16 h-16 rounded-2xl bg-indigo-500/8 border border-indigo-500/15 flex items-center justify-center text-indigo-400">
+                    <div className="absolute inset-0 bg-teal-500/15 blur-2xl rounded-full" />
+                    <div className="relative w-16 h-16 rounded-2xl bg-teal-500/8 border border-teal-500/15 flex items-center justify-center text-teal-400">
                       <IconNews size={28} />
                     </div>
                   </div>
@@ -1592,7 +1592,7 @@ export default function StockPage() {
                                 <h4 className="text-[14px] text-white font-semibold mb-2 tracking-tight leading-snug">{item.title}</h4>
                                 <p className="text-[11px] text-zinc-500 leading-relaxed font-light line-clamp-2">{item.summary}</p>
                                 {item.url && item.url !== "#" && (
-                                  <div className="mt-2 flex items-center gap-1 text-[10px] text-indigo-400 hover:text-indigo-300">
+                                  <div className="mt-2 flex items-center gap-1 text-[10px] text-teal-400 hover:text-teal-300">
                                     <span>Read full article</span>
                                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />

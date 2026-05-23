@@ -112,7 +112,7 @@ export default function PortfolioPage() {
       </p>
 
       {isSample && (
-        <div className="glass-card rounded-xl px-4 py-3 mb-6 border border-indigo-500/20 bg-indigo-500/5 text-[12px] text-indigo-200/90 leading-relaxed">
+        <div className="glass-card rounded-xl px-4 py-3 mb-6 border border-teal-500/20 bg-teal-500/5 text-[12px] text-teal-200/90 leading-relaxed">
           Showing a <strong className="font-medium text-white">demo portfolio</strong> for illustration.
           Custom portfolios will be supported in a future update.
         </div>

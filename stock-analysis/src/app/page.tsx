@@ -139,20 +139,19 @@ export default function DashboardPage() {
 
   return (
     <div className="page-shell page-shell-wide">
-      {/* Hero */}
-      <div className="text-center mb-8 sm:mb-14 animate-fadeIn">
-        <h1 className="mobile-hero-title sm:text-[44px] lg:text-[52px] font-semibold tracking-tight leading-[1.1] mb-3 sm:mb-5 px-1">
-          <span className="gradient-text">AI-Powered</span> Stock Analysis
+      <div className="hero-panel text-center animate-fadeIn relative z-[1]">
+        <span className="hero-eyebrow">Live market research</span>
+        <h1 className="mobile-hero-title sm:text-[40px] lg:text-[48px] font-bold tracking-tight leading-[1.08] mb-3 sm:mb-4 px-1 text-white">
+          <span className="gradient-text">Intelligent</span> stock analysis
         </h1>
-        <p className="hidden sm:block text-[17px] text-zinc-400 max-w-xl mx-auto mb-10 leading-relaxed font-light tracking-tight px-2">
-          Deep research, technical indicators, competitor insights, and intelligent
-          buy/sell recommendations — powered by live market data.
+        <p className="hidden sm:block text-[16px] text-slate-400 max-w-lg mx-auto mb-8 leading-relaxed px-2">
+          Technicals, AI narrative, risk scoring, and trade ideas — built on live quotes and real OHLCV when your data keys are connected.
         </p>
-        <p className="sm:hidden text-[14px] text-zinc-500 mb-5 leading-relaxed font-light px-1">
-          Live quotes, AI analysis, and smart signals.
+        <p className="sm:hidden text-[14px] text-slate-500 mb-5 leading-relaxed px-1">
+          Quotes, signals, and AI research in one place.
         </p>
 
-        <div ref={searchRef} className="w-full max-w-2xl mx-auto">
+        <div ref={searchRef} className="w-full max-w-2xl mx-auto relative z-[2]">
           <PremiumSearch
             searchQuery={searchQuery}
             searchResults={searchResults}
@@ -170,7 +169,7 @@ export default function DashboardPage() {
             <button
               key={symbol}
               onClick={() => router.push(`/stock/${symbol}`)}
-              className="chip-press px-4 py-1.5 text-[12px] font-medium bg-zinc-900/40 border border-zinc-800/40 rounded-full text-zinc-500 hover:text-white hover:border-indigo-500/30 hover:bg-indigo-500/10"
+              className="chip-press px-4 py-1.5 text-[12px] font-medium bg-slate-900/50 border border-slate-700/50 rounded-full text-slate-400 hover:text-teal-100 hover:border-teal-500/40 hover:bg-teal-500/10"
             >
               {symbol}
             </button>
@@ -232,7 +231,7 @@ export default function DashboardPage() {
           <StockPicks />
 
           <h2 className="section-heading sm:mb-4">
-            <svg className="w-5 h-5 text-indigo-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 text-teal-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
             </svg>
             Market indices
@@ -243,7 +242,7 @@ export default function DashboardPage() {
                 key={index.symbol}
                 role="button"
                 tabIndex={0}
-                className={`glass-card interactive-card rounded-2xl p-4 sm:p-5 group animate-fadeInUp stagger-${i + 1} cursor-pointer`}
+                className={`index-tile interactive-card rounded-2xl p-4 sm:p-5 group animate-fadeInUp stagger-${i + 1} cursor-pointer`}
                 onClick={() => router.push(`/stock/${index.symbol}`)}
                 onKeyDown={(e) => e.key === "Enter" && router.push(`/stock/${index.symbol}`)}
               >
@@ -267,7 +266,7 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 lg:gap-10">
             <div className="xl:col-span-8">
               <h2 className="section-heading">
-                <svg className="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-teal-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                 </svg>
                 Trending Stocks
@@ -313,7 +312,7 @@ export default function DashboardPage() {
                         <td className="text-right px-5 py-3.5 text-[13px] text-zinc-500 hidden sm:table-cell">{stock.volume ? `${(stock.volume / 1e6).toFixed(1)}M` : "—"}</td>
                         <td className="text-right px-5 py-3.5 text-[13px] text-zinc-500 hidden md:table-cell">{stock.marketCap ? formatLargeNumber(stock.marketCap) : "—"}</td>
                         <td className="text-center px-5 py-3.5">
-                          <span className="px-3 py-1 text-[11px] font-semibold bg-indigo-500/10 text-indigo-400 rounded-full border border-indigo-500/20">
+                          <span className="px-3 py-1 text-[11px] font-semibold bg-teal-500/10 text-teal-400 rounded-full border border-teal-500/20">
                             Analyze
                           </span>
                         </td>
@@ -327,7 +326,7 @@ export default function DashboardPage() {
             <div className="xl:col-span-4 space-y-6">
               <div>
                 <h2 className="section-heading">
-                  <svg className="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-teal-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                   </svg>
                   Sectors

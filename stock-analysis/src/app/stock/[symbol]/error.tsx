@@ -27,7 +27,7 @@ export default function StockError({
           <button
             type="button"
             onClick={() => reset()}
-            className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white text-sm font-medium transition-colors"
+            className="px-6 py-2.5 bg-teal-600 hover:bg-teal-500 rounded-lg text-white text-sm font-medium transition-colors"
           >
             Try again
           </button>

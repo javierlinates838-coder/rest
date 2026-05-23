@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Inter } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { SiteNavLinks } from "@/components/site-nav-links";
 import "./globals.css";
 
-const inter = Inter({
+const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-sans",
   display: "swap",
 });
 
@@ -30,23 +30,27 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark w-full">
-      <body className={`${inter.variable} antialiased min-h-screen w-full max-w-[100vw] overflow-x-hidden has-mobile-nav`}>
+      <body className={`${jakarta.variable} font-sans antialiased min-h-screen w-full max-w-[100vw] overflow-x-hidden has-mobile-nav`}>
         <div className="app-canvas flex flex-col min-h-screen w-full min-w-0">
           <nav className="sticky top-0 z-50 nav-premium safe-top">
+            <div className="nav-accent-line" aria-hidden />
             <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10">
-              <div className="flex items-center justify-between h-14 sm:h-[60px] gap-3">
-                <Link href="/" className="flex items-center gap-2 sm:gap-3 group min-w-0 pressable">
-                  <div className="logo-float w-8 h-8 shrink-0 rounded-[10px] bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center shadow-lg shadow-indigo-500/30 hero-glow-ring group-hover:shadow-indigo-500/50 transition-shadow duration-300">
-                    <svg className="w-[18px] h-[18px] text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              <div className="flex items-center justify-between h-14 sm:h-16 gap-3">
+                <Link href="/" className="flex items-center gap-2.5 sm:gap-3 group min-w-0 pressable">
+                  <div className="logo-mark logo-float shrink-0">
+                    <svg className="w-[18px] h-[18px] text-[#042f2e]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.4} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                     </svg>
                   </div>
-                  <span className="text-[15px] sm:text-[17px] font-semibold tracking-tight gradient-text truncate">StockPulse AI</span>
+                  <div className="min-w-0 leading-tight">
+                    <span className="block text-[15px] sm:text-[17px] font-bold tracking-tight text-white truncate">StockPulse</span>
+                    <span className="block text-[10px] font-semibold tracking-[0.14em] uppercase text-teal-400/80">Research</span>
+                  </div>
                 </Link>
 
                 <div className="flex items-center gap-2 sm:gap-6 shrink-0">
                   <SiteNavLinks />
-                  <span className="live-badge text-zinc-400 text-[9px] sm:text-[10px]">Live</span>
+                  <span className="live-badge text-zinc-500 text-[9px] sm:text-[10px]">Live</span>
                 </div>
               </div>
             </div>
@@ -56,10 +60,10 @@ export default function RootLayout({
 
           <MobileBottomNav />
 
-          <footer className="border-t border-white/[0.04] py-5 safe-bottom footer-above-mobile-nav">
+          <footer className="footer-premium py-6 safe-bottom footer-above-mobile-nav">
             <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10">
-              <div className="flex flex-col sm:flex-row justify-between items-center gap-3 text-[10px] sm:text-[11px] text-zinc-600 text-center sm:text-left">
-                <span className="tracking-wide">StockPulse AI — Not financial advice.</span>
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-3 text-[10px] sm:text-[11px] text-zinc-500 text-center sm:text-left">
+                <span className="tracking-wide">StockPulse — Not financial advice.</span>
                 <div className="flex flex-wrap justify-center gap-2">
                   <span className="data-source-tag">FMP</span>
                   <span className="data-source-tag">Finnhub</span>

@@ -88,7 +88,7 @@ export function DayRangeSlider({ low, high, current, label = "Day Range" }: {
       </div>
       <div className="relative h-1.5 bg-gradient-to-r from-red-500/30 via-yellow-500/30 to-emerald-500/30 rounded-full">
         <div
-          className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full border-2 border-indigo-500 shadow-lg shadow-indigo-500/50 transition-all duration-700"
+          className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full border-2 border-teal-500 shadow-lg shadow-teal-500/50 transition-all duration-700"
           style={{ left: `calc(${position}% - 6px)` }}
         />
       </div>
@@ -272,8 +272,8 @@ export function TradingPlanCard({ plan, currentPrice }: {
           </div>
         </div>
 
-        <div className="bg-indigo-500/5 border border-indigo-500/15 rounded-xl p-3.5">
-          <div className="text-[9px] text-indigo-400 font-bold tracking-widest uppercase mb-2">Profit Targets</div>
+        <div className="bg-teal-500/5 border border-teal-500/15 rounded-xl p-3.5">
+          <div className="text-[9px] text-teal-400 font-bold tracking-widest uppercase mb-2">Profit Targets</div>
           <div className="space-y-1.5">
             <div className="flex justify-between text-[11px]">
               <span className="text-zinc-500">T1 (R:R {plan.riskReward.conservative})</span>
@@ -324,7 +324,7 @@ export function TradingPlanCard({ plan, currentPrice }: {
               <>
                 <div className="absolute top-0 w-[2px] h-full bg-red-500" style={{ left: `${pos(plan.stopLoss.standard)}%` }} title="Stop Loss" />
                 <div className="absolute top-0 w-[2px] h-full bg-emerald-500" style={{ left: `${pos(plan.entry.primary)}%` }} title="Entry" />
-                <div className="absolute top-0 w-[2px] h-full bg-indigo-400" style={{ left: `${pos(plan.targets.base)}%` }} title="Target" />
+                <div className="absolute top-0 w-[2px] h-full bg-teal-400" style={{ left: `${pos(plan.targets.base)}%` }} title="Target" />
                 <div
                   className="absolute -top-1 w-3 h-4.5 bg-white rounded-sm shadow-lg shadow-black/60 border border-zinc-900"
                   style={{ left: `calc(${pos(currentPrice)}% - 6px)`, height: "18px" }}
@@ -337,7 +337,7 @@ export function TradingPlanCard({ plan, currentPrice }: {
         <div className="flex flex-col sm:flex-row gap-2 sm:justify-between text-[10px] text-zinc-500 mt-2.5">
           <span className="flex items-center gap-1.5"><IconStop size={11} className="text-red-400" /> Stop ${plan.stopLoss.standard.toFixed(2)}</span>
           <span className="flex items-center gap-1.5"><IconArrowRight size={11} className="text-white" /> Now ${currentPrice.toFixed(2)}</span>
-          <span className="flex items-center gap-1.5"><IconTarget size={11} className="text-indigo-400" /> Target ${plan.targets.base.toFixed(2)}</span>
+          <span className="flex items-center gap-1.5"><IconTarget size={11} className="text-teal-400" /> Target ${plan.targets.base.toFixed(2)}</span>
         </div>
       </div>
 
@@ -446,13 +446,13 @@ export function InstitutionalCard({ data }: {
       {/* Stacked bar */}
       <div className="mb-5">
         <div className="flex h-3 rounded-full overflow-hidden">
-          <div className="bg-indigo-500/80" style={{ width: `${data.totalInstitutionalPercent}%` }} />
+          <div className="bg-teal-500/80" style={{ width: `${data.totalInstitutionalPercent}%` }} />
           <div className="bg-emerald-500/80" style={{ width: `${data.insiderOwnershipPercent}%` }} />
           <div className="bg-zinc-600/80" style={{ width: `${data.retailPercent}%` }} />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 mt-2 text-[10px]">
           <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2 bg-indigo-500 rounded-full" />
+            <div className="w-2 h-2 bg-teal-500 rounded-full" />
             <span className="text-zinc-400">Institutional</span>
             <span className="text-white font-semibold ml-auto">{data.totalInstitutionalPercent}%</span>
           </div>
@@ -658,7 +658,7 @@ export function QuickActions({ symbol, onRefresh }: { symbol: string; onRefresh?
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
         ) : (
-          <svg className="w-5 h-5 text-zinc-400 group-hover:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5 text-zinc-400 group-hover:text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
           </svg>
         )}
@@ -669,7 +669,7 @@ export function QuickActions({ symbol, onRefresh }: { symbol: string; onRefresh?
         className="pressable group glass-card rounded-2xl p-3 hover:glow-border"
         title="Refresh data"
       >
-        <svg className="w-5 h-5 text-zinc-400 group-hover:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-5 h-5 text-zinc-400 group-hover:text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
         </svg>
       </button>

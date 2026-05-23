@@ -142,11 +142,11 @@ export default function WatchlistPage() {
             value={newSymbol}
             onChange={(e) => setNewSymbol(e.target.value)}
             placeholder="Add symbol..."
-            className="px-4 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-white placeholder:text-zinc-500 focus:outline-none focus:border-indigo-500"
+            className="px-4 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-white placeholder:text-zinc-500 focus:outline-none focus:border-teal-500"
           />
           <button
             type="submit"
-            className="px-4 py-2 bg-indigo-600 rounded-lg text-white font-medium hover:bg-indigo-500 transition-colors"
+            className="px-4 py-2 bg-teal-600 rounded-lg text-white font-medium hover:bg-teal-500 transition-colors"
           >
             Add
           </button>
