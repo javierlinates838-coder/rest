@@ -1108,6 +1108,279 @@ h1, h2, h3, h4, h5, h6 {
   transition: left 1s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* ── Stock grading deck (hero conviction) ── */
+
+.grading-deck {
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 1rem;
+  background: linear-gradient(160deg, rgba(14, 18, 24, 0.98) 0%, rgba(8, 10, 14, 0.96) 100%);
+  overflow: hidden;
+}
+
+.grading-deck-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+@media (min-width: 640px) {
+  .grading-deck-grid {
+    grid-template-columns: minmax(7.5rem, auto) 1.4fr minmax(6.5rem, auto) minmax(9rem, 1fr);
+  }
+}
+
+.grading-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 1.25rem 1rem;
+  background: rgba(12, 14, 18, 0.92);
+  min-height: 9.5rem;
+}
+
+@media (min-width: 640px) {
+  .grading-panel--signal {
+    align-items: flex-start;
+    text-align: left;
+    padding: 1.35rem 1.5rem;
+  }
+}
+
+.grading-panel-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(161, 161, 170, 0.85);
+  margin-bottom: 0.65rem;
+}
+
+.grading-panel--score .grading-score-label {
+  margin-top: 0.35rem;
+  font-size: 12px;
+  font-weight: 600;
+  color: #a1a1aa;
+}
+
+.grading-panel--signal {
+  min-height: 10rem;
+}
+
+.grading-signal-word {
+  font-size: clamp(1.75rem, 5vw, 2.35rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  margin: 0 0 0.85rem;
+}
+
+.grading-signal--bull {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(12, 14, 18, 0.95) 70%);
+  border-left: 3px solid rgba(52, 211, 153, 0.5);
+}
+
+.grading-signal--bear {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(12, 14, 18, 0.95) 70%);
+  border-left: 3px solid rgba(248, 113, 113, 0.5);
+}
+
+.grading-signal--hold {
+  background: linear-gradient(135deg, rgba(251, 146, 60, 0.14) 0%, rgba(12, 14, 18, 0.95) 70%);
+  border-left: 3px solid rgba(251, 146, 60, 0.55);
+}
+
+.grading-confidence {
+  width: 100%;
+  max-width: 16rem;
+}
+
+.grading-confidence-track {
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(39, 39, 42, 0.9);
+  overflow: hidden;
+  margin-bottom: 0.4rem;
+}
+
+.grading-confidence-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(251, 146, 60, 0.6), rgba(251, 191, 36, 0.9));
+  transition: width 0.6s ease;
+}
+
+.grading-signal--bull .grading-confidence-fill {
+  background: linear-gradient(90deg, rgba(52, 211, 153, 0.5), rgba(16, 185, 129, 0.95));
+}
+
+.grading-signal--bear .grading-confidence-fill {
+  background: linear-gradient(90deg, rgba(248, 113, 113, 0.5), rgba(239, 68, 68, 0.95));
+}
+
+.grading-confidence-text {
+  font-size: 11px;
+  color: #71717a;
+  line-height: 1.35;
+}
+
+.grading-risk-letter {
+  font-size: 3rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.grading-risk--low .grading-risk-letter {
+  color: #34d399;
+}
+
+.grading-risk--mid .grading-risk-letter {
+  color: #fbbf24;
+}
+
+.grading-risk--high .grading-risk-letter {
+  color: #f87171;
+}
+
+.grading-risk-sub {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: #a1a1aa;
+  margin-top: 0.25rem;
+}
+
+.grading-risk-hint {
+  color: #52525b;
+  font-size: 10px;
+}
+
+.grading-risk-verdict {
+  font-size: 10px;
+  color: #71717a;
+  margin-top: 0.5rem;
+  line-height: 1.35;
+  max-width: 9rem;
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .grading-risk-verdict {
+    display: block;
+  }
+}
+
+.grading-panel--edge {
+  align-items: stretch;
+  text-align: left;
+  padding: 1.15rem 1.1rem;
+}
+
+.grading-edge-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 0.65rem;
+}
+
+.grading-edge-score {
+  font-size: 2rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.grading-edge-tier {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.grading-edge-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  width: 100%;
+}
+
+.grading-edge-bar-row {
+  display: grid;
+  grid-template-columns: 4.2rem 1fr 1.6rem;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.grading-edge-bar-label {
+  font-size: 9px;
+  color: #71717a;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.grading-edge-bar-track {
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(39, 39, 42, 0.95);
+  overflow: hidden;
+}
+
+.grading-edge-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: rgba(45, 212, 191, 0.85);
+}
+
+.grading-edge-bar-num {
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: #a1a1aa;
+  text-align: right;
+}
+
+.grading-market-strip {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  background: rgba(255, 255, 255, 0.04);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+@media (min-width: 640px) {
+  .grading-market-strip {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.grading-market-item {
+  padding: 0.75rem 1rem;
+  background: rgba(9, 11, 15, 0.9);
+  text-align: center;
+}
+
+@media (min-width: 640px) {
+  .grading-market-item {
+    text-align: left;
+  }
+}
+
+.grading-market-label {
+  display: block;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #52525b;
+  margin-bottom: 0.2rem;
+}
+
+.grading-market-value {
+  font-size: 12px;
+  font-weight: 600;
+  color: #f4f4f5;
+  font-variant-numeric: tabular-nums;
+}
+
 /* ── Tooltip ── */
 
 .premium-tooltip {

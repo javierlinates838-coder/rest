@@ -13,10 +13,9 @@ import {
 import { formatCurrency, formatLargeNumber, formatPercent, getSignalColor, getSignalBg } from "@/lib/utils";
 import { computeSmartScore } from "@/lib/smart-score";
 import { computeEdgeIndex } from "@/lib/edge-index";
-import { StockConvictionRail } from "@/components/stock-conviction-rail";
+import { StockGradingDeck } from "@/components/stock-grading-deck";
 import { VolatilityForgePanel } from "@/components/volatility-forge-panel";
 import { AnalystConsensusBar } from "@/components/analyst-consensus-bar";
-import { EdgeIndexPanel } from "@/components/edge-index-panel";
 import type { TradingPlan } from "@/lib/trading-plan";
 import { ResearchExportButton } from "@/components/research-export-button";
 import { ApiError, fetchJson, fetchJsonWithTimeout } from "@/lib/fetch-json";
@@ -652,14 +651,23 @@ export default function StockPage() {
           </div>
         </div>
 
-        <StockConvictionRail
-          edge={edgeIndex}
+        <StockGradingDeck
           smart={smartScore}
           signal={signal.signal}
           confidence={signal.confidence}
           riskGrade={riskScore?.grade ?? "C"}
           riskScore={riskScore?.overall}
-          changePercent={displayChangePercent}
+          riskVerdict={riskScore?.verdict}
+          edge={edgeIndex}
+          quote={{
+            price: quote.price,
+            dayLow: quote.dayLow,
+            dayHigh: quote.dayHigh,
+            low52: quote.low52,
+            high52: quote.high52,
+            marketCap: quote.marketCap,
+            peRatio: quote.peRatio,
+          }}
         />
       </div>
 
@@ -712,8 +720,6 @@ export default function StockPage() {
           {tradingPlan && (
             <VolatilityForgePanel plan={tradingPlan} currentPrice={quote.price} />
           )}
-
-          <EdgeIndexPanel edge={edgeIndex} symbol={quote.symbol} />
 
           {/* Price Action + Institutional Side by Side */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
