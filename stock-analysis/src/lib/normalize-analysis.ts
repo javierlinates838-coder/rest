@@ -217,9 +217,16 @@ export function normalizeAnalysisPayload(raw: any): any {
   const riskScoreNorm = raw.riskScore ? normalizeRiskScore(raw.riskScore) : null;
 
   const tradingPlanBase = normalizeTradingPlan(raw.tradingPlan, price);
-  const forge =
-    tradingPlanBase.forge ??
-    buildVolatilityForge(price, indicatorsNorm, resolved);
+  const forge = buildVolatilityForge(
+    price,
+    {
+      atr: indicatorsNorm.atr,
+      supportLevels: arr<number>(indicators.supportLevels),
+      resistanceLevels: arr<number>(indicators.resistanceLevels),
+      bollingerBands: indicatorsNorm.bollingerBands,
+    },
+    resolved
+  );
   const tradingPlan = { ...tradingPlanBase, forge };
 
   const horizon = deriveTimeHorizon({

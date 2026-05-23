@@ -142,10 +142,9 @@ export function buildVolatilityForge(
   };
 
   let recommended: VolatilityForge["recommended"] = "wait";
-  if (signal.signal.includes("Buy") && signal.confidence >= 35) recommended = "long";
-  else if (signal.signal.includes("Sell") && signal.confidence >= 35) recommended = "short";
-  else if (signal.signal.includes("Buy")) recommended = "long";
-  else if (signal.signal.includes("Sell")) recommended = "short";
+  const hold = signal.signal === "Hold";
+  if (!hold && signal.signal.includes("Buy") && signal.confidence >= 35) recommended = "long";
+  else if (!hold && signal.signal.includes("Sell") && signal.confidence >= 35) recommended = "short";
 
   return {
     support,
