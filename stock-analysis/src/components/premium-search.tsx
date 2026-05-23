@@ -50,6 +50,7 @@ export function PremiumSearch({
     const el = mobile ? mobileRef.current : desktopInputRef.current;
     el?.focus();
     el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount for ?search=1 deep link
   }, []);
 
   useEffect(() => {

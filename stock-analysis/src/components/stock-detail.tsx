@@ -614,10 +614,10 @@ function readWatchlistSymbols(): string[] {
 export function QuickActions({ symbol, onRefresh }: { symbol: string; onRefresh?: () => void }) {
   const [watchlistRevision, setWatchlistRevision] = useState(0);
   const [copied, setCopied] = useState(false);
-  const inWatchlist = useMemo(
-    () => readWatchlistSymbols().includes(symbol),
-    [symbol, watchlistRevision]
-  );
+  const inWatchlist = useMemo(() => {
+    void watchlistRevision;
+    return readWatchlistSymbols().includes(symbol);
+  }, [symbol, watchlistRevision]);
 
   const toggleWatchlist = () => {
     const stored = JSON.parse(localStorage.getItem("watchlist") || "null") || ["AAPL", "TSLA", "NVDA", "GOOGL", "AMD", "MSFT"];

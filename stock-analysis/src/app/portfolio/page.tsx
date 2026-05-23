@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { formatCurrency, formatPercent, getSignalColor, getSignalBg } from "@/lib/utils";
+import { formatCurrency, formatPercent } from "@/lib/utils";
 import { fetchJson } from "@/lib/fetch-json";
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend,

@@ -255,26 +255,37 @@ export async function fmpFetchPeers(symbol: string): Promise<string[]> {
 
 export async function fmpFetchFinancials(symbol: string): Promise<FMPFinancials | null> {
   const [incomeData, ratiosData, cashData, keyMetricsData] = await Promise.all([
-    fmpFetch<Record<string, number>[]>(`/income-statement?symbol=${symbol}&limit=1`, { revalidate: 3600 }),
+    fmpFetch<Record<string, number>[]>(`/income-statement?symbol=${symbol}&limit=2`, { revalidate: 3600 }),
     fmpFetch<Record<string, number>[]>(`/ratios-ttm?symbol=${symbol}`, { revalidate: 3600 }),
     fmpFetch<Record<string, number>[]>(`/cash-flow-statement?symbol=${symbol}&limit=1`, { revalidate: 3600 }),
     fmpFetch<Record<string, number>[]>(`/key-metrics-ttm?symbol=${symbol}`, { revalidate: 3600 }),
   ]);
 
-  const inc = Array.isArray(incomeData) && incomeData.length > 0 ? incomeData[0] : null;
+  const incRows = Array.isArray(incomeData) ? incomeData : [];
+  const inc = incRows.length > 0 ? incRows[0] : null;
+  const incPrior = incRows.length > 1 ? incRows[1] : null;
   const rat = Array.isArray(ratiosData) && ratiosData.length > 0 ? ratiosData[0] : null;
   const cf = Array.isArray(cashData) && cashData.length > 0 ? cashData[0] : null;
   const km = Array.isArray(keyMetricsData) && keyMetricsData.length > 0 ? keyMetricsData[0] : null;
 
   if (!inc && !rat && !km) return null;
 
+  const rev0 = (inc?.revenue as number) || 0;
+  const rev1 = (incPrior?.revenue as number) || 0;
+  let revenueGrowth = 0;
+  if (rev1 > 0 && rev0 > 0) {
+    revenueGrowth = (rev0 - rev1) / rev1;
+  } else if (typeof km?.revenueGrowth === "number") {
+    revenueGrowth = km.revenueGrowth as number;
+  }
+
   return {
-    revenue: (inc?.revenue as number) || 0,
+    revenue: rev0,
     netIncome: (inc?.netIncome as number) || 0,
     grossProfit: (inc?.grossProfit as number) || 0,
     operatingIncome: (inc?.operatingIncome as number) || 0,
     eps: (inc?.eps as number) || (inc?.epsDiluted as number) || 0,
-    revenueGrowth: (km?.revenuePerShareTTM as number) || 0,
+    revenueGrowth,
     netIncomeGrowth: 0,
     debtToEquity: (rat?.debtToEquityRatioTTM as number) || 0,
     currentRatio: (rat?.currentRatioTTM as number) || 0,

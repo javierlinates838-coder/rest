@@ -30,47 +30,11 @@ export default function WatchlistPage() {
       : null;
     const symbols: string[] = stored || DEFAULT_WATCHLIST;
 
-    const items: WatchlistItem[] = [];
-    for (const sym of symbols) {
-      try {
-        const data = await fetchQuoteSummary(sym);
-        items.push({
-          symbol: sym,
-          name: data.quote?.name || sym,
-          price: data.quote?.price || 0,
-          changePercent: data.quote?.changePercent || 0,
-          signal: data.signal?.signal,
-          confidence: data.signal?.confidence,
-          addedAt: new Date().toISOString(),
-        });
-      } catch {
-        items.push({
-          symbol: sym,
-          name: sym,
-          price: 0,
-          changePercent: 0,
-          addedAt: new Date().toISOString(),
-        });
-      }
-    }
-    setWatchlist(items);
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const stored = typeof window !== "undefined"
-        ? JSON.parse(localStorage.getItem("watchlist") || "null")
-        : null;
-      const symbols: string[] = stored || DEFAULT_WATCHLIST;
-
-      const items: WatchlistItem[] = [];
-      for (const sym of symbols) {
-        if (cancelled) return;
+    const items = await Promise.all(
+      symbols.map(async (sym): Promise<WatchlistItem> => {
         try {
           const data = await fetchQuoteSummary(sym);
-          items.push({
+          return {
             symbol: sym,
             name: data.quote?.name || sym,
             price: data.quote?.price || 0,
@@ -78,23 +42,65 @@ export default function WatchlistPage() {
             signal: data.signal?.signal,
             confidence: data.signal?.confidence,
             addedAt: new Date().toISOString(),
-          });
+          };
         } catch {
-          items.push({
+          return {
             symbol: sym,
             name: sym,
             price: 0,
             changePercent: 0,
             addedAt: new Date().toISOString(),
-          });
+          };
         }
-      }
+      })
+    );
+
+    setWatchlist(items);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      const stored = typeof window !== "undefined"
+        ? JSON.parse(localStorage.getItem("watchlist") || "null")
+        : null;
+      const symbols: string[] = stored || DEFAULT_WATCHLIST;
+
+      const items = await Promise.all(
+        symbols.map(async (sym): Promise<WatchlistItem> => {
+          try {
+            const data = await fetchQuoteSummary(sym);
+            return {
+              symbol: sym,
+              name: data.quote?.name || sym,
+              price: data.quote?.price || 0,
+              changePercent: data.quote?.changePercent || 0,
+              signal: data.signal?.signal,
+              confidence: data.signal?.confidence,
+              addedAt: new Date().toISOString(),
+            };
+          } catch {
+            return {
+              symbol: sym,
+              name: sym,
+              price: 0,
+              changePercent: 0,
+              addedAt: new Date().toISOString(),
+            };
+          }
+        })
+      );
+
       if (!cancelled) {
         setWatchlist(items);
         setLoading(false);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const addToWatchlist = () => {

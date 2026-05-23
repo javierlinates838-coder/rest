@@ -90,7 +90,7 @@ function buildAnalysisPrompt(
 - Debt/Equity: ${quote.financials.debtToEquity.toFixed(2)}
 - Current Ratio: ${quote.financials.currentRatio.toFixed(2)}
 - Free Cash Flow: $${(quote.financials.freeCashFlow / 1e9).toFixed(2)}B
-- Revenue Growth: ${(quote.financials.revenueGrowth * 100).toFixed(1)}%`
+- Revenue Growth (YoY): ${quote.financials.revenueGrowth !== 0 ? `${(quote.financials.revenueGrowth * 100).toFixed(1)}%` : "n/a"}`
     : "";
 
   return `You are an elite Wall Street quantitative analyst. Provide a comprehensive, data-driven analysis of ${quote.symbol} (${quote.name}).
@@ -253,8 +253,6 @@ function generateBuiltInAnalysis(
   news: { title: string; sentiment: string }[],
   dataQualityNote?: string
 ): AIAnalysis {
-  const bullishCount = signal.reasons.filter((r) => r.includes("bullish") || r.includes("buy") || r.includes("oversold")).length;
-  const bearishCount = signal.reasons.filter((r) => r.includes("bearish") || r.includes("sell") || r.includes("overbought")).length;
   const newsSentiment = news.reduce((acc, n) => n.sentiment === "positive" ? acc + 1 : n.sentiment === "negative" ? acc - 1 : acc, 0);
   const priceFromSMA200 = ((quote.price - indicators.sma200) / indicators.sma200) * 100;
 
