@@ -18,6 +18,7 @@ interface PremiumSearchProps {
   onCloseResults: () => void;
   onOpenResults: () => void;
   quickPicks: string[];
+  inputRef?: React.RefObject<HTMLInputElement | null>;
 }
 
 export function PremiumSearch({
@@ -29,14 +30,27 @@ export function PremiumSearch({
   onCloseResults,
   onOpenResults,
   quickPicks,
+  inputRef: externalInputRef,
 }: PremiumSearchProps) {
   const router = useRouter();
-  const inputRef = useRef<HTMLInputElement>(null);
+  const mobileInputRef = useRef<HTMLInputElement>(null);
+  const mobileRef = externalInputRef ?? mobileInputRef;
+  const desktopInputRef = useRef<HTMLInputElement>(null);
 
   const goToSymbol = (symbol: string) => {
     onCloseResults();
     router.push(`/stock/${symbol.toUpperCase()}`);
   };
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("search") !== "1") return;
+    const mobile = window.matchMedia("(max-width: 639px)").matches;
+    const el = mobile ? mobileRef.current : desktopInputRef.current;
+    el?.focus();
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, []);
 
   useEffect(() => {
     const mobile = window.matchMedia("(max-width: 639px)").matches;
@@ -63,6 +77,7 @@ export function PremiumSearch({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <input
+              ref={desktopInputRef}
               type="search"
               value={searchQuery}
               onChange={(e) => onQueryChange(e.target.value)}
@@ -98,7 +113,7 @@ export function PremiumSearch({
                 </svg>
               </div>
               <input
-                ref={inputRef}
+                ref={mobileRef}
                 type="search"
                 enterKeyHint="search"
                 autoComplete="off"

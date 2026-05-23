@@ -138,7 +138,7 @@ export default function DashboardPage() {
   const quickPicks = ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", "NVDA", "META", "AMD"];
 
   return (
-    <div className="page-shell">
+    <div className="page-shell page-shell-wide">
       {/* Hero */}
       <div className="text-center mb-8 sm:mb-14 animate-fadeIn">
         <h1 className="mobile-hero-title sm:text-[44px] lg:text-[52px] font-semibold tracking-tight leading-[1.1] mb-3 sm:mb-5 px-1">
@@ -218,9 +218,9 @@ export default function DashboardPage() {
       )}
 
       {loading ? (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-10">
+        <div className="indices-scroll mb-10">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="glass-card rounded-2xl p-5 skeleton-shine">
+            <div key={i} className="glass-card rounded-2xl p-5 skeleton-shine min-h-[108px]">
               <div className="h-3 bg-zinc-800 rounded w-12 mb-3" />
               <div className="h-5 bg-zinc-800 rounded w-20 mb-2" />
               <div className="h-3 bg-zinc-800 rounded w-16" />
@@ -231,13 +231,21 @@ export default function DashboardPage() {
         <>
           <StockPicks />
 
-          {/* Market Indices */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-10">
+          <h2 className="section-heading sm:mb-4">
+            <svg className="w-5 h-5 text-indigo-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+            </svg>
+            Market indices
+          </h2>
+          <div className="indices-scroll mb-10">
             {indices.map((index, i) => (
               <div
                 key={index.symbol}
-                className={`glass-card interactive-card rounded-2xl p-5 group animate-fadeInUp stagger-${i + 1}`}
+                role="button"
+                tabIndex={0}
+                className={`glass-card interactive-card rounded-2xl p-4 sm:p-5 group animate-fadeInUp stagger-${i + 1} cursor-pointer`}
                 onClick={() => router.push(`/stock/${index.symbol}`)}
+                onKeyDown={(e) => e.key === "Enter" && router.push(`/stock/${index.symbol}`)}
               >
                 <div className="flex items-center justify-between mb-1">
                   <div className="text-[11px] text-zinc-500 font-semibold tracking-wider uppercase">{index.symbol}</div>
@@ -256,10 +264,9 @@ export default function DashboardPage() {
             ))}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Trending Stocks */}
-            <div className="lg:col-span-2">
-              <h2 className="text-[20px] font-semibold text-white mb-5 tracking-tight flex items-center gap-2.5">
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 lg:gap-10">
+            <div className="xl:col-span-8">
+              <h2 className="section-heading">
                 <svg className="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                 </svg>
@@ -317,11 +324,9 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Right Column */}
-            <div className="space-y-6">
-              {/* Sector Performance */}
+            <div className="xl:col-span-4 space-y-6">
               <div>
-                <h2 className="text-[20px] font-semibold text-white mb-5 tracking-tight flex items-center gap-2.5">
+                <h2 className="section-heading">
                   <svg className="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                   </svg>
