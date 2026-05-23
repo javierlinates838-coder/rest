@@ -174,7 +174,7 @@ export default function ScreenerPageClient() {
     <div className="page-shell page-shell-wide">
       <ProSectionHeader
         title={TERMS.alphaForge}
-        subtitle={`Universe ranked by ${TERMS.smartScore} + tape bias · long and short use different sorts`}
+        subtitle={`Ranked by ${TERMS.smartScore} and long/short bias — open any row for entry, stop, target, and ${TERMS.pulseScan}`}
         badge="FORGE"
       />
 
@@ -379,6 +379,7 @@ export default function ScreenerPageClient() {
                   <td className="px-5 py-3.5">
                     <div className="font-bold text-white">{row.symbol}</div>
                     <div className="text-[11px] text-zinc-500 truncate max-w-[140px]">{row.name}</div>
+                    <div className="text-[10px] text-teal-500/80 mt-0.5 font-medium">Open setup →</div>
                   </td>
                   <td className="text-right px-4 py-3.5 text-white tabular-nums">{formatCurrency(row.price)}</td>
                   <td

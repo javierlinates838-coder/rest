@@ -13,6 +13,7 @@ import {
 import { formatCurrency, formatLargeNumber, formatPercent, getSignalColor, getSignalBg } from "@/lib/utils";
 import { computeSmartScore } from "@/lib/smart-score";
 import { computeEdgeIndex } from "@/lib/edge-index";
+import { ActionBrief } from "@/components/action-brief";
 import { StockGradingDeck } from "@/components/stock-grading-deck";
 import { VolatilityForgePanel } from "@/components/volatility-forge-panel";
 import { AnalystConsensusBar } from "@/components/analyst-consensus-bar";
@@ -613,6 +614,24 @@ export default function StockPage() {
           />
         </div>
       </div>
+
+      {tradingPlan && (
+        <ActionBrief
+          symbol={quote.symbol}
+          signal={signal.signal}
+          confidence={signal.confidence}
+          riskGrade={riskScore?.grade ?? "C"}
+          changePercent={quote.changePercent}
+          rsi={indicators.rsi}
+          researchQualityScore={researchQuality?.score}
+          tradingBias={tradingPlan.bias === "neutral" ? "Wait" : tradingPlan.bias}
+          entryPrimary={tradingPlan.entry.primary}
+          stopStandard={tradingPlan.stopLoss.standard}
+          targetBase={tradingPlan.targets.base}
+          riskReward={tradingPlan.riskReward.base}
+          lowIntegrity={chartSource === "simulated" || (researchQuality != null && researchQuality.score < 55)}
+        />
+      )}
 
       {/* Tab Navigation */}
       <div className="sticky-tab-bar scroll-tabs tab-segment mb-6 sm:mb-8 p-1 rounded-xl">

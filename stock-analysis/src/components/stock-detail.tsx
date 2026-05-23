@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { getWatchlistSymbols, addWatchlistSymbol, removeWatchlistSymbol } from "@/lib/watchlist-storage";
+import { toggleCompareSymbol, readCompareList } from "@/lib/compare-symbols";
 import { formatCurrency, formatPercent } from "@/lib/utils";
 import { useClientNow } from "@/lib/use-client-now";
 import {
@@ -601,12 +603,18 @@ export function PriceActionCard({ data }: {
 }
 
 export function QuickActions({ symbol, onRefresh }: { symbol: string; onRefresh?: () => void }) {
+  const router = useRouter();
   const [watchlistRevision, setWatchlistRevision] = useState(0);
+  const [compareRevision, setCompareRevision] = useState(0);
   const [copied, setCopied] = useState(false);
   const inWatchlist = useMemo(() => {
     void watchlistRevision;
     return getWatchlistSymbols().includes(symbol);
   }, [symbol, watchlistRevision]);
+  const inCompare = useMemo(() => {
+    void compareRevision;
+    return readCompareList().includes(symbol);
+  }, [symbol, compareRevision]);
 
   const toggleWatchlist = () => {
     if (getWatchlistSymbols().includes(symbol)) {
@@ -623,8 +631,32 @@ export function QuickActions({ symbol, onRefresh }: { symbol: string; onRefresh?
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const toggleCompare = () => {
+    const { list, added } = toggleCompareSymbol(symbol);
+    setCompareRevision((n) => n + 1);
+    if (added && list.length >= 2) {
+      router.push(`/compare?symbols=${list.join(",")}`);
+    } else if (list.length > 0) {
+      router.push("/compare");
+    }
+  };
+
   return (
     <div className="fixed right-3 bottom-[5.5rem] sm:right-5 sm:bottom-5 flex flex-row sm:flex-col gap-2 z-40">
+      <button
+        onClick={toggleCompare}
+        className={`pressable group glass-card rounded-2xl p-3 hover:glow-border ${inCompare ? "border-teal-500/35" : ""}`}
+        title={inCompare ? "Remove from Twin Lens" : "Add to Twin Lens compare"}
+      >
+        <svg
+          className={`w-5 h-5 ${inCompare ? "text-teal-400" : "text-zinc-400 group-hover:text-teal-400"}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v2" />
+        </svg>
+      </button>
       <button
         onClick={toggleWatchlist}
         className={`pressable group glass-card rounded-2xl p-3 hover:glow-border ${inWatchlist ? "border-amber-500/30" : ""}`}

@@ -17,6 +17,7 @@ export const BRAND = {
 export const NAV = [
   { href: "/", label: "Pulse Hub", match: (p: string) => p === "/" },
   { href: "/screener", label: "Alpha Forge", match: (p: string) => p.startsWith("/screener") },
+  { href: "/compare", label: "Twin Lens", match: (p: string) => p.startsWith("/compare") },
   { href: "/watchlist", label: "Pulse Watch", match: (p: string) => p.startsWith("/watchlist") },
 ] as const;
 
@@ -53,8 +54,8 @@ export const HERO = {
   titleAccent: "conviction",
   titleTail: "built in",
   subtitleDesktop:
-    "Pulse Edge, Meridian Briefs, and Wilder-native signals — with integrity grades on quotes and charts.",
-  subtitleMobile: "Edge · Brief · Forge · Scan",
+    "Screen long and short setups, compare tickers side-by-side, and open any name for entry, stop, and target levels.",
+  subtitleMobile: "Setups · Compare · Scan · Edge",
 } as const;
 
 export const FOOTER = {

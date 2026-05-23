@@ -1,6 +1,16 @@
-import { redirect } from "next/navigation";
+import { Suspense } from "react";
+import { CompareClient } from "@/components/compare-client";
 
-/** Compare surface retired — send to Pulse Hub */
 export default function ComparePage() {
-  redirect("/");
+  return (
+    <Suspense
+      fallback={
+        <div className="page-shell page-shell-wide py-16 text-center text-zinc-500 text-sm">
+          Loading Twin Lens…
+        </div>
+      }
+    >
+      <CompareClient />
+    </Suspense>
+  );
 }

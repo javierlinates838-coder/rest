@@ -17,6 +17,7 @@ import { dedupeBySymbol, excludeSymbols } from "@/lib/dedupe-by-symbol";
 import type { SectorPerformanceRow } from "@/lib/sectors";
 import { normalizeMarketSectors } from "@/lib/sectors";
 import { SectorHeatmap } from "@/components/sector-heatmap";
+import { TradeSetupsStrip } from "@/components/trade-setups-strip";
 
 interface MarketIndex {
   symbol: string;
@@ -306,6 +307,8 @@ export default function DashboardPage() {
         </>
       ) : (
         <>
+          <TradeSetupsStrip />
+
           <StockPicks onSymbolsChange={handleMeridianSymbols} />
 
           <OnlyHereStrip />
@@ -317,7 +320,7 @@ export default function DashboardPage() {
           />
           <div className="indices-scroll mb-10">
             {indices.length === 0 ? (
-              <p className="text-sm text-zinc-500 px-2 py-4">Benchmark tape unavailable — check API keys or retry above.</p>
+              <p className="text-sm text-zinc-500 px-2 py-4">Benchmark tape unavailable — retry above or open Alpha Forge for liquid names.</p>
             ) : null}
             {indices.map((index, i) => (
               <div

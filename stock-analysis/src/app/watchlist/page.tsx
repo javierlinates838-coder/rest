@@ -9,6 +9,7 @@ import Link from "next/link";
 import { TERMS } from "@/lib/brand";
 import {
   getWatchlistSymbols,
+  getWatchlistAddedAt,
   addWatchlistSymbol,
   removeWatchlistSymbol,
 } from "@/lib/watchlist-storage";
@@ -35,6 +36,7 @@ export default function WatchlistPage() {
   const [digestLoading, setDigestLoading] = useState(false);
   const [digestError, setDigestError] = useState<string | null>(null);
   const loadGen = useRef(0);
+  const digestAutoRan = useRef(false);
 
   const loadWatchlist = useCallback(async (showLoader = false) => {
     const gen = ++loadGen.current;
@@ -52,7 +54,7 @@ export default function WatchlistPage() {
             changePercent: data.quote?.changePercent || 0,
             signal: data.signal?.signal,
             confidence: data.signal?.confidence,
-            addedAt: new Date().toISOString(),
+            addedAt: getWatchlistAddedAt(sym) ?? new Date().toISOString(),
           };
         } catch {
           return {
@@ -60,7 +62,7 @@ export default function WatchlistPage() {
             name: sym,
             price: 0,
             changePercent: 0,
-            addedAt: new Date().toISOString(),
+            addedAt: getWatchlistAddedAt(sym) ?? new Date().toISOString(),
           };
         }
       })
@@ -88,7 +90,7 @@ export default function WatchlistPage() {
               changePercent: data.quote?.changePercent || 0,
               signal: data.signal?.signal,
               confidence: data.signal?.confidence,
-              addedAt: new Date().toISOString(),
+              addedAt: getWatchlistAddedAt(sym) ?? new Date().toISOString(),
             };
           } catch {
             return {
@@ -96,7 +98,7 @@ export default function WatchlistPage() {
               name: sym,
               price: 0,
               changePercent: 0,
-              addedAt: new Date().toISOString(),
+              addedAt: getWatchlistAddedAt(sym) ?? new Date().toISOString(),
             };
           }
         })
@@ -110,6 +112,26 @@ export default function WatchlistPage() {
       loadGen.current += 1;
     };
   }, []);
+
+  useEffect(() => {
+    if (loading || watchlist.length === 0 || digestAutoRan.current) return;
+    digestAutoRan.current = true;
+    const symbols = watchlist.map((w) => w.symbol).join(",");
+    setDigestLoading(true);
+    setDigestError(null);
+    fetch(`/api/watchlist-digest?symbols=${encodeURIComponent(symbols)}`)
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Digest failed");
+        if (!data.rows?.length) throw new Error("No quotes scored for your watchlist.");
+        setDigest(data);
+      })
+      .catch((e) => {
+        setDigest(null);
+        setDigestError(e instanceof Error ? e.message : "Digest failed");
+      })
+      .finally(() => setDigestLoading(false));
+  }, [loading, watchlist]);
 
   const addToWatchlist = () => {
     if (!newSymbol.trim()) return;
@@ -134,7 +156,7 @@ export default function WatchlistPage() {
       const res = await fetch(`/api/watchlist-digest?symbols=${encodeURIComponent(symbols)}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Digest failed");
-      if (!data.rows?.length) throw new Error("No quotes scored — check API keys or symbols.");
+      if (!data.rows?.length) throw new Error("No quotes scored for your watchlist.");
       setDigest(data);
     } catch (e) {
       setDigest(null);
@@ -148,7 +170,7 @@ export default function WatchlistPage() {
     <div className="page-shell page-shell-wide">
       <ProSectionHeader
         title={TERMS.pulseWatch}
-        subtitle={`Live conviction — morning digest ranks by ${TERMS.edgeShort}`}
+        subtitle={`Auto-ranked by ${TERMS.edgeShort} on load — tap any name for entry, stop, and targets`}
         badge="WATCH"
         action={
           <button

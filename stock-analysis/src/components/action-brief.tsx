@@ -17,6 +17,8 @@ interface ActionBriefProps {
   entryPrimary?: number;
   stopStandard?: number;
   targetBase?: number;
+  riskReward?: number;
+  lowIntegrity?: boolean;
 }
 
 export function ActionBrief({
@@ -31,6 +33,8 @@ export function ActionBrief({
   entryPrimary,
   stopStandard,
   targetBase,
+  riskReward,
+  lowIntegrity,
 }: ActionBriefProps) {
   const smart = computeSmartScore({
     signal,
@@ -43,16 +47,17 @@ export function ActionBrief({
 
   const action =
     smart.label === "Strong Buy" || smart.label === "Buy"
-      ? "Accumulation bias on pullbacks — validate catalysts and position size against risk grade."
+      ? "Bias favors long exposure — use the entry zone on pullbacks, honor the stop, and scale out into the target band."
       : smart.label === "Strong Sell" || smart.label === "Sell"
-        ? "Distribution bias — reduce exposure until structure confirms support."
-        : "Neutral regime — wait for breakout or breakdown before sizing.";
+        ? "Bias favors shorts or trims — avoid adding size until price reclaims structure or hits your invalidation."
+        : "No edge yet — wait for a clean break of the range before committing capital.";
 
   const metrics = [
     tradingBias && { label: "Plan bias", value: tradingBias, tone: "neutral" as const },
     entryPrimary != null && entryPrimary > 0 && { label: "Entry zone", value: formatCurrency(entryPrimary), tone: "neutral" as const },
     stopStandard != null && stopStandard > 0 && { label: "Stop", value: formatCurrency(stopStandard), tone: "bear" as const },
     targetBase != null && targetBase > 0 && { label: "Target", value: formatCurrency(targetBase), tone: "bull" as const },
+    riskReward != null && riskReward > 0 && { label: "R:R", value: `${riskReward.toFixed(1)}×`, tone: "bull" as const },
     { label: "Confidence", value: `${confidence}%`, tone: "neutral" as const },
     { label: "Risk grade", value: riskGrade, tone: "neutral" as const },
   ].filter(Boolean) as { label: string; value: string; tone: "bull" | "bear" | "neutral" }[];
@@ -61,9 +66,14 @@ export function ActionBrief({
     <div className="ultra-card brief-terminal mb-6 animate-fadeIn">
       <div className="brief-terminal-header">
         <span className="brief-terminal-dot" aria-hidden />
-        <span>{TERMS.meridianBrief}</span>
+        <span>Trade setup</span>
         <span className="ml-auto font-mono text-teal-400/80">{symbol}</span>
       </div>
+      {lowIntegrity && (
+        <p className="px-4 pt-3 text-[11px] text-amber-200/90 border-b border-amber-500/15 bg-amber-500/5">
+          Limited live data — treat levels as orientation only until integrity improves.
+        </p>
+      )}
       <div className="brief-terminal-body ultra-card-inner">
         <div className="flex flex-wrap items-start justify-between gap-6 mb-5">
           <div className="flex-1 min-w-[200px]">
