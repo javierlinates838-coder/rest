@@ -538,21 +538,13 @@ export default function StockPage() {
       </div>
 
       {researchQuality && researchQuality.score < 70 && (
-        <div className="glass-card rounded-xl px-4 py-3 mb-5 border border-amber-500/25 bg-amber-500/5">
-          <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-            <span className="text-[13px] font-semibold text-amber-100">
-              Research quality {researchQuality.grade} · {researchQuality.score}/100
-            </span>
-            <span className="text-[11px] text-amber-200/80">{researchQuality.label}</span>
-          </div>
-          {researchQuality.issues.length > 0 && (
-            <ul className="text-[12px] text-amber-200/70 space-y-1 list-disc pl-4">
-              {researchQuality.issues.slice(0, 4).map((issue) => (
-                <li key={issue}>{issue}</li>
-              ))}
-            </ul>
-          )}
-        </div>
+        <p className="text-[12px] text-zinc-500 mb-4 px-1 leading-relaxed">
+          <span className="text-amber-200/90 font-medium">
+            Integrity {researchQuality.grade} ({researchQuality.score}/100)
+          </span>
+          {" — "}
+          {researchQuality.issues[0] ?? researchQuality.label}
+        </p>
       )}
 
       {/* Header */}
@@ -657,17 +649,8 @@ export default function StockPage() {
           confidence={signal.confidence}
           riskGrade={riskScore?.grade ?? "C"}
           riskScore={riskScore?.overall}
-          riskVerdict={riskScore?.verdict}
           edge={edgeIndex}
-          quote={{
-            price: quote.price,
-            dayLow: quote.dayLow,
-            dayHigh: quote.dayHigh,
-            low52: quote.low52,
-            high52: quote.high52,
-            marketCap: quote.marketCap,
-            peRatio: quote.peRatio,
-          }}
+          quote={{ marketCap: quote.marketCap, peRatio: quote.peRatio }}
         />
       </div>
 
@@ -718,7 +701,11 @@ export default function StockPage() {
         <div className="space-y-6">
           {/* Trading Plan - the centerpiece */}
           {tradingPlan && (
-            <VolatilityForgePanel plan={tradingPlan} currentPrice={quote.price} />
+            <VolatilityForgePanel
+              plan={tradingPlan}
+              currentPrice={quote.price}
+              chartSimulated={chartSource === "simulated"}
+            />
           )}
 
           {/* Price Action + Institutional Side by Side */}

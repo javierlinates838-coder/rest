@@ -44,8 +44,7 @@ export function SmartScoreGauge({ score, label, size = "md" }: SmartScoreGaugePr
             strokeLinecap="round"
             strokeDasharray={c}
             strokeDashoffset={offset}
-            className="smart-gauge-ring transition-all duration-1000 ease-out"
-            style={{ filter: `drop-shadow(0 0 8px ${color}55)` }}
+            className="smart-gauge-ring transition-all duration-700 ease-out"
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">

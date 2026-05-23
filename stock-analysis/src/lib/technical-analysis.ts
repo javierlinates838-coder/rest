@@ -262,9 +262,12 @@ export function findSupportResistance(data: PriceData[]): {
     }
   }
 
+  const uniqSupport = [...new Set(support)].sort((a, b) => b - a);
+  const uniqResistance = [...new Set(resistance)].sort((a, b) => a - b);
+
   return {
-    support: support.slice(-3),
-    resistance: resistance.slice(-3),
+    support: uniqSupport.slice(0, 5),
+    resistance: uniqResistance.slice(0, 5),
   };
 }
 
