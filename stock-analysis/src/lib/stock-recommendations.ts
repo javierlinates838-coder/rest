@@ -1,7 +1,8 @@
 import { computeAllIndicators, generateSignal } from "@/lib/technical-analysis";
 import { resolveSignal } from "@/lib/analysis-coherence";
-import { calculateRiskScore } from "@/lib/red-flags";
-import { fetchStockQuote, fetchHistoricalData } from "@/services/stock-data";
+import { detectRedFlags, calculateRiskScore } from "@/lib/red-flags";
+import { fetchStockQuote, fetchHistoricalWithSource } from "@/services/stock-data";
+import { applyDataQualityToSignal, assessResearchQuality } from "@/lib/research-quality";
 import { fmpFetchGainers } from "@/services/fmp-api";
 
 const CORE_UNIVERSE = [
@@ -27,11 +28,22 @@ async function scoreSymbol(symbol: string): Promise<StockPick | null> {
     const quote = await fetchStockQuote(symbol);
     if (quote.price <= 0) return null;
 
-    const history = await fetchHistoricalData(symbol, "3m", quote.price);
+    const { history, source: chartSource } = await fetchHistoricalWithSource(symbol, "3m", quote.price);
     const indicators = computeAllIndicators(history);
     const raw = generateSignal(indicators, quote.price);
-    const { signal, confidence } = resolveSignal(raw.signal, raw.confidence);
-    const risk = calculateRiskScore(indicators, quote, []);
+    const quality = assessResearchQuality({
+      chartSource,
+      historyBars: history.length,
+      newsCount: 0,
+      newsSource: "none",
+      quoteIsMock: quote.quoteSource === "mock",
+      hasFinnhubKey: Boolean(process.env.FINNHUB_API_KEY),
+      hasFmpKey: Boolean(process.env.FMP_API_KEY),
+    });
+    const adjusted = applyDataQualityToSignal(raw, quality);
+    const { signal, confidence } = resolveSignal(adjusted.signal, adjusted.confidence);
+    const redFlags = detectRedFlags(history, indicators, quote);
+    const risk = calculateRiskScore(indicators, quote, redFlags);
 
     let score = 0;
     if (signal.includes("Buy")) score += 40 + confidence * 0.4;

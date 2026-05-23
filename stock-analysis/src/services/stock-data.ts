@@ -5,8 +5,11 @@ import { finnhubFetchQuote, finnhubFetchPeers, finnhubFetchBasicFinancials } fro
 
 export type PriceHistorySource = "fmp" | "yahoo" | "simulated";
 
+export type QuoteSource = "fmp" | "finnhub" | "yahoo" | "mock";
+
 export interface StockQuote {
   symbol: string;
+  quoteSource?: QuoteSource;
   name: string;
   price: number;
   change: number;
@@ -84,6 +87,7 @@ export async function fetchStockQuote(symbol: string): Promise<StockQuote> {
 
     return {
       symbol: upperSymbol,
+      quoteSource: "fmp",
       name: fmpQuote.name || fmpProfile?.companyName || upperSymbol,
       price: fmpQuote.price,
       change: fmpQuote.change,
@@ -126,6 +130,7 @@ export async function fetchStockQuote(symbol: string): Promise<StockQuote> {
 
     return {
       symbol: upperSymbol,
+      quoteSource: "finnhub",
       name: fmpProfile?.companyName || POPULAR_STOCKS[upperSymbol]?.name || upperSymbol,
       price: finnhubQuote.c,
       change,
@@ -160,6 +165,7 @@ export async function fetchStockQuote(symbol: string): Promise<StockQuote> {
 
     return {
       symbol: upperSymbol,
+      quoteSource: "yahoo",
       name: quote.longName || quote.shortName || upperSymbol,
       price: quote.regularMarketPrice || 0,
       change: quote.regularMarketChange || 0,
@@ -280,16 +286,18 @@ export async function fetchCompetitors(symbol: string): Promise<CompetitorData[]
   await Promise.all(
     peerSymbols.slice(0, 5).map(async (sym) => {
       try {
-        const [profile, finnhubQ, finnhubM] = await Promise.all([
+        const [profile, finnhubQ, finnhubM, financials] = await Promise.all([
           fmpFetchProfile(sym),
           finnhubFetchQuote(sym),
           finnhubFetchBasicFinancials(sym),
+          fmpFetchFinancials(sym),
         ]);
 
-        const price = profile?.mktCap ? (finnhubQ?.c || 0) : (finnhubQ?.c || 0);
+        const price = finnhubQ?.c || 0;
         const marketCap = profile?.mktCap || ((finnhubM?.["marketCapitalization"] as number) || 0) * 1e6 || 0;
         const peRatio = (finnhubM?.["peTTM"] as number) || (finnhubM?.["peNormalizedAnnual"] as number) || 0;
         const changePercent = finnhubQ?.dp || 0;
+        const revenue = financials?.revenue && financials.revenue > 0 ? financials.revenue : 0;
 
         if (price > 0 || marketCap > 0) {
           competitors.push({
@@ -299,7 +307,7 @@ export async function fetchCompetitors(symbol: string): Promise<CompetitorData[]
             marketCap,
             peRatio,
             changePercent,
-            revenue: marketCap * 0.15,
+            revenue,
             sector: profile?.sector || POPULAR_STOCKS[sym]?.sector || "Unknown",
           });
         } else {
@@ -318,7 +326,7 @@ function generateMockQuote(symbol: string, name: string, sector: string): StockQ
   const basePrice = hashStringToRange(symbol, 50, 500);
   const change = (rand() - 0.5) * 10;
   return {
-    symbol, name, sector,
+    symbol, quoteSource: "mock", name, sector,
     price: basePrice, change,
     changePercent: (change / basePrice) * 100,
     volume: Math.floor(rand() * 50000000) + 1000000,
@@ -344,7 +352,7 @@ function generateMockCompetitor(symbol: string): CompetitorData {
     price: basePrice, marketCap: basePrice * 5e9,
     peRatio: rand() * 35 + 8,
     changePercent: (rand() - 0.5) * 6,
-    revenue: basePrice * 5e9 * 0.15,
+    revenue: 0,
     sector: POPULAR_STOCKS[symbol]?.sector || "Technology",
   };
 }

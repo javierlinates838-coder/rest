@@ -1,5 +1,7 @@
 /** Keeps signals, price targets, and AI copy aligned so the UI does not contradict itself. */
 
+import type { TechnicalIndicators } from "@/lib/technical-analysis";
+
 const VALID_SIGNALS = ["Strong Buy", "Buy", "Hold", "Sell", "Strong Sell"] as const;
 
 function round2(n: number): number {
@@ -35,43 +37,66 @@ export function resolveSignal(
   return { signal, confidence: conf, weakConviction: false };
 }
 
+function nearestLevel(levels: number[], price: number, direction: "below" | "above"): number | null {
+  const filtered =
+    direction === "below"
+      ? levels.filter((l) => l < price * 0.998).sort((a, b) => b - a)
+      : levels.filter((l) => l > price * 1.002).sort((a, b) => a - b);
+  return filtered.length > 0 ? filtered[0] : null;
+}
+
+/** Price targets from ATR multiples and support/resistance when available. */
 export function buildPriceTargets(
   price: number,
-  recommendation: string
+  recommendation: string,
+  indicators?: Pick<TechnicalIndicators, "atr" | "supportLevels" | "resistanceLevels" | "bollingerBands">
 ): { low: number; mid: number; high: number } {
   if (price <= 0) return { low: 0, mid: 0, high: 0 };
 
   const rec = normalizeRecommendation(recommendation, "Hold");
+  const atr = indicators?.atr && indicators.atr > 0 ? indicators.atr : price * 0.025;
+  const supports = indicators?.supportLevels ?? [];
+  const resistances = indicators?.resistanceLevels ?? [];
+  const support = nearestLevel(supports, price, "below");
+  const resistance = nearestLevel(resistances, price, "above");
 
   if (rec.includes("Sell")) {
-    return {
-      low: round2(price * 0.82),
-      mid: round2(price * 0.92),
-      high: round2(price * 1.03),
-    };
+    const high = round2(resistance ?? price + atr * 0.5);
+    const mid = round2(price - atr * 1.2);
+    const low = round2(support ?? price - atr * 2.5);
+    return { low: Math.min(low, mid), mid, high: Math.max(high, price) };
   }
 
   if (rec.includes("Buy")) {
+    const low = round2(support ?? price - atr * 1.5);
+    const mid = round2(price + atr * 1.5);
+    const high = round2(resistance ?? price + atr * 3);
+    return { low: Math.min(low, price), mid, high: Math.max(high, mid) };
+  }
+
+  const bb = indicators?.bollingerBands;
+  if (bb && bb.upper > bb.lower) {
     return {
-      low: round2(price * 0.9),
-      mid: round2(price * 1.06),
-      high: round2(price * 1.16),
+      low: round2(bb.lower),
+      mid: round2(price),
+      high: round2(bb.upper),
     };
   }
 
   return {
-    low: round2(price * 0.94),
+    low: round2(price - atr * 1.2),
     mid: round2(price),
-    high: round2(price * 1.06),
+    high: round2(price + atr * 1.2),
   };
 }
 
 export function normalizePriceTargets(
   price: number,
   recommendation: string,
-  raw?: { low?: number; mid?: number; high?: number }
+  raw?: { low?: number; mid?: number; high?: number },
+  indicators?: Pick<TechnicalIndicators, "atr" | "supportLevels" | "resistanceLevels" | "bollingerBands">
 ): { low: number; mid: number; high: number } {
-  const defaults = buildPriceTargets(price, recommendation);
+  const defaults = buildPriceTargets(price, recommendation, indicators);
   if (price <= 0) return defaults;
 
   const values = [

@@ -24,7 +24,7 @@ export interface AIAnalysis {
   sentimentScore: number;
 }
 
-const AI_TIMEOUT_MS = 8000;
+const AI_TIMEOUT_MS = 25000;
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return Promise.race([
@@ -40,10 +40,11 @@ export async function generateAIAnalysis(
   indicators: TechnicalIndicators,
   signal: { signal: string; confidence: number; reasons: string[] },
   competitors: CompetitorData[],
-  news: { title: string; sentiment: string }[]
+  news: { title: string; sentiment: string }[],
+  options?: { dataQualityNote?: string }
 ): Promise<AIAnalysis> {
   const fallback = () =>
-    generateBuiltInAnalysis(quote, indicators, signal, competitors, news);
+    generateBuiltInAnalysis(quote, indicators, signal, competitors, news, options?.dataQualityNote);
 
   const geminiKey = process.env.GEMINI_API_KEY;
   if (geminiKey) {
@@ -201,7 +202,7 @@ function enrichAiAnalysis(
     summary: parsed.summary || `${quote.name} analysis`,
     recommendation,
     confidence: typeof parsed.confidence === "number" ? parsed.confidence : signal.confidence,
-    priceTarget: normalizePriceTargets(quote.price, recommendation, parsed.priceTarget),
+    priceTarget: normalizePriceTargets(quote.price, recommendation, parsed.priceTarget, indicators),
     riskLevel: parsed.riskLevel || "Medium",
     timeHorizon: horizon.label,
     timeHorizonRationale: horizon.rationale,
@@ -249,7 +250,8 @@ function generateBuiltInAnalysis(
   indicators: TechnicalIndicators,
   signal: { signal: string; confidence: number; reasons: string[] },
   competitors: CompetitorData[],
-  news: { title: string; sentiment: string }[]
+  news: { title: string; sentiment: string }[],
+  dataQualityNote?: string
 ): AIAnalysis {
   const bullishCount = signal.reasons.filter((r) => r.includes("bullish") || r.includes("buy") || r.includes("oversold")).length;
   const bearishCount = signal.reasons.filter((r) => r.includes("bearish") || r.includes("sell") || r.includes("overbought")).length;
@@ -267,14 +269,14 @@ function generateBuiltInAnalysis(
   const isOvervalued = quote.peRatio > avgCompetitorPE * 1.3;
 
   const recommendation = normalizeRecommendation(signal.signal, "Hold");
-  const priceTarget = buildPriceTargets(quote.price, recommendation);
+  const priceTarget = buildPriceTargets(quote.price, recommendation, indicators);
 
   const financialsInfo = quote.financials
     ? ` Revenue is $${(quote.financials.revenue / 1e9).toFixed(1)}B with a ${(quote.financials.profitMargin * 100).toFixed(1)}% profit margin and ${(quote.financials.returnOnEquity * 100).toFixed(1)}% ROE.`
     : "";
 
   return {
-    summary: `${quote.name} (${quote.symbol}) trades at $${quote.price.toFixed(2)} with a ${signal.signal} signal at ${signal.confidence}% confidence. The stock is ${priceFromSMA200 > 0 ? `${priceFromSMA200.toFixed(1)}% above` : `${Math.abs(priceFromSMA200).toFixed(1)}% below`} its 200-day moving average. ${isUndervalued ? "Valuation appears attractive relative to peers." : isOvervalued ? "Premium valuation relative to peers." : "Valuation is in line with peers."}${financialsInfo} ${newsSentiment > 0 ? "News sentiment is positive." : newsSentiment < 0 ? "News sentiment is concerning." : "Sentiment is mixed."}`,
+    summary: `${quote.name} (${quote.symbol}) trades at $${quote.price.toFixed(2)} with a ${signal.signal} signal at ${signal.confidence}% confidence (Wilder RSI ${indicators.rsi.toFixed(1)}, ADX ${indicators.adx.toFixed(1)}). The stock is ${priceFromSMA200 > 0 ? `${priceFromSMA200.toFixed(1)}% above` : `${Math.abs(priceFromSMA200).toFixed(1)}% below`} its 200-day moving average. ${isUndervalued ? "Valuation appears attractive relative to peers." : isOvervalued ? "Premium valuation relative to peers." : "Valuation is in line with peers."}${financialsInfo} ${news.length === 0 ? "No live headlines were available for this run." : newsSentiment > 0 ? "News sentiment is positive." : newsSentiment < 0 ? "News sentiment is concerning." : "Sentiment is mixed."}${dataQualityNote ? ` Note: ${dataQualityNote}` : ""}`,
 
     recommendation,
     confidence: signal.confidence,

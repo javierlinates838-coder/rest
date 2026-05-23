@@ -1,3 +1,5 @@
+import { lastWilder, wilderSmooth } from "@/lib/wilder";
+
 export interface PriceData {
   date: string;
   open: number;
@@ -27,13 +29,18 @@ export interface TechnicalIndicators {
 }
 
 export function calculateSMA(prices: number[], period: number): number {
-  if (prices.length < period) return prices[prices.length - 1];
+  if (prices.length === 0) return 0;
+  if (prices.length < period) {
+    const slice = prices.slice(-prices.length);
+    return slice.reduce((a, b) => a + b, 0) / slice.length;
+  }
   const slice = prices.slice(-period);
   return slice.reduce((a, b) => a + b, 0) / period;
 }
 
 export function calculateEMA(prices: number[], period: number): number {
-  if (prices.length < period) return prices[prices.length - 1];
+  if (prices.length === 0) return 0;
+  if (prices.length < period) return calculateSMA(prices, prices.length);
   const multiplier = 2 / (period + 1);
   let ema = prices.slice(0, period).reduce((a, b) => a + b, 0) / period;
   for (let i = period; i < prices.length; i++) {
@@ -42,18 +49,27 @@ export function calculateEMA(prices: number[], period: number): number {
   return ema;
 }
 
+/** RSI-14 with Wilder smoothed average gain/loss (industry standard). */
 export function calculateRSI(prices: number[], period: number = 14): number {
   if (prices.length < period + 1) return 50;
-  const changes = [];
+
+  const gains: number[] = [];
+  const losses: number[] = [];
   for (let i = 1; i < prices.length; i++) {
-    changes.push(prices[i] - prices[i - 1]);
+    const change = prices[i] - prices[i - 1];
+    gains.push(change > 0 ? change : 0);
+    losses.push(change < 0 ? Math.abs(change) : 0);
   }
-  const recentChanges = changes.slice(-period);
-  const gains = recentChanges.filter((c) => c > 0);
-  const losses = recentChanges.filter((c) => c < 0).map((c) => Math.abs(c));
-  const avgGain = gains.length > 0 ? gains.reduce((a, b) => a + b, 0) / period : 0;
-  const avgLoss = losses.length > 0 ? losses.reduce((a, b) => a + b, 0) / period : 0;
-  if (avgLoss === 0) return 100;
+
+  let avgGain = gains.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  let avgLoss = losses.slice(0, period).reduce((a, b) => a + b, 0) / period;
+
+  for (let i = period; i < gains.length; i++) {
+    avgGain = (avgGain * (period - 1) + gains[i]) / period;
+    avgLoss = (avgLoss * (period - 1) + losses[i]) / period;
+  }
+
+  if (avgLoss === 0) return avgGain === 0 ? 50 : 100;
   const rs = avgGain / avgLoss;
   return 100 - 100 / (1 + rs);
 }
@@ -90,6 +106,7 @@ export function calculateBollingerBands(
   };
 }
 
+/** ATR-14 with Wilder smoothing. */
 export function calculateATR(data: PriceData[], period: number = 14): number {
   if (data.length < 2) return 0;
   const trueRanges: number[] = [];
@@ -101,8 +118,10 @@ export function calculateATR(data: PriceData[], period: number = 14): number {
     );
     trueRanges.push(tr);
   }
-  const recent = trueRanges.slice(-period);
-  return recent.reduce((a, b) => a + b, 0) / recent.length;
+  if (trueRanges.length < period) {
+    return trueRanges.reduce((a, b) => a + b, 0) / trueRanges.length;
+  }
+  return lastWilder(trueRanges, period);
 }
 
 export function calculateStochastic(
@@ -132,8 +151,10 @@ export function calculateStochastic(
   return { k, d };
 }
 
+/** ADX-14: Wilder-smoothed +DI, -DI, then smoothed DX. */
 export function calculateADX(data: PriceData[], period: number = 14): number {
-  if (data.length < period * 2) return 25;
+  if (data.length < period * 2) return 20;
+
   const plusDM: number[] = [];
   const minusDM: number[] = [];
   const tr: number[] = [];
@@ -152,15 +173,25 @@ export function calculateADX(data: PriceData[], period: number = 14): number {
     );
   }
 
-  const smoothTR = tr.slice(-period).reduce((a, b) => a + b, 0);
-  const smoothPlusDM = plusDM.slice(-period).reduce((a, b) => a + b, 0);
-  const smoothMinusDM = minusDM.slice(-period).reduce((a, b) => a + b, 0);
+  const smoothTR = wilderSmooth(tr, period);
+  const smoothPlus = wilderSmooth(plusDM, period);
+  const smoothMinus = wilderSmooth(minusDM, period);
+  if (smoothTR.length === 0) return 20;
 
-  const plusDI = smoothTR > 0 ? (smoothPlusDM / smoothTR) * 100 : 0;
-  const minusDI = smoothTR > 0 ? (smoothMinusDM / smoothTR) * 100 : 0;
-  const dx = plusDI + minusDI > 0 ? (Math.abs(plusDI - minusDI) / (plusDI + minusDI)) * 100 : 0;
+  const dxValues: number[] = [];
+  for (let i = 0; i < smoothTR.length; i++) {
+    const trVal = smoothTR[i];
+    if (trVal <= 0) continue;
+    const plusDI = (smoothPlus[i] / trVal) * 100;
+    const minusDI = (smoothMinus[i] / trVal) * 100;
+    const sum = plusDI + minusDI;
+    if (sum > 0) dxValues.push((Math.abs(plusDI - minusDI) / sum) * 100);
+  }
 
-  return dx;
+  if (dxValues.length < period) {
+    return dxValues.length > 0 ? dxValues[dxValues.length - 1] : 20;
+  }
+  return lastWilder(dxValues, period);
 }
 
 export function calculateOBV(data: PriceData[]): number[] {
@@ -314,8 +345,8 @@ export function generateSignal(indicators: TechnicalIndicators, currentPrice: nu
   if (currentPrice > indicators.sma200) { score += 1.5; reasons.push("Price above SMA200 (long-term bullish)"); }
   else { score -= 1.5; reasons.push("Price below SMA200 (long-term bearish)"); }
 
-  if (indicators.sma20 > indicators.sma50) { score += 1; reasons.push("Golden cross pattern (SMA20 > SMA50)"); }
-  else { score -= 1; reasons.push("Death cross pattern (SMA20 < SMA50)"); }
+  if (indicators.sma20 > indicators.sma50) { score += 1; reasons.push("SMA20 above SMA50 (bullish alignment)"); }
+  else { score -= 1; reasons.push("SMA20 below SMA50 (bearish alignment)"); }
 
   // RSI analysis
   if (indicators.rsi < 30) { score += 2; reasons.push(`RSI oversold at ${indicators.rsi.toFixed(1)} (buy signal)`); }
@@ -341,17 +372,26 @@ export function generateSignal(indicators: TechnicalIndicators, currentPrice: nu
   if (indicators.stochastic.k < 20) { score += 1; reasons.push("Stochastic oversold (buy signal)"); }
   else if (indicators.stochastic.k > 80) { score -= 1; reasons.push("Stochastic overbought (sell signal)"); }
 
-  // ADX trend strength
-  if (indicators.adx > 25) { reasons.push(`Strong trend detected (ADX: ${indicators.adx.toFixed(1)})`); }
-  else { reasons.push(`Weak/ranging market (ADX: ${indicators.adx.toFixed(1)})`); }
+  // ADX trend strength — scale conviction in trending markets
+  const trendMultiplier = indicators.adx >= 25 ? 1.15 : indicators.adx < 18 ? 0.75 : 1;
+  if (indicators.adx >= 25) {
+    score *= trendMultiplier;
+    reasons.push(`Trending market (ADX ${indicators.adx.toFixed(1)}) — signals weighted higher`);
+  } else if (indicators.adx < 18) {
+    score *= trendMultiplier;
+    reasons.push(`Choppy/ranging market (ADX ${indicators.adx.toFixed(1)}) — signals discounted`);
+  } else {
+    reasons.push(`Moderate trend strength (ADX ${indicators.adx.toFixed(1)})`);
+  }
 
   // VWAP
   if (currentPrice > indicators.vwap) { score += 0.5; reasons.push("Price above VWAP (bullish)"); }
   else { score -= 0.5; reasons.push("Price below VWAP (bearish)"); }
 
-  const maxScore = 11;
-  const normalizedScore = score / maxScore;
-  const confidence = Math.min(Math.abs(normalizedScore) * 100, 95);
+  const maxScore = 12.5;
+  const normalizedScore = Math.max(-1, Math.min(1, score / maxScore));
+  const agreement = Math.abs(normalizedScore);
+  const confidence = Math.min(Math.round(agreement * 85 + (indicators.adx >= 22 ? 10 : 0)), 92);
 
   let signal: string;
   if (normalizedScore > 0.4) signal = "Strong Buy";

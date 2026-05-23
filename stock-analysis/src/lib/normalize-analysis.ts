@@ -197,7 +197,17 @@ export function normalizeAnalysisPayload(raw: any): any {
     str(ai.recommendation, resolved.signal),
     resolved.signal
   );
-  const priceTarget = normalizePriceTargets(price, recommendation, ai.priceTarget);
+  const indicatorsNorm = {
+    atr: num(indicators.atr, price * 0.02),
+    supportLevels: arr<number>(indicators.supportLevels),
+    resistanceLevels: arr<number>(indicators.resistanceLevels),
+    bollingerBands: {
+      upper: num(bb.upper, price * 1.02),
+      middle: num(bb.middle, price),
+      lower: num(bb.lower, price * 0.98),
+    },
+  };
+  const priceTarget = normalizePriceTargets(price, recommendation, ai.priceTarget, indicatorsNorm);
   const riskScoreNorm = raw.riskScore ? normalizeRiskScore(raw.riskScore) : null;
 
   const tradingPlan = normalizeTradingPlan(raw.tradingPlan, price);
@@ -224,7 +234,9 @@ export function normalizeAnalysisPayload(raw: any): any {
     typeof ai.sentimentScore === "number" ? ai.sentimentScore : undefined,
     newsItems,
     { rsi: num(indicators.rsi, 50) },
-    { signal: resolved.signal, confidence: resolved.confidence }
+    { signal: resolved.signal, confidence: resolved.confidence },
+    raw.finnhubSentiment as { sentiment?: { bullishPercent?: number; bearishPercent?: number }; companyNewsScore?: number } | null,
+    raw.newsSentimentBreakdown as { positive: number; negative: number; neutral: number } | null
   );
 
   const catalystFallback = [
@@ -350,5 +362,6 @@ export function normalizeAnalysisPayload(raw: any): any {
     analyzedAt: str(raw.analyzedAt, new Date().toISOString()),
     finnhubSentiment: raw.finnhubSentiment ?? null,
     newsSentimentBreakdown: raw.newsSentimentBreakdown ?? null,
+    researchQuality: raw.researchQuality ?? null,
   };
 }

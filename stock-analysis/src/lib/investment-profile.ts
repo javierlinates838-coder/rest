@@ -25,13 +25,8 @@ export interface DerivedHorizon {
   weeksMax: number;
 }
 
-function symbolHash(symbol: string): number {
-  return symbol.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
-}
-
 export function deriveTimeHorizon(input: InvestmentProfileInput): DerivedHorizon {
   const sym = input.symbol.toUpperCase();
-  const hash = symbolHash(sym);
   let score = 0;
 
   if (input.marketCap >= 200e9) score += 2.5;
@@ -72,8 +67,6 @@ export function deriveTimeHorizon(input: InvestmentProfileInput): DerivedHorizon
 
   if (Math.abs(input.changePercent) >= 4 && volPct >= 0.03) score -= 0.5;
 
-  score += ((hash % 7) - 3) * 0.12;
-
   const parts: string[] = [];
   if (input.beta >= 1.35) parts.push(`beta ${input.beta.toFixed(2)}`);
   if (input.marketCap >= 50e9) parts.push("large-cap");
@@ -107,14 +100,12 @@ export function deriveTimeHorizon(input: InvestmentProfileInput): DerivedHorizon
     };
   }
   if (score <= 1.25) {
-    const wMin = 10 + (hash % 4);
-    const wMax = wMin + 14 + (hash % 6);
     return {
-      label: `Swing (${wMin}–${wMax} weeks)`,
+      label: "Swing (10–24 weeks)",
       rationale,
-      tradingTimeframe: `${wMin}–${wMax} weeks · position build`,
-      weeksMin: wMin,
-      weeksMax: wMax,
+      tradingTimeframe: "10–24 weeks · position build",
+      weeksMin: 10,
+      weeksMax: 24,
     };
   }
   if (score <= 2.75) {
@@ -150,21 +141,50 @@ export function deriveSentimentScore(
   aiScore: number | undefined,
   news: { sentiment: string }[],
   indicators: { rsi: number },
-  signal: { signal: string; confidence: number }
+  signal: { signal: string; confidence: number },
+  finnhub?: { sentiment?: { bullishPercent?: number; bearishPercent?: number }; companyNewsScore?: number } | null,
+  newsBreakdown?: { positive: number; negative: number; neutral: number } | null
 ): number {
-  if (typeof aiScore === "number" && Number.isFinite(aiScore) && Math.abs(aiScore) > 8) {
+  let score = 0;
+  let sources = 0;
+
+  if (finnhub?.sentiment) {
+    const bull = finnhub.sentiment.bullishPercent ?? 0;
+    const bear = finnhub.sentiment.bearishPercent ?? 0;
+    score += (bull - bear) * 0.8;
+    sources += 1;
+  }
+  if (typeof finnhub?.companyNewsScore === "number" && finnhub.companyNewsScore > 0) {
+    score += (finnhub.companyNewsScore - 0.5) * 40;
+    sources += 1;
+  }
+
+  if (newsBreakdown) {
+    const total = newsBreakdown.positive + newsBreakdown.negative + newsBreakdown.neutral;
+    if (total > 0) {
+      score += ((newsBreakdown.positive - newsBreakdown.negative) / total) * 55;
+      sources += 1;
+    }
+  }
+
+  for (const n of news) {
+    if (n.sentiment === "positive") score += 8;
+    else if (n.sentiment === "negative") score -= 8;
+  }
+  if (news.length > 0) sources += 1;
+
+  if (indicators.rsi < 32) score += 12;
+  else if (indicators.rsi > 68) score -= 10;
+  if (/buy/i.test(signal.signal)) score += signal.confidence * 0.2;
+  if (/sell/i.test(signal.signal)) score -= signal.confidence * 0.2;
+
+  if (typeof aiScore === "number" && Number.isFinite(aiScore) && sources === 0) {
     return Math.max(-100, Math.min(100, Math.round(aiScore)));
   }
 
-  let score = 0;
-  for (const n of news) {
-    if (n.sentiment === "positive") score += 12;
-    else if (n.sentiment === "negative") score -= 12;
+  if (sources === 0 && typeof aiScore === "number" && Number.isFinite(aiScore)) {
+    score = score * 0.4 + aiScore * 0.6;
   }
-  if (indicators.rsi < 32) score += 15;
-  else if (indicators.rsi > 68) score -= 12;
-  if (/buy/i.test(signal.signal)) score += signal.confidence * 0.25;
-  if (/sell/i.test(signal.signal)) score -= signal.confidence * 0.25;
 
   return Math.max(-100, Math.min(100, Math.round(score)));
 }

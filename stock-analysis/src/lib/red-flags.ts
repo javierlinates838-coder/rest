@@ -289,10 +289,9 @@ export function detectRedFlags(
     }
   }
 
-  // Simulate insider activity detection
-  const insiderSignal = detectSimulatedInsiderActivity(quote.symbol, quote.price, quote.volume, quote.avgVolume);
-  if (insiderSignal) {
-    flags.push(insiderSignal);
+  const volumeAnomaly = detectVolumeOwnershipAnomaly(quote.volume, quote.avgVolume, quote.changePercent);
+  if (volumeAnomaly) {
+    flags.push(volumeAnomaly);
   }
 
   return flags.sort((a, b) => {
@@ -301,44 +300,45 @@ export function detectRedFlags(
   });
 }
 
-function detectSimulatedInsiderActivity(
-  symbol: string,
-  price: number,
+/** Volume spike with price direction — real OHLCV only, not random insider simulation. */
+function detectVolumeOwnershipAnomaly(
   volume: number,
-  avgVolume: number
+  avgVolume: number,
+  changePercent: number
 ): RedFlag | null {
-  const hash = symbol.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
-  const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
-  const seed = (hash * 31 + dayOfYear) % 100;
+  if (avgVolume <= 0 || volume < avgVolume * 2.5) return null;
 
-  if (seed < 15 && volume > avgVolume * 1.5) {
-    const amount = Math.floor((hash % 50 + 10) * price * 1000);
+  const ratio = volume / avgVolume;
+  const now = new Date().toISOString();
+
+  if (changePercent <= -3) {
     return {
-      id: "insider-selling",
-      severity: "critical",
-      category: "insider",
-      title: "Elevated Volume + Sell Pattern (Model)",
-      description: `Our model flags unusual volume versus average alongside a bearish ownership pattern for ${symbol}. This is not a confirmed SEC filing — treat as a risk hint and verify with official disclosures before acting.`,
-      detectedAt: new Date().toISOString(),
+      id: "volume-selloff",
+      severity: "warning",
+      category: "volume",
+      title: "Heavy Volume on Down Day",
+      description:
+        "Trading volume is well above average while price is falling — often associated with distribution or forced selling. Verify with news and filings; this is not insider transaction data.",
+      detectedAt: now,
       dataPoints: [
-        `Model-estimated flow: ~$${(amount / 1e6).toFixed(1)}M (not a filing)`,
-        `Volume: ${(volume / avgVolume).toFixed(1)}× vs average`,
-        `Pattern window: ~30 days`,
+        `Volume: ${ratio.toFixed(1)}× 20-day average`,
+        `Day change: ${changePercent.toFixed(2)}%`,
       ],
     };
   }
 
-  if (seed >= 15 && seed < 25) {
+  if (changePercent >= 3) {
     return {
-      id: "insider-buying",
+      id: "volume-breakout",
       severity: "info",
-      category: "insider",
-      title: "Accumulation Pattern (Model)",
-      description: `Model detects a constructive volume/ownership pattern for ${symbol}. Confirm with actual insider transaction filings before relying on this signal.`,
-      detectedAt: new Date().toISOString(),
+      category: "volume",
+      title: "Heavy Volume on Up Day",
+      description:
+        "Unusually high volume with a positive price move may indicate institutional accumulation or a news-driven breakout. Confirm catalysts before acting.",
+      detectedAt: now,
       dataPoints: [
-        `Pattern: Model-positive (not a filing)`,
-        `Volume context: ${(volume / avgVolume).toFixed(1)}× average`,
+        `Volume: ${ratio.toFixed(1)}× average`,
+        `Day change: +${changePercent.toFixed(2)}%`,
       ],
     };
   }
@@ -357,49 +357,73 @@ export function calculateRiskScore(
     changePercent: number;
     eps: number;
   },
-  redFlags: RedFlag[]
+  redFlags: RedFlag[],
+  options?: {
+    finnhubSentiment?: { sentiment?: { bullishPercent?: number; bearishPercent?: number } } | null;
+    newsBreakdown?: { positive: number; negative: number; neutral: number } | null;
+  }
 ): RiskScore {
-  let technical = 50;
-  let fundamental = 50;
-  let sentiment = 50;
-  let manipulation = 10;
-  let volatility = 50;
+  let technical = 35;
+  let fundamental = 35;
+  let sentiment = 30;
+  let manipulation = 5;
+  let volatility = 30;
 
   // Technical risk
-  if (indicators.rsi > 75 || indicators.rsi < 25) technical += 20;
-  if (indicators.adx > 40) technical += 10;
-  if (Math.abs(indicators.macd.histogram) > 1) technical += 5;
-  const bbWidth = (indicators.bollingerBands.upper - indicators.bollingerBands.lower) / indicators.bollingerBands.middle;
-  if (bbWidth > 0.08) technical += 15;
+  if (indicators.rsi > 78 || indicators.rsi < 22) technical += 22;
+  else if (indicators.rsi > 70 || indicators.rsi < 30) technical += 12;
+  if (indicators.adx > 45) technical += 8;
+  const bbWidth =
+    indicators.bollingerBands.middle > 0
+      ? (indicators.bollingerBands.upper - indicators.bollingerBands.lower) / indicators.bollingerBands.middle
+      : 0;
+  if (bbWidth > 0.1) technical += 18;
+  else if (bbWidth > 0.06) technical += 8;
 
   // Fundamental risk
-  if (quote.eps < 0) fundamental += 25;
-  if (quote.peRatio > 80) fundamental += 20;
-  if (quote.peRatio > 50) fundamental += 10;
+  if (quote.eps < 0) fundamental += 28;
+  if (quote.peRatio > 80) fundamental += 22;
+  else if (quote.peRatio > 50) fundamental += 12;
+  else if (quote.peRatio > 0 && quote.peRatio < 8) fundamental += 6;
 
   // Volatility
-  volatility = Math.min(quote.beta * 35, 100);
-  if (indicators.atr / quote.price > 0.03) volatility += 15;
+  volatility = Math.min(Math.max(quote.beta * 28, 15), 95);
+  if (quote.price > 0 && indicators.atr / quote.price > 0.04) volatility += 18;
+  else if (quote.price > 0 && indicators.atr / quote.price > 0.025) volatility += 8;
 
-  // Manipulation risk from red flags
+  // Red flags
   const criticalFlags = redFlags.filter((f) => f.severity === "critical");
   const warningFlags = redFlags.filter((f) => f.severity === "warning");
-  manipulation += criticalFlags.length * 20 + warningFlags.length * 8;
-  if (redFlags.some((f) => f.category === "manipulation")) manipulation += 25;
-  if (redFlags.some((f) => f.category === "insider")) manipulation += 15;
+  manipulation += criticalFlags.length * 18 + warningFlags.length * 7;
+  if (redFlags.some((f) => f.category === "manipulation")) manipulation += 22;
 
-  // Sentiment from volume
-  if (quote.avgVolume > 0 && quote.volume / quote.avgVolume > 3) sentiment += 20;
-  if (Math.abs(quote.changePercent) > 5) sentiment += 15;
+  // Sentiment: volume + Finnhub + headline mix
+  if (quote.avgVolume > 0 && quote.volume / quote.avgVolume > 3) sentiment += 16;
+  if (Math.abs(quote.changePercent) > 6) sentiment += 14;
+  else if (Math.abs(quote.changePercent) > 3) sentiment += 6;
 
-  technical = Math.min(technical, 100);
-  fundamental = Math.min(fundamental, 100);
-  sentiment = Math.min(sentiment, 100);
-  manipulation = Math.min(manipulation, 100);
-  volatility = Math.min(volatility, 100);
+  const finn = options?.finnhubSentiment?.sentiment;
+  if (finn) {
+    const skew = (finn.bearishPercent ?? 0) - (finn.bullishPercent ?? 0);
+    if (skew > 15) sentiment += 12;
+    if (skew < -15) sentiment -= 8;
+  }
+
+  const nb = options?.newsBreakdown;
+  if (nb) {
+    const total = nb.positive + nb.negative + nb.neutral;
+    if (total >= 3 && nb.negative > nb.positive * 1.5) sentiment += 14;
+    if (total >= 3 && nb.positive > nb.negative * 1.5) sentiment = Math.max(10, sentiment - 6);
+  }
+
+  technical = Math.min(Math.max(technical, 0), 100);
+  fundamental = Math.min(Math.max(fundamental, 0), 100);
+  sentiment = Math.min(Math.max(sentiment, 0), 100);
+  manipulation = Math.min(Math.max(manipulation, 0), 100);
+  volatility = Math.min(Math.max(volatility, 0), 100);
 
   const overall = Math.round(
-    technical * 0.25 + fundamental * 0.2 + sentiment * 0.15 + manipulation * 0.25 + volatility * 0.15
+    technical * 0.28 + fundamental * 0.22 + sentiment * 0.18 + manipulation * 0.17 + volatility * 0.15
   );
 
   let grade: string;

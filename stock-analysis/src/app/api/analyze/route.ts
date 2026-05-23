@@ -7,9 +7,25 @@ import { generateTradingPlan, generateKeyEvents, generateInstitutionalOwnership,
 import { finnhubFetchRecommendations, finnhubFetchSentiment } from "@/services/finnhub-api";
 import { fetchStockNewsForAI, newsProviderLabel } from "@/services/stock-news";
 import { normalizeAnalysisPayload } from "@/lib/normalize-analysis";
+import { assessResearchQuality, applyDataQualityToSignal } from "@/lib/research-quality";
+import { resolveSignal } from "@/lib/analysis-coherence";
 
-// Vercel Pro allows up to 60s; Hobby caps at 10s regardless of this value.
 export const maxDuration = 60;
+
+function resolveQuoteSourceLabel(quoteSource?: string): string {
+  switch (quoteSource) {
+    case "fmp":
+      return "FMP Live";
+    case "finnhub":
+      return "Finnhub Live";
+    case "yahoo":
+      return "Yahoo Finance";
+    case "mock":
+      return "Estimated quote";
+    default:
+      return process.env.FMP_API_KEY ? "FMP Live" : process.env.FINNHUB_API_KEY ? "Finnhub Live" : "Yahoo Finance";
+  }
+}
 
 export async function GET(request: NextRequest) {
   const symbol = request.nextUrl.searchParams.get("symbol");
@@ -38,25 +54,60 @@ export async function GET(request: NextRequest) {
       finnhubFetchSentiment(upperSymbol).catch(() => null),
     ]);
 
-    const priceHistory = history.length > 0 ? history : [{ date: new Date().toISOString().split("T")[0], open: quote.price, high: quote.price, low: quote.price, close: quote.price, volume: quote.volume || 0 }];
-    const indicators = computeAllIndicators(priceHistory);
-    const signal = generateSignal(indicators, quote.price);
-
-    const newsForAI =
-      newsBundle.items.length > 0
-        ? newsBundle.items
+    const priceHistory =
+      history.length > 0
+        ? history
         : [
-            { title: `${quote.name} reports strong quarterly results`, sentiment: "positive" },
-            { title: `Analyst upgrades ${upperSymbol} stock rating`, sentiment: "positive" },
-            { title: `${quote.sector} sector faces regulatory scrutiny`, sentiment: "negative" },
-            { title: `${quote.name} announces new product line`, sentiment: "positive" },
-            { title: `Market volatility impacts ${quote.sector} stocks`, sentiment: "neutral" },
+            {
+              date: new Date().toISOString().split("T")[0],
+              open: quote.price,
+              high: quote.price,
+              low: quote.price,
+              close: quote.price,
+              volume: quote.volume || 0,
+            },
           ];
 
-    const aiAnalysis = await generateAIAnalysis(quote, indicators, signal, competitors, newsForAI);
+    const indicators = computeAllIndicators(priceHistory);
+    const rawSignal = generateSignal(indicators, quote.price);
+
+    const researchQuality = assessResearchQuality({
+      chartSource,
+      historyBars: priceHistory.length,
+      newsCount: newsBundle.items.length,
+      newsSource: newsBundle.source,
+      quoteIsMock: quote.quoteSource === "mock",
+      hasFinnhubKey: Boolean(process.env.FINNHUB_API_KEY),
+      hasFmpKey: Boolean(process.env.FMP_API_KEY),
+    });
+
+    const adjustedSignal = applyDataQualityToSignal(rawSignal, researchQuality);
+    const resolved = resolveSignal(adjustedSignal.signal, adjustedSignal.confidence);
+    const signal = {
+      signal: resolved.signal,
+      confidence: resolved.confidence,
+      reasons: adjustedSignal.reasons,
+    };
+
+    const newsForAI = newsBundle.items.map((n) => ({
+      title: n.title,
+      sentiment: n.sentiment,
+    }));
+
+    const aiAnalysis = await generateAIAnalysis(
+      quote,
+      indicators,
+      signal,
+      competitors,
+      newsForAI,
+      { dataQualityNote: researchQuality.issues.slice(0, 2).join(" ") || undefined }
+    );
 
     const redFlags = detectRedFlags(priceHistory, indicators, quote);
-    const riskScore = calculateRiskScore(indicators, quote, redFlags);
+    const riskScore = calculateRiskScore(indicators, quote, redFlags, {
+      finnhubSentiment,
+      newsBreakdown: newsBundle.sentimentBreakdown,
+    });
     const tradingPlan = generateTradingPlan(quote.price, indicators, signal, priceHistory, quote.beta, {
       symbol: upperSymbol,
       marketCap: quote.marketCap,
@@ -69,8 +120,6 @@ export async function GET(request: NextRequest) {
     const keyEvents = generateKeyEvents(upperSymbol, quote.sector, quote.name);
     const institutional = generateInstitutionalOwnership(upperSymbol, quote.marketCap);
     const priceAction = generatePriceAction(priceHistory, indicators);
-
-    const newsSentimentBreakdown = newsBundle.sentimentBreakdown;
 
     const payload = normalizeAnalysisPayload({
       quote,
@@ -88,10 +137,11 @@ export async function GET(request: NextRequest) {
       news: newsForAI,
       analystRecommendations: analystRecs,
       finnhubSentiment,
-      newsSentimentBreakdown,
+      newsSentimentBreakdown: newsBundle.sentimentBreakdown,
+      researchQuality,
       analyzedAt: new Date().toISOString(),
       dataSources: {
-        quotes: process.env.FMP_API_KEY ? "FMP Live" : "Yahoo Finance",
+        quotes: resolveQuoteSourceLabel(quote.quoteSource),
         chart:
           chartSource === "fmp"
             ? "FMP Live"
@@ -99,10 +149,14 @@ export async function GET(request: NextRequest) {
               ? "Yahoo Finance"
               : "Simulated chart",
         news: newsProviderLabel(newsBundle.source, newsBundle.sources),
-        ai: process.env.GEMINI_API_KEY ? "Google Gemini 2.0 Flash" : process.env.OPENAI_API_KEY ? "OpenAI GPT-4o-mini" : "Built-in Engine",
-        tradingPlan: "Model estimates",
-        institutional: "Model estimates",
-        keyEvents: "Estimated calendar",
+        ai: process.env.GEMINI_API_KEY
+          ? "Google Gemini 2.0 Flash"
+          : process.env.OPENAI_API_KEY
+            ? "OpenAI GPT-4o-mini"
+            : "Built-in rules engine",
+        tradingPlan: "ATR & support/resistance model",
+        institutional: "Estimated — not SEC 13F data",
+        keyEvents: "Estimated calendar — verify dates",
       },
     });
 

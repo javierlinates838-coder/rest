@@ -116,6 +116,12 @@ interface AnalysisData {
     marketStructure: string;
   };
   history?: HistoryPoint[];
+  researchQuality?: {
+    score: number;
+    grade: string;
+    label: string;
+    issues: string[];
+  };
 }
 
 interface HistoryPoint {
@@ -384,7 +390,7 @@ export default function StockPage() {
     );
   }
 
-  const { quote, indicators, signal, competitors, aiAnalysis, dataSources, analystRecommendations, redFlags, riskScore, analyzedAt, tradingPlan, keyEvents, institutional, priceAction } = data;
+  const { quote, indicators, signal, competitors, aiAnalysis, dataSources, analystRecommendations, redFlags, riskScore, analyzedAt, tradingPlan, keyEvents, institutional, priceAction, researchQuality } = data;
 
   const chartData = history.map((h) => ({
     date: h.date,
@@ -462,6 +468,24 @@ export default function StockPage() {
 
       {/* Quick Actions */}
       <QuickActions symbol={quote.symbol} onRefresh={() => setRefreshKey((k) => k + 1)} />
+
+      {researchQuality && researchQuality.score < 70 && (
+        <div className="glass-card rounded-xl px-4 py-3 mb-5 border border-amber-500/25 bg-amber-500/5">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+            <span className="text-[13px] font-semibold text-amber-100">
+              Research quality {researchQuality.grade} · {researchQuality.score}/100
+            </span>
+            <span className="text-[11px] text-amber-200/80">{researchQuality.label}</span>
+          </div>
+          {researchQuality.issues.length > 0 && (
+            <ul className="text-[12px] text-amber-200/70 space-y-1 list-disc pl-4">
+              {researchQuality.issues.slice(0, 4).map((issue) => (
+                <li key={issue}>{issue}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       {/* Header */}
       <div ref={heroRef} className="w-full min-w-0 space-y-5 mb-6 sm:mb-8">
@@ -630,15 +654,15 @@ export default function StockPage() {
       </div>
 
       {/* Analyst Recommendations (if available) */}
-      {activeTab === "overview" && (chartSource === "simulated" || newsSource === "generated") && (
+      {activeTab === "overview" && (chartSource === "simulated" || newsSource === "generated" || (researchQuality && researchQuality.score < 55)) && (
         <div className="glass-card rounded-xl px-4 py-3 mb-6 border border-amber-500/20 bg-amber-500/5 text-[12px] text-amber-200/90 leading-relaxed">
           {chartSource === "simulated" && (
-            <span>Price charts are simulated without a live market data key. </span>
+            <span>Technical signals use simulated OHLCV — not valid for trading decisions until live chart data is connected. </span>
           )}
           {newsSource === "generated" && (
-            <span>News shown here is illustrative until live headline APIs are connected. </span>
+            <span>Headlines are illustrative placeholders, not reported news. </span>
           )}
-          Trading plan, institutional holdings, and key events are model estimates — not SEC filings.
+          Institutional holdings, insider activity flags, and key event dates are model estimates — verify against SEC filings and company IR calendars.
         </div>
       )}
 
