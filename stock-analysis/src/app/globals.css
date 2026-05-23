@@ -897,15 +897,26 @@ h1, h2, h3, h4, h5, h6 {
     0 0 40px rgba(20, 184, 166, 0.12);
 }
 
+/* Use longhands — `background:` shorthand resets background-clip and hides clipped text */
 .gradient-text {
   display: inline-block;
-  color: #5eead4;
-  background: linear-gradient(120deg, #5eead4 0%, #2dd4bf 35%, #fbbf24 70%, #5eead4 100%);
-  background-size: 200% 200%;
-  animation: gradientShift 8s ease infinite;
+  color: #ccfbf1;
+  background-image: linear-gradient(120deg, #f0fdfa 0%, #5eead4 30%, #fbbf24 72%, #2dd4bf 100%);
+  background-size: 200% auto;
+  background-repeat: no-repeat;
+  background-position: 0% 50%;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
+  animation: gradientShift 8s ease infinite;
+}
+
+@supports not ((-webkit-background-clip: text) or (background-clip: text)) {
+  .gradient-text {
+    background-image: none;
+    -webkit-text-fill-color: currentColor;
+    color: #99f6e4;
+  }
 }
 
 .nav-accent-line {
@@ -1274,6 +1285,16 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 700;
   letter-spacing: -0.04em;
   line-height: 1.12;
+}
+
+/* Hub hero accent — bright on dark card (avoids invisible clipped text) */
+.command-hero-hub .command-hero-title .gradient-text {
+  color: #ecfdf5;
+  background-image: linear-gradient(105deg, #ffffff 0%, #a7f3d0 28%, #2dd4bf 58%, #fde68a 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 /* Hub hero: "Your conviction" / "command center" — always readable spacing */
@@ -1841,9 +1862,4 @@ h1, h2, h3, h4, h5, h6 {
 
 .nav-pro-pill {
   background: linear-gradient(135deg, var(--accent-warm), #d97706);
-}
-
-.gradient-text {
-  color: var(--primary);
-  background: linear-gradient(120deg, #7af8e8 0%, var(--primary) 30%, var(--accent-warm) 65%, #7af8e8 100%);
 }
