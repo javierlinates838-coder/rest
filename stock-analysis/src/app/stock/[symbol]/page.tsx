@@ -14,7 +14,9 @@ import { formatCurrency, formatLargeNumber, formatPercent, getSignalColor, getSi
 import { computeSmartScore } from "@/lib/smart-score";
 import { computeEdgeIndex } from "@/lib/edge-index";
 import { ActionBrief } from "@/components/action-brief";
-import { StockGradingDeck } from "@/components/stock-grading-deck";
+import { AdvancedConvictionTerminal } from "@/components/advanced-conviction-terminal";
+import { EdgeIndexPanel } from "@/components/edge-index-panel";
+import { computeAdvancedConviction } from "@/lib/conviction-model";
 import { VolatilityForgePanel } from "@/components/volatility-forge-panel";
 import { AnalystConsensusBar } from "@/components/analyst-consensus-bar";
 import type { TradingPlan } from "@/lib/trading-plan";
@@ -447,6 +449,21 @@ export default function StockPage() {
     sentimentScore: aiAnalysis.sentimentScore,
   });
 
+  const historyCloses = history.map((h) => h.close);
+  const advancedConviction = computeAdvancedConviction({
+    price: quote.price,
+    changePercent: quote.changePercent,
+    indicators,
+    signal: signal.signal,
+    confidence: signal.confidence,
+    smart: smartScore,
+    edge: edgeIndex,
+    riskGrade: riskScore?.grade ?? "C",
+    sentimentScore: aiAnalysis.sentimentScore,
+    researchQualityScore: researchQuality?.score,
+    historyCloses,
+  });
+
   const tabs = [
     { id: "overview", label: "Overview" },
     { id: "technical", label: "Technical" },
@@ -603,15 +620,27 @@ export default function StockPage() {
             )}
           </div>
 
-          <StockGradingDeck
+          <AdvancedConvictionTerminal
+            symbol={quote.symbol}
+            conviction={advancedConviction}
             smart={smartScore}
             signal={signal.signal}
-            confidence={signal.confidence}
-            riskGrade={riskScore?.grade ?? "C"}
-            riskScore={riskScore?.overall}
             edge={edgeIndex}
-            quote={{ marketCap: quote.marketCap, peRatio: quote.peRatio }}
           />
+          {(quote.marketCap > 0 || quote.peRatio > 0) && (
+            <div className="grading-footer px-4 py-2 border-t border-zinc-800/60">
+              {quote.marketCap > 0 && (
+                <span>
+                  Mkt cap <strong>{formatLargeNumber(quote.marketCap)}</strong>
+                </span>
+              )}
+              {quote.peRatio > 0 && (
+                <span>
+                  P/E <strong className="tabular-nums">{quote.peRatio.toFixed(1)}</strong>
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -678,6 +707,8 @@ export default function StockPage() {
       {/* Overview Tab */}
       {activeTab === "overview" && (
         <div className="space-y-6">
+          <EdgeIndexPanel edge={edgeIndex} symbol={quote.symbol} />
+
           {/* Trading Plan - the centerpiece */}
           {tradingPlan && (
             <VolatilityForgePanel

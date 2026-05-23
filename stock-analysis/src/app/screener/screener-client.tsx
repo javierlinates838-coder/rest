@@ -58,6 +58,9 @@ export default function ScreenerPageClient() {
   const [relaxedFilters, setRelaxedFilters] = useState(false);
   const [biasEmpty, setBiasEmpty] = useState(false);
   const [partialData, setPartialData] = useState(false);
+  const [oversold, setOversold] = useState(false);
+  const [overbought, setOverbought] = useState(false);
+  const [strongTrend, setStrongTrend] = useState(false);
 
   const syncUrl = useCallback(
     (nextBias: BiasFilter, nextSector: string) => {
@@ -81,8 +84,11 @@ export default function ScreenerPageClient() {
     if (minScore > 0) params.set("minSmartScore", String(minScore));
     if (maxRisk) params.set("maxRiskGrade", maxRisk);
     if (sector && sector !== "all") params.set("sector", sector);
+    if (oversold) params.set("oversold", "1");
+    if (overbought) params.set("overbought", "1");
+    if (strongTrend) params.set("strongTrend", "1");
     return fetchJsonWithTimeout<ScreenerResponse>(`/api/screener?${params}`, 90000);
-  }, [bias, minScore, maxRisk, sector]);
+  }, [bias, minScore, maxRisk, sector, oversold, overbought, strongTrend]);
 
   const applyResponse = (data: ScreenerResponse) => {
     setRows(data.rows || []);
@@ -247,6 +253,28 @@ export default function ScreenerPageClient() {
             ))}
           </select>
         </label>
+        <div className="flex flex-wrap gap-1.5">
+          {(
+            [
+              { on: oversold, set: setOversold, label: "RSI oversold" },
+              { on: overbought, set: setOverbought, label: "RSI overbought" },
+              { on: strongTrend, set: setStrongTrend, label: "ADX trend" },
+            ] as const
+          ).map(({ on, set, label }) => (
+            <button
+              key={label}
+              type="button"
+              onClick={() => set(!on)}
+              className={`px-3 py-2 rounded-xl text-[11px] font-medium border transition-colors ${
+                on
+                  ? "bg-teal-600/25 border-teal-500/40 text-teal-200"
+                  : "border-zinc-800 text-zinc-500 hover:text-zinc-300"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
         <label className="flex items-center gap-2 text-[12px] text-zinc-400 rounded-xl px-3 py-2 border border-zinc-800 min-w-0">
           Sector
           <select
@@ -366,6 +394,8 @@ export default function ScreenerPageClient() {
                 <th className="text-center px-4 py-3">Smart</th>
                 <th className="text-center px-4 py-3">Signal</th>
                 <th className="text-center px-4 py-3">Risk</th>
+                <th className="text-center px-4 py-3">RSI</th>
+                <th className="text-center px-4 py-3">ADX</th>
                 <th className="text-right px-5 py-3">Sector</th>
               </tr>
             </thead>
@@ -398,6 +428,8 @@ export default function ScreenerPageClient() {
                     {row.signal}
                   </td>
                   <td className="text-center px-4 py-3.5 text-zinc-300">{row.riskGrade}</td>
+                  <td className="text-center px-4 py-3.5 text-zinc-400 tabular-nums text-[12px]">{row.rsi}</td>
+                  <td className="text-center px-4 py-3.5 text-zinc-400 tabular-nums text-[12px]">{row.adx}</td>
                   <td className="text-right px-5 py-3.5">
                     <SectorBadge label={displayOrDash(row.sector)} />
                   </td>

@@ -22,6 +22,9 @@ export async function GET(request: NextRequest) {
 
   if (maxRisk) filter.maxRiskGrade = maxRisk;
   if (sector) filter.sector = sector;
+  if (params.get("oversold") === "1") filter.oversold = true;
+  if (params.get("overbought") === "1") filter.overbought = true;
+  if (params.get("strongTrend") === "1") filter.strongTrend = true;
 
   try {
     if (params.get("refresh") === "1") {

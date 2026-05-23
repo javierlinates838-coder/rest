@@ -23,6 +23,7 @@ export interface ScreenerRow {
   /** Tape + technical direction for Alpha Forge long/short filters */
   forgeBias: "bullish" | "neutral" | "bearish";
   rsi: number;
+  adx: number;
   sector: string;
   peRatio: number;
 }
@@ -32,6 +33,12 @@ export type ScreenerFilter = {
   minSmartScore?: number;
   maxRiskGrade?: string;
   sector?: string;
+  /** RSI < 35 */
+  oversold?: boolean;
+  /** RSI > 65 */
+  overbought?: boolean;
+  /** ADX >= 25 */
+  strongTrend?: boolean;
 };
 
 const FORGE_UNIVERSE_CAP = 32;
@@ -113,6 +120,7 @@ function rowFromQuote(quote: StockQuote, partial?: Partial<ScreenerRow>): Screen
     tone,
     forgeBias,
     rsi: 50,
+    adx: 50,
     sector: normalizeSectorLabel(quote.sector) || cleanDisplayLabel(quote.sector) || "",
     peRatio: quote.peRatio,
     ...partial,
@@ -188,6 +196,7 @@ async function scoreForScreenerFull(symbol: string): Promise<ScreenerRow | null>
     tone: smart.tone,
     forgeBias,
     rsi: Math.round(indicators.rsi),
+    adx: Math.round(indicators.adx),
     sector: normalizeSectorLabel(quote.sector) || quote.sector,
     peRatio: quote.peRatio,
   };
@@ -253,6 +262,9 @@ export function filterScreenerRows(rows: ScreenerRow[], filter: ScreenerFilter):
     if (filter.sector && filter.sector !== "all" && !sectorMatchesRow(filter.sector, r.sector)) {
       return false;
     }
+    if (filter.oversold && r.rsi >= 35) return false;
+    if (filter.overbought && r.rsi <= 65) return false;
+    if (filter.strongTrend && r.adx < 25) return false;
     return true;
   });
 }
