@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./cockpit.css";
 
 @custom-variant dark (&:is(.dark *));
 

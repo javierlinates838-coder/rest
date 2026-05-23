@@ -605,18 +605,21 @@ export default function StockPage() {
               )}
             </div>
 
-            {(quote.dayHigh > quote.dayLow || quote.high52 > quote.low52) && (
-              <div className="space-y-4 pt-1 max-w-xl">
-                {quote.dayHigh > quote.dayLow && (
-                  <DayRangeSlider low={quote.dayLow} high={quote.dayHigh} current={quote.price} label="Day range" />
-                )}
-                {quote.high52 > quote.low52 && (
-                  <DayRangeSlider low={quote.low52} high={quote.high52} current={quote.price} label="52-week range" />
-                )}
-                {quote.avgVolume > 0 && quote.volume > 0 && (
-                  <VolumeGauge volume={quote.volume} avgVolume={quote.avgVolume} />
-                )}
-              </div>
+            {(quote.dayHigh > quote.dayLow || quote.high52 > quote.low52 || (quote.avgVolume > 0 && quote.volume > 0)) && (
+              <details className="tape-context">
+                <summary className="tape-context-summary">Session ranges & volume</summary>
+                <div className="tape-context-body space-y-4">
+                  {quote.dayHigh > quote.dayLow && (
+                    <DayRangeSlider low={quote.dayLow} high={quote.dayHigh} current={quote.price} label="Day range" />
+                  )}
+                  {quote.high52 > quote.low52 && (
+                    <DayRangeSlider low={quote.low52} high={quote.high52} current={quote.price} label="52-week range" />
+                  )}
+                  {quote.avgVolume > 0 && quote.volume > 0 && (
+                    <VolumeGauge volume={quote.volume} avgVolume={quote.avgVolume} />
+                  )}
+                </div>
+              </details>
             )}
           </div>
 
@@ -626,9 +629,11 @@ export default function StockPage() {
             smart={smartScore}
             signal={signal.signal}
             edge={edgeIndex}
+            riskGrade={riskScore?.grade ?? "C"}
+            riskScore={riskScore?.overall}
           />
           {(quote.marketCap > 0 || quote.peRatio > 0) && (
-            <div className="grading-footer px-4 py-2 border-t border-zinc-800/60">
+            <div className="cockpit-fundamentals">
               {quote.marketCap > 0 && (
                 <span>
                   Mkt cap <strong>{formatLargeNumber(quote.marketCap)}</strong>

@@ -82,23 +82,22 @@ export function DayRangeSlider({ low, high, current, label = "Day Range" }: {
   const position = Math.max(0, Math.min(100, ((current - low) / (high - low)) * 100));
 
   return (
-    <div className="w-full">
+    <div className="tape-range w-full">
       <div className="flex justify-between items-center mb-2">
-        <span className="text-[10px] text-zinc-500 font-semibold tracking-wider uppercase">{label}</span>
+        <span className="tape-range-label">{label}</span>
         <span className="text-[11px] text-zinc-400 font-light">
           {formatCurrency(low)} – {formatCurrency(high)}
         </span>
       </div>
-      <div className="relative h-1.5 bg-gradient-to-r from-red-500/30 via-yellow-500/30 to-emerald-500/30 rounded-full">
-        <div
-          className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 bg-white rounded-full border-2 border-teal-500 shadow-lg shadow-teal-500/50 transition-all duration-700"
-          style={{ left: `${position}%` }}
-        />
+      <div className="tape-range-track">
+        <div className="tape-range-thumb" style={{ left: `${position}%` }} />
       </div>
-      <div className="flex justify-between items-center mt-1.5">
-        <span className="text-[10px] text-red-400 font-medium">Low</span>
-        <span className="text-[11px] font-semibold text-white">{formatCurrency(current)} ({position.toFixed(0)}%)</span>
-        <span className="text-[10px] text-emerald-400 font-medium">High</span>
+      <div className="tape-range-footer">
+        <span className="text-red-400/90">Low</span>
+        <span className="tape-range-spot">
+          {formatCurrency(current)} · {position.toFixed(0)}%
+        </span>
+        <span className="text-emerald-400/90">High</span>
       </div>
     </div>
   );
@@ -181,21 +180,18 @@ export function VolumeGauge({ volume, avgVolume }: { volume: number; avgVolume: 
   const isVeryHigh = ratio > 2.5;
 
   return (
-    <div className="w-full">
+    <div className="tape-range w-full">
       <div className="flex justify-between items-center mb-1.5">
-        <span className="text-[10px] text-zinc-500 font-semibold tracking-wider uppercase">Volume vs Avg</span>
+        <span className="tape-range-label">Volume vs avg</span>
         <span className={`text-[11px] font-semibold tracking-tight ${isVeryHigh ? "text-red-400" : isHigh ? "text-amber-400" : "text-zinc-400"}`}>
           {ratio.toFixed(2)}× {isVeryHigh ? "(spike!)" : isHigh ? "(elevated)" : ""}
         </span>
       </div>
-      <div className="relative h-1.5 bg-zinc-800/50 rounded-full overflow-hidden">
+      <div className="tape-range-track tape-range-track--volume">
         <div
-          className={`absolute top-0 left-0 h-full rounded-full transition-all duration-1000 ${
-            isVeryHigh ? "bg-red-500" : isHigh ? "bg-amber-500" : "bg-emerald-500"
-          }`}
+          className={`tape-range-fill ${isVeryHigh ? "tape-range-fill--hot" : isHigh ? "tape-range-fill--warm" : ""}`}
           style={{ width: `${pct}%` }}
         />
-        <div className="absolute top-0 left-1/2 w-px h-full bg-zinc-600/50" />
       </div>
       <div className="flex justify-between text-[9px] text-zinc-600 mt-0.5">
         <span>0×</span>
