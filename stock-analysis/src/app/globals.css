@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "./cockpit.css";
+@import "./company-pulse.css";
 
 @custom-variant dark (&:is(.dark *));
 

@@ -15,6 +15,7 @@ import { computeSmartScore } from "@/lib/smart-score";
 import { computeEdgeIndex } from "@/lib/edge-index";
 import { ActionBrief } from "@/components/action-brief";
 import { AdvancedConvictionTerminal } from "@/components/advanced-conviction-terminal";
+import { StockExplainerPanel } from "@/components/stock-explainer-panel";
 import { EdgeIndexPanel } from "@/components/edge-index-panel";
 import { computeAdvancedConviction } from "@/lib/conviction-model";
 import { VolatilityForgePanel } from "@/components/volatility-forge-panel";
@@ -53,6 +54,7 @@ interface AnalysisData {
     low52: number; dayHigh: number; dayLow: number; open: number;
     previousClose: number; dividendYield: number; beta: number;
     sector: string; industry: string; exchange: string; description: string;
+    website?: string; ceo?: string; country?: string; employees?: number;
   };
   indicators: {
     sma20: number; sma50: number; sma200: number;
@@ -668,6 +670,8 @@ export default function StockPage() {
         />
       )}
 
+      <StockExplainerPanel quote={quote} aiSummary={aiAnalysis.summary} />
+
       {/* Tab Navigation */}
       <div className="sticky-tab-bar scroll-tabs tab-segment mb-6 sm:mb-8 p-1 rounded-xl">
         {tabs.map((tab) => (
@@ -845,13 +849,8 @@ export default function StockPage() {
             ))}
           </div>
 
-          {/* Company Description */}
-          {quote.description && (
-            <div className="glass-card rounded-2xl p-4 sm:p-6 animate-fadeInUp">
-              <h3 className="text-[14px] font-semibold text-white tracking-tight mb-2">About {quote.name}</h3>
-              <p className="text-[12px] text-zinc-400 font-light leading-relaxed line-clamp-3">{quote.description}</p>
-            </div>
-          )}
+
+          {/* Company description lives in Company Pulse panel above tabs */}
 
           {/* Radar Chart */}
           <div className="glass-card rounded-xl p-6">

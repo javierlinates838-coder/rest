@@ -32,6 +32,10 @@ export interface StockQuote {
   industry: string;
   exchange: string;
   description: string;
+  website?: string;
+  ceo?: string;
+  country?: string;
+  employees?: number;
   financials?: FMPFinancials;
 }
 
@@ -64,6 +68,84 @@ const POPULAR_STOCKS: Record<string, { name: string; sector: string; competitors
   INTC: { name: "Intel Corp.", sector: "Technology", competitors: ["AMD", "NVDA", "QCOM", "TSM"] },
 };
 
+function parseEmployees(raw?: string): number | undefined {
+  if (!raw) return undefined;
+  const n = parseInt(String(raw).replace(/[^\d]/g, ""), 10);
+  return Number.isFinite(n) && n > 0 ? n : undefined;
+}
+
+function applyFmpProfileFields(
+  quote: StockQuote,
+  profile?: Awaited<ReturnType<typeof fmpFetchProfile>>
+): StockQuote {
+  if (!profile) return quote;
+  return {
+    ...quote,
+    website: quote.website || profile.website || undefined,
+    ceo: quote.ceo || profile.ceo || undefined,
+    country: quote.country || profile.country || undefined,
+    employees: quote.employees ?? parseEmployees(profile.fullTimeEmployees),
+    description: quote.description || profile.description || "",
+    sector: quote.sector || cleanDisplayLabel(profile.sector) || "",
+    industry: quote.industry || cleanDisplayLabel(profile.industry) || "",
+  };
+}
+
+async function fetchYahooAssetProfile(
+  symbol: string
+): Promise<
+  Partial<
+    Pick<StockQuote, "description" | "sector" | "industry" | "website" | "country" | "employees">
+  > | null
+> {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const yahooFinance = (await import("yahoo-finance2")).default as any;
+    const profile = await yahooFinance.quoteSummary(symbol, { modules: ["assetProfile"] });
+    const ap = profile?.assetProfile;
+    if (!ap) return null;
+    return {
+      description: ap.longBusinessSummary,
+      sector: ap.sector,
+      industry: ap.industry,
+      website: ap.website,
+      country: ap.country,
+      employees: ap.fullTimeEmployees,
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function enrichStockQuote(
+  quote: StockQuote,
+  fmpProfile?: Awaited<ReturnType<typeof fmpFetchProfile>>
+): Promise<StockQuote> {
+  let enriched = applyFmpProfileFields(quote, fmpProfile);
+
+  const needsBackfill =
+    !enriched.description ||
+    enriched.description.length < 80 ||
+    (!enriched.sector && !enriched.industry);
+
+  if (needsBackfill) {
+    const yahoo = await fetchYahooAssetProfile(enriched.symbol);
+    if (yahoo) {
+      enriched = {
+        ...enriched,
+        description: enriched.description || yahoo.description || "",
+        sector: enriched.sector || cleanDisplayLabel(yahoo.sector || "") || "",
+        industry: enriched.industry || cleanDisplayLabel(yahoo.industry || "") || "",
+        website: enriched.website || yahoo.website,
+        country: enriched.country || yahoo.country,
+        employees: enriched.employees ?? yahoo.employees,
+      };
+    }
+  }
+
+  return enriched;
+}
+
 export async function fetchStockQuote(symbol: string): Promise<StockQuote> {
   const upperSymbol = symbol.toUpperCase();
 
@@ -86,7 +168,8 @@ export async function fetchStockQuote(symbol: string): Promise<StockQuote> {
       }
     }
 
-    return {
+    return enrichStockQuote(
+      {
       symbol: upperSymbol,
       quoteSource: "fmp",
       name: fmpQuote.name || fmpProfile?.companyName || upperSymbol,
@@ -111,7 +194,9 @@ export async function fetchStockQuote(symbol: string): Promise<StockQuote> {
       exchange: fmpQuote.exchange || fmpProfile?.exchange || "NASDAQ",
       description: fmpProfile?.description || "",
       financials: fmpFinancials || undefined,
-    };
+    },
+      fmpProfile
+    );
   }
 
   // Strategy 2: Finnhub real-time quote + Finnhub basic financials + FMP profile
@@ -129,7 +214,8 @@ export async function fetchStockQuote(symbol: string): Promise<StockQuote> {
     const avgVol10Day = ((m["10DayAverageTradingVolume"] as number) || 0) * 1e6;
     const avgVol3M = ((m["3MonthAverageTradingVolume"] as number) || 0) * 1e6;
 
-    return {
+    return enrichStockQuote(
+      {
       symbol: upperSymbol,
       quoteSource: "finnhub",
       name: fmpProfile?.companyName || POPULAR_STOCKS[upperSymbol]?.name || upperSymbol,
@@ -154,7 +240,9 @@ export async function fetchStockQuote(symbol: string): Promise<StockQuote> {
       exchange: fmpProfile?.exchange || "NASDAQ",
       description: fmpProfile?.description || "",
       financials: fmpFinancials || undefined,
-    };
+    },
+      fmpProfile
+    );
   }
 
   // Strategy 3: Yahoo Finance
@@ -164,7 +252,7 @@ export async function fetchStockQuote(symbol: string): Promise<StockQuote> {
     const quote = await yahooFinance.quote(upperSymbol);
     const profile = await yahooFinance.quoteSummary(upperSymbol, { modules: ["assetProfile"] }).catch(() => null);
 
-    return {
+    return enrichStockQuote({
       symbol: upperSymbol,
       quoteSource: "yahoo",
       name: quote.longName || quote.shortName || upperSymbol,
@@ -188,12 +276,15 @@ export async function fetchStockQuote(symbol: string): Promise<StockQuote> {
       industry: cleanDisplayLabel(profile?.assetProfile?.industry) || "",
       exchange: quote.exchange || "NASDAQ",
       description: profile?.assetProfile?.longBusinessSummary || "",
-    };
+      website: profile?.assetProfile?.website,
+      country: profile?.assetProfile?.country,
+      employees: profile?.assetProfile?.fullTimeEmployees,
+    });
   } catch {
     // Strategy 4: mock fallback
     const info = POPULAR_STOCKS[upperSymbol];
     if (!info) throw new Error(`Could not fetch data for symbol: ${upperSymbol}`);
-    return generateMockQuote(upperSymbol, info.name, info.sector);
+    return enrichStockQuote(generateMockQuote(upperSymbol, info.name, info.sector));
   }
 }
 

@@ -291,6 +291,10 @@ export function normalizeAnalysisPayload(raw: any): any {
       industry: str(quote.industry),
       exchange: str(quote.exchange, "NASDAQ"),
       description: str(quote.description),
+      website: str(quote.website) || undefined,
+      ceo: str(quote.ceo) || undefined,
+      country: str(quote.country) || undefined,
+      employees: num(quote.employees) || undefined,
     },
     indicators: {
       sma20: num(indicators.sma20, price),

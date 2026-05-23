@@ -1,0 +1,213 @@
+/* Company Pulse — plain-English stock explainer */
+
+.company-pulse {
+  position: relative;
+  margin-bottom: 1.5rem;
+  padding: 1.15rem 1.1rem 1.25rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(52, 211, 153, 0.12);
+  background: linear-gradient(145deg, rgba(8, 12, 18, 0.95) 0%, rgba(6, 10, 14, 0.88) 100%);
+  overflow: hidden;
+}
+
+.company-pulse-glow {
+  pointer-events: none;
+  position: absolute;
+  inset: -40% -20% auto auto;
+  width: 55%;
+  height: 120%;
+  background: radial-gradient(circle at center, rgba(52, 211, 153, 0.08) 0%, transparent 68%);
+}
+
+.company-pulse-header {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 0.65rem;
+}
+
+.company-pulse-eyebrow {
+  margin: 0;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #34d399;
+}
+
+.company-pulse-title {
+  margin: 0.2rem 0 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #fafafa;
+  letter-spacing: -0.02em;
+}
+
+.company-pulse-name {
+  margin: 0.15rem 0 0;
+  font-size: 11px;
+  color: #71717a;
+}
+
+.company-pulse-badge {
+  flex-shrink: 0;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid rgba(52, 211, 153, 0.25);
+  background: rgba(52, 211, 153, 0.08);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6ee7b7;
+}
+
+.company-pulse-tags {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+}
+
+.company-pulse-tag {
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.4rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 10px;
+  color: #a1a1aa;
+}
+
+.company-pulse-lead {
+  position: relative;
+  margin: 0 0 0.65rem;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: #e4e4e7;
+}
+
+.company-pulse-body {
+  position: relative;
+  margin-bottom: 0.85rem;
+}
+
+.company-pulse-copy {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: #a1a1aa;
+  font-weight: 300;
+}
+
+.company-pulse-copy--clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.company-pulse-toggle {
+  margin-top: 0.5rem;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 11px;
+  font-weight: 600;
+  color: #34d399;
+  cursor: pointer;
+}
+
+.company-pulse-toggle:hover {
+  color: #6ee7b7;
+}
+
+.company-pulse-facts {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+  margin-bottom: 0.85rem;
+}
+
+@media (min-width: 640px) {
+  .company-pulse-facts {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.company-pulse-fact {
+  padding: 0.5rem 0.55rem;
+  border-radius: 0.55rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  min-width: 0;
+}
+
+.company-pulse-fact-label {
+  display: block;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #52525b;
+  margin-bottom: 0.15rem;
+}
+
+.company-pulse-fact-value {
+  display: block;
+  font-size: 11px;
+  color: #d4d4d8;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.company-pulse-fact-link {
+  color: #6ee7b7;
+  text-decoration: none;
+}
+
+.company-pulse-fact-link:hover {
+  text-decoration: underline;
+}
+
+.company-pulse-lens,
+.company-pulse-meridian {
+  position: relative;
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.65rem;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.company-pulse-meridian {
+  margin-top: 0.55rem;
+  border-color: rgba(129, 140, 248, 0.15);
+  background: rgba(79, 70, 229, 0.06);
+}
+
+.company-pulse-lens-label {
+  margin: 0 0 0.3rem;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #71717a;
+}
+
+.company-pulse-lens-copy,
+.company-pulse-meridian-copy {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #a1a1aa;
+}
+
+.company-pulse-meridian-copy {
+  color: #c4b5fd;
+}

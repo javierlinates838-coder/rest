@@ -42,6 +42,9 @@ export interface FMPProfile {
   lastDiv: number;
   range: string;
   mktCap: number;
+  website: string;
+  ceo: string;
+  country: string;
 }
 
 export interface FMPFinancials {
@@ -221,6 +224,9 @@ export async function fmpFetchProfile(symbol: string): Promise<FMPProfile | null
     lastDiv: p.lastDividend,
     range: p.range,
     mktCap: p.marketCap,
+    website: p.website || "",
+    ceo: p.ceo || "",
+    country: p.country || "",
   };
 }
 
