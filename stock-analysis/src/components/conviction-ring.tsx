@@ -5,10 +5,12 @@ import { smartScoreColor } from "@/lib/smart-score";
 export function ConvictionRing({
   score,
   grade,
+  caption = "Overall",
   size = 108,
 }: {
   score: number;
   grade: string;
+  caption?: string;
   size?: number;
 }) {
   const stroke = 7;
@@ -55,6 +57,7 @@ export function ConvictionRing({
       </svg>
       <div className="cockpit-ring-center">
         <span className={`cockpit-ring-score ${smartScoreColor(score)}`}>{score}</span>
+        <span className="cockpit-ring-caption">{caption}</span>
         <span className="cockpit-ring-grade">{grade}</span>
       </div>
     </div>

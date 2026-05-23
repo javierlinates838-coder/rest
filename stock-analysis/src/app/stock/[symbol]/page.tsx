@@ -628,6 +628,7 @@ export default function StockPage() {
             conviction={advancedConviction}
             smart={smartScore}
             signal={signal.signal}
+            confidence={signal.confidence}
             edge={edgeIndex}
             riskGrade={riskScore?.grade ?? "C"}
             riskScore={riskScore?.overall}
