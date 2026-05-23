@@ -73,15 +73,19 @@ function PickSection({
       <h3 className="text-[15px] font-semibold text-white tracking-tight">{title}</h3>
       <p className="text-[11px] text-zinc-500 mb-3">{subtitle}</p>
       <div className="divide-y divide-white/[0.04]">
-        {picks.map((pick) => (
-          <PickRow key={pick.symbol} pick={pick} onSelect={onSelect} />
+        {picks.map((pick, i) => (
+          <PickRow key={`${title}-${pick.symbol}-${i}`} pick={pick} onSelect={onSelect} />
         ))}
       </div>
     </div>
   );
 }
 
-export function StockPicks() {
+export function StockPicks({
+  onSymbolsChange,
+}: {
+  onSymbolsChange?: (symbols: string[]) => void;
+}) {
   const router = useRouter();
   const [data, setData] = useState<RecommendationsData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -103,6 +107,16 @@ export function StockPicks() {
     })();
     return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => {
+    if (!data || !onSymbolsChange) return;
+    const symbols = [
+      ...data.topBuys,
+      ...data.qualityPicks,
+      ...data.momentumPicks,
+    ].map((p) => p.symbol.toUpperCase());
+    onSymbolsChange([...new Set(symbols)]);
+  }, [data, onSymbolsChange]);
 
   if (loading) {
     return (

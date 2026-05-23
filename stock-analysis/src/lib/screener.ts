@@ -5,11 +5,7 @@ import { fetchStockQuote, fetchHistoricalWithSource } from "@/services/stock-dat
 import { applyDataQualityToSignal, assessResearchQuality } from "@/lib/research-quality";
 import { computeSmartScore } from "@/lib/smart-score";
 import { fmpFetchGainers, fmpFetchLosers } from "@/services/fmp-api";
-
-const CORE_UNIVERSE = [
-  "AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA", "AMD",
-  "JPM", "V", "NFLX", "AVGO", "COST", "UNH", "XOM", "CRM", "ORCL", "INTC",
-];
+import { LIQUID_UNIVERSE } from "@/lib/hub-symbols";
 
 export interface ScreenerRow {
   symbol: string;
@@ -40,7 +36,7 @@ export async function buildScreenerUniverse(): Promise<string[]> {
   ]);
   return Array.from(
     new Set([
-      ...CORE_UNIVERSE,
+      ...LIQUID_UNIVERSE,
       ...gainers.slice(0, 10).map((g) => g.symbol),
       ...losers.slice(0, 6).map((l) => l.symbol),
     ])

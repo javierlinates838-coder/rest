@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { formatCurrency, formatLargeNumber, formatPercent } from "@/lib/utils";
 import { PremiumSearch } from "@/components/premium-search";
@@ -12,6 +12,8 @@ import { CommandStatusBar } from "@/components/command-status-bar";
 import { ProSectionHeader } from "@/components/pro-section-header";
 import { PulseFrame } from "@/components/pulse-frame";
 import { HERO, TERMS } from "@/lib/brand";
+import { HUB_QUICK_PICKS } from "@/lib/hub-symbols";
+import { dedupeBySymbol, excludeSymbols } from "@/lib/dedupe-by-symbol";
 
 interface MarketIndex {
   symbol: string;
@@ -65,6 +67,10 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [marketError, setMarketError] = useState<string | null>(null);
   const [sectorsEstimated, setSectorsEstimated] = useState(false);
+  const [meridianSymbols, setMeridianSymbols] = useState<string[]>([]);
+  const handleMeridianSymbols = useCallback((symbols: string[]) => {
+    setMeridianSymbols(symbols);
+  }, []);
   const searchRef = useRef<HTMLDivElement>(null);
   const searchTimeout = useRef<NodeJS.Timeout | null>(null);
   const searchRequestId = useRef(0);
@@ -131,7 +137,7 @@ export default function DashboardPage() {
           const res = await fetch(`/api/search?q=${encodeURIComponent(value)}`);
           const data = await res.json();
           if (reqId !== searchRequestId.current) return;
-          setSearchResults(data.results || []);
+          setSearchResults(dedupeBySymbol(data.results || []));
           setShowResults(true);
         } catch {
           if (reqId !== searchRequestId.current) return;
@@ -153,14 +159,42 @@ export default function DashboardPage() {
     }
   };
 
-  const quickPicks = ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", "NVDA", "META", "AMD"];
+  const quickPicks = [...HUB_QUICK_PICKS];
+
+  const trendingDisplay = useMemo(
+    () => excludeSymbols(dedupeBySymbol(trending), meridianSymbols, quickPicks),
+    [trending, meridianSymbols, quickPicks]
+  );
+
+  const gainersDisplay = useMemo(
+    () =>
+      excludeSymbols(
+        dedupeBySymbol(gainers),
+        meridianSymbols,
+        quickPicks,
+        trendingDisplay.map((s) => s.symbol)
+      ),
+    [gainers, meridianSymbols, quickPicks, trendingDisplay]
+  );
+
+  const losersDisplay = useMemo(
+    () =>
+      excludeSymbols(
+        dedupeBySymbol(losers),
+        meridianSymbols,
+        quickPicks,
+        trendingDisplay.map((s) => s.symbol),
+        gainersDisplay.map((s) => s.symbol)
+      ),
+    [losers, meridianSymbols, quickPicks, trendingDisplay, gainersDisplay]
+  );
 
   return (
     <div className="page-shell page-shell-wide">
       <CommandStatusBar
         loading={loading}
         indicesCount={indices.length}
-        trendingCount={trending.length}
+        trendingCount={trendingDisplay.length || trending.length}
       />
 
       <PulseFrame className="command-hero command-hero-hub text-center animate-fadeIn relative z-[1] mb-0">
@@ -259,7 +293,7 @@ export default function DashboardPage() {
         </div>
       ) : (
         <>
-          <StockPicks />
+          <StockPicks onSymbolsChange={handleMeridianSymbols} />
 
           <OnlyHereStrip />
 
@@ -301,7 +335,7 @@ export default function DashboardPage() {
                 badge="TAPE"
               />
               <MobileTrendingList
-                stocks={trending}
+                stocks={trendingDisplay}
                 onSelect={(symbol) => router.push(`/stock/${symbol}`)}
               />
               <div className="hidden lg:block pro-table-wrap table-scroll">
@@ -317,7 +351,7 @@ export default function DashboardPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {trending.map((stock) => (
+                    {trendingDisplay.map((stock) => (
                       <tr
                         key={stock.symbol}
                         className="border-b border-white/[0.02] hover:bg-white/[0.02] cursor-pointer transition-colors duration-150"
@@ -386,11 +420,11 @@ export default function DashboardPage() {
               </div>
 
               {/* Top Gainers */}
-              {gainers.length > 0 && (
+              {gainersDisplay.length > 0 && (
                 <div>
                   <h3 className="text-[15px] font-semibold text-emerald-400 mb-3 tracking-tight">Top Gainers</h3>
                   <div className="space-y-1.5">
-                    {gainers.slice(0, 4).map((g) => (
+                    {gainersDisplay.slice(0, 4).map((g) => (
                       <div key={g.symbol} className="glass-card rounded-xl px-4 py-2.5 flex justify-between items-center cursor-pointer" onClick={() => router.push(`/stock/${g.symbol}`)}>
                         <span className="text-[13px] font-semibold text-white">{g.symbol}</span>
                         <span className="text-[12px] font-semibold text-emerald-400">{formatPercent(g.changePercent)}</span>
@@ -401,11 +435,11 @@ export default function DashboardPage() {
               )}
 
               {/* Top Losers */}
-              {losers.length > 0 && (
+              {losersDisplay.length > 0 && (
                 <div>
                   <h3 className="text-[15px] font-semibold text-red-400 mb-3 tracking-tight">Top Losers</h3>
                   <div className="space-y-1.5">
-                    {losers.slice(0, 4).map((l) => (
+                    {losersDisplay.slice(0, 4).map((l) => (
                       <div key={l.symbol} className="glass-card rounded-xl px-4 py-2.5 flex justify-between items-center cursor-pointer" onClick={() => router.push(`/stock/${l.symbol}`)}>
                         <span className="text-[13px] font-semibold text-white">{l.symbol}</span>
                         <span className="text-[12px] font-semibold text-red-400">{formatPercent(l.changePercent)}</span>

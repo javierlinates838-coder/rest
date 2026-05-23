@@ -1,31 +1,20 @@
 import { NextResponse } from "next/server";
 import { fetchStockQuote } from "@/services/stock-data";
 import { fmpFetchGainers, fmpFetchLosers, fmpFetchSectorPerformance } from "@/services/fmp-api";
+import { dedupeBySymbol } from "@/lib/dedupe-by-symbol";
+import { TAPE_BENCH } from "@/lib/hub-symbols";
 
 const MARKET_INDICES = ["SPY", "QQQ", "DIA", "IWM", "VTI"];
-const TRENDING_STOCKS = ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", "NVDA", "META", "NFLX", "AMD", "JPM", "V", "JNJ", "BA", "DIS", "INTC"];
 
 export async function GET() {
   try {
-    const [indexResults, trendingResults, gainers, losers, sectorPerf] = await Promise.all([
+    const [indexResults, gainersRaw, losersRaw, sectorPerf] = await Promise.all([
       Promise.all(MARKET_INDICES.map(async (symbol) => {
         try {
           const quote = await fetchStockQuote(symbol);
           return { symbol, name: quote.name, price: quote.price, change: quote.change, changePercent: quote.changePercent };
         } catch {
           return { symbol, name: symbol, price: 0, change: 0, changePercent: 0 };
-        }
-      })),
-      Promise.all(TRENDING_STOCKS.slice(0, 10).map(async (symbol) => {
-        try {
-          const quote = await fetchStockQuote(symbol);
-          return {
-            symbol, name: quote.name, price: quote.price,
-            change: quote.change, changePercent: quote.changePercent,
-            volume: quote.volume, marketCap: quote.marketCap, sector: quote.sector,
-          };
-        } catch {
-          return null;
         }
       })),
       fmpFetchGainers(),
@@ -54,19 +43,54 @@ export async function GET() {
       return Number.isFinite(n) ? n : 0;
     };
 
-    const topGainers = gainers.map((g) => ({
-      symbol: g.symbol, name: g.name, price: g.price,
-      change: g.change, changePercent: parsePct(g.changesPercentage),
-    }));
+    const topGainers = dedupeBySymbol(
+      gainersRaw.map((g) => ({
+        symbol: g.symbol,
+        name: g.name,
+        price: g.price,
+        change: g.change,
+        changePercent: parsePct(g.changesPercentage),
+      }))
+    ).slice(0, 8);
 
-    const topLosers = losers.map((l) => ({
-      symbol: l.symbol, name: l.name, price: l.price,
-      change: l.change, changePercent: parsePct(l.changesPercentage),
-    }));
+    const topLosers = dedupeBySymbol(
+      losersRaw.map((l) => ({
+        symbol: l.symbol,
+        name: l.name,
+        price: l.price,
+        change: l.change,
+        changePercent: parsePct(l.changesPercentage),
+      }))
+    ).slice(0, 8);
+
+    const moverSymbols = new Set(
+      [...topGainers.slice(0, 6), ...topLosers.slice(0, 6)].map((m) => m.symbol.toUpperCase())
+    );
+
+    const tapeCandidates = TAPE_BENCH.filter((s) => !moverSymbols.has(s)).slice(0, 12);
+    const trendingResults = await Promise.all(
+      tapeCandidates.map(async (symbol) => {
+        try {
+          const quote = await fetchStockQuote(symbol);
+          return {
+            symbol,
+            name: quote.name,
+            price: quote.price,
+            change: quote.change,
+            changePercent: quote.changePercent,
+            volume: quote.volume,
+            marketCap: quote.marketCap,
+            sector: quote.sector,
+          };
+        } catch {
+          return null;
+        }
+      })
+    );
 
     return NextResponse.json({
       indices: indexResults,
-      trending: trendingResults.filter(Boolean),
+      trending: dedupeBySymbol(trendingResults.filter(Boolean) as { symbol: string }[]).slice(0, 10),
       sectors,
       sectorsEstimated,
       topGainers,

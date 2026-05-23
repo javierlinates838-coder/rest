@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import Link from "next/link";
 import { Plus_Jakarta_Sans, JetBrains_Mono, Syne } from "next/font/google";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
@@ -75,7 +76,9 @@ export default function RootLayout({
           </main>
           <OnboardingModal />
 
-          <MobileBottomNav />
+          <Suspense fallback={null}>
+            <MobileBottomNav />
+          </Suspense>
 
           <footer className="footer-premium py-6 safe-bottom footer-above-mobile-nav">
             <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10">

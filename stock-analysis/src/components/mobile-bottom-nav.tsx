@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { MOBILE_NAV } from "@/lib/brand";
 
 function HubIcon({ active }: { active: boolean }) {
@@ -52,12 +52,19 @@ const renderIcon = (i: number, active: boolean) => {
 
 export function MobileBottomNav() {
   const pathname = usePathname() || "/";
+  const searchParams = useSearchParams();
+  const scanFocus = pathname === "/" && searchParams.get("search") === "1";
 
   return (
     <nav className="mobile-bottom-nav lg:hidden" aria-label="Pulse Terminal navigation">
       <div className="mobile-bottom-nav-inner">
         {MOBILE_NAV.map((tab, i) => {
-          const active = tab.match(pathname);
+          const active =
+            tab.href === "/?search=1"
+              ? scanFocus
+              : tab.href === "/"
+                ? pathname === "/" && !scanFocus
+                : tab.match(pathname);
           return (
             <Link
               key={tab.href}

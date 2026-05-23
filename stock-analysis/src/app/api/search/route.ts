@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fmpSearchStock } from "@/services/fmp-api";
+import { dedupeBySymbol } from "@/lib/dedupe-by-symbol";
 
 const FALLBACK_SYMBOLS: { symbol: string; name: string; exchange: string }[] = [
   { symbol: "AAPL", name: "Apple Inc.", exchange: "NASDAQ" },
@@ -33,9 +34,9 @@ export async function GET(request: NextRequest) {
     if (results.length === 0) {
       results = fallbackSearch(query);
     }
-    return NextResponse.json({ results });
+    return NextResponse.json({ results: dedupeBySymbol(results).slice(0, 8) });
   } catch (e) {
     console.error("[search] FMP failed, using fallback:", e);
-    return NextResponse.json({ results: fallbackSearch(query) });
+    return NextResponse.json({ results: dedupeBySymbol(fallbackSearch(query)) });
   }
 }

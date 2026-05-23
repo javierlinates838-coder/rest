@@ -4,11 +4,8 @@ import { detectRedFlags, calculateRiskScore } from "@/lib/red-flags";
 import { fetchStockQuote, fetchHistoricalWithSource } from "@/services/stock-data";
 import { applyDataQualityToSignal, assessResearchQuality } from "@/lib/research-quality";
 import { fmpFetchGainers } from "@/services/fmp-api";
-
-const CORE_UNIVERSE = [
-  "AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA", "AMD",
-  "JPM", "V", "NFLX", "AVGO", "COST", "UNH", "XOM",
-];
+import { LIQUID_UNIVERSE } from "@/lib/hub-symbols";
+import { buildExclusivePickSections } from "@/lib/pick-sections";
 
 export interface StockPick {
   symbol: string;
@@ -93,8 +90,8 @@ export async function getStockRecommendations(): Promise<{
   const gainers = await fmpFetchGainers().catch(() => []);
   const symbols = Array.from(
     new Set([
-      ...CORE_UNIVERSE,
-      ...gainers.slice(0, 8).map((g) => g.symbol),
+      ...LIQUID_UNIVERSE,
+      ...gainers.slice(0, 6).map((g) => g.symbol),
     ])
   ).slice(0, 18);
 
@@ -102,25 +99,12 @@ export async function getStockRecommendations(): Promise<{
     await Promise.all(symbols.map((s) => scoreSymbol(s)))
   ).filter((p): p is StockPick => p !== null);
 
-  const topBuys = picks
-    .filter((p) => p.signal.includes("Buy") && p.confidence >= 40)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 5);
-
-  const momentumPicks = picks
-    .filter((p) => p.changePercent > 0.5 && !p.signal.includes("Sell"))
-    .sort((a, b) => b.changePercent - a.changePercent)
-    .slice(0, 5);
-
-  const qualityPicks = picks
-    .filter((p) => (p.riskGrade === "A" || p.riskGrade === "B") && !p.signal.includes("Sell"))
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 5);
+  const { topBuys, qualityPicks, momentumPicks } = buildExclusivePickSections(picks);
 
   return {
-    topBuys: topBuys.length > 0 ? topBuys : picks.sort((a, b) => b.score - a.score).slice(0, 3),
-    qualityPicks: qualityPicks.length > 0 ? qualityPicks : picks.filter((p) => p.riskGrade === "C").slice(0, 3),
-    momentumPicks: momentumPicks.length > 0 ? momentumPicks : picks.sort((a, b) => b.changePercent - a.changePercent).slice(0, 3),
+    topBuys,
+    qualityPicks,
+    momentumPicks,
     updatedAt: new Date().toISOString(),
   };
 }
