@@ -5,8 +5,6 @@ import type { AdvancedConviction } from "@/lib/conviction-model";
 import type { EdgeIndexResult } from "@/lib/edge-index";
 import type { SmartScoreResult } from "@/lib/smart-score";
 import { edgeTierColor } from "@/lib/edge-index";
-import { smartScoreColor } from "@/lib/smart-score";
-import { TERMS } from "@/lib/brand";
 import { getSignalColor } from "@/lib/utils";
 import { scoreVerdict } from "@/lib/score-guide";
 import { ConvictionRing } from "@/components/conviction-ring";
@@ -33,14 +31,9 @@ export function AdvancedConvictionTerminal({
 }) {
   const bullAlign = conviction.alignment.filter((a) => a.bullish).length;
   const verdict = scoreVerdict(conviction.composite, signal, smart.label);
-  const signalDisagrees =
-    (smart.label.includes("Buy") && /sell/i.test(signal)) ||
-    (smart.label.includes("Sell") && /buy/i.test(signal));
 
   return (
-    <section className="cockpit" aria-label="Pulse conviction cockpit">
-      <div className="cockpit-mesh" aria-hidden />
-
+    <section className="cockpit" aria-label={`${symbol} conviction`}>
       <ScoreLegend />
 
       <header className="cockpit-header">
@@ -52,14 +45,9 @@ export function AdvancedConvictionTerminal({
           />
         </div>
         <div className="cockpit-header-main">
-          <p className="cockpit-eyebrow">Pulse intelligence · {symbol}</p>
+          <p className="cockpit-eyebrow">{symbol}</p>
           <p className={`cockpit-signal ${getSignalColor(signal)}`}>{signal}</p>
           <p className="cockpit-verdict">{verdict}</p>
-          {signalDisagrees && (
-            <p className="cockpit-disagree-note">
-              Technical signal and {TERMS.smartScore.toLowerCase()} disagree — use the ranked breakdown below.
-            </p>
-          )}
           <span className={`cockpit-regime cockpit-regime--${regimeSlug(conviction.regime)}`}>
             {conviction.regime}
           </span>
@@ -79,42 +67,34 @@ export function AdvancedConvictionTerminal({
         edgeTier={edge.tier}
       />
 
-      <p className="cockpit-section-label">Supporting metrics</p>
+      <p className="cockpit-section-label">Metrics</p>
       <div className="cockpit-kpi-scroll">
         <KpiCard
           label="Pulse Edge"
-          hint="Fused trade quality"
           value={String(edge.edgeScore)}
           meta={edge.tier}
           valueClass={edgeTierColor(edge.tier)}
-          detail="Combines conviction, data integrity & risk"
         />
         <KpiCard
-          label="Risk grade"
-          hint="Red-flag engine"
+          label="Risk"
           value={riskGrade}
-          meta={riskScore != null ? `Score ${riskScore}/100` : "—"}
-          detail="Lower is safer (A best)"
+          meta={riskScore != null ? `${riskScore}/100` : "—"}
         />
         <KpiCard
-          label="Trend alignment"
-          hint="6 indicator checks"
+          label="Alignment"
           value={`${bullAlign}/6`}
-          meta="Bullish tools"
+          meta="Bullish"
           valueClass={bullAlign >= 4 ? "text-emerald-400" : bullAlign <= 2 ? "text-red-400" : "text-amber-400"}
-          detail="MAs, MACD, stochastic"
         />
         <KpiCard
-          label="Data integrity"
-          hint="Feed trust"
+          label="Data"
           value={String(edge.dataIntegrity)}
-          meta={edge.dataIntegrity >= 70 ? "Reliable" : "Thin / estimated"}
+          meta={edge.dataIntegrity >= 70 ? "Live" : "Estimated"}
           valueClass={edge.dataIntegrity >= 70 ? "text-emerald-400" : "text-amber-400"}
-          detail="Drives cap on confidence"
         />
       </div>
 
-      <p className="cockpit-section-label">Six factors → overall score</p>
+      <p className="cockpit-section-label">Score breakdown</p>
       <div className="cockpit-pillar-scroll">
         {conviction.pillars.map((p) => (
           <article key={p.id} className={`cockpit-pillar-card cockpit-pillar-card--${p.tone}`}>
@@ -126,19 +106,19 @@ export function AdvancedConvictionTerminal({
               <div className="cockpit-pillar-bar-fill" style={{ width: `${p.score}%` }} />
             </div>
             <p className="cockpit-pillar-meta">{p.detail}</p>
-            <span className="cockpit-pillar-weight">{(p.weight * 100).toFixed(0)}% of overall</span>
+            <span className="cockpit-pillar-weight">{(p.weight * 100).toFixed(0)}% weight</span>
           </article>
         ))}
       </div>
 
       <details className="cockpit-details">
         <summary className="cockpit-details-summary">
-          <span>Deep model</span>
-          <span className="cockpit-details-hint">MTF · fusion · drivers</span>
+          <span>Details</span>
+          <span className="cockpit-details-hint">Alignment · returns · edge</span>
         </summary>
         <div className="cockpit-details-body">
           <div className="cockpit-depth-grid">
-            <DepthBlock title="Trend alignment (detail)">
+            <DepthBlock title="Alignment">
               <div className="cockpit-align-row">
                 {conviction.alignment.map((a) => (
                   <span
@@ -150,7 +130,7 @@ export function AdvancedConvictionTerminal({
                 ))}
               </div>
             </DepthBlock>
-            <DepthBlock title="Multi-timeframe returns">
+            <DepthBlock title="Returns">
               <div className="cockpit-mtf-grid">
                 {conviction.mtf.map((m) => (
                   <div key={m.label} className="cockpit-mtf-tile">
@@ -163,7 +143,7 @@ export function AdvancedConvictionTerminal({
                 ))}
               </div>
             </DepthBlock>
-            <DepthBlock title="How Pulse Edge is built">
+            <DepthBlock title="Pulse Edge inputs">
               {conviction.edgeBlend.map((b) => (
                 <div key={b.label} className="cockpit-fusion-row">
                   <span>{b.label}</span>
@@ -171,14 +151,14 @@ export function AdvancedConvictionTerminal({
                     <div style={{ width: `${b.value}%` }} />
                   </div>
                   <span className="cockpit-fusion-num">
-                    {b.value} · {(b.weight * 100).toFixed(0)}% weight
+                    {b.value} · {(b.weight * 100).toFixed(0)}%
                   </span>
                 </div>
               ))}
             </DepthBlock>
           </div>
           <div className="cockpit-tactical-box">
-            <p className="cockpit-tactical-title">What to do with this</p>
+            <p className="cockpit-tactical-title">Note</p>
             <p className="cockpit-tactical-body">{conviction.tacticalRead}</p>
             {(edge.drivers.length > 0 || edge.warnings.length > 0) && (
               <div className="cockpit-chips">
@@ -203,26 +183,20 @@ export function AdvancedConvictionTerminal({
 
 function KpiCard({
   label,
-  hint,
   value,
   meta,
-  detail,
   valueClass = "text-white",
 }: {
   label: string;
-  hint: string;
   value: string;
   meta: string;
-  detail?: string;
   valueClass?: string;
 }) {
   return (
     <div className="cockpit-kpi">
       <span className="cockpit-kpi-label">{label}</span>
-      <span className="cockpit-kpi-hint">{hint}</span>
       <span className={`cockpit-kpi-value ${valueClass}`}>{value}</span>
       <span className="cockpit-kpi-meta">{meta}</span>
-      {detail ? <span className="cockpit-kpi-detail">{detail}</span> : null}
     </div>
   );
 }

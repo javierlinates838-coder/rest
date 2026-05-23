@@ -1,4 +1,4 @@
-/** Plain-language definitions so scores are not confused on the stock page. */
+/** Score definitions for the conviction cockpit. */
 
 export type ScoreKey =
   | "composite"
@@ -17,70 +17,70 @@ export const SCORE_GUIDE: Record<
 > = {
   composite: {
     title: "Overall Pulse Score",
-    short: "0–100 · master read",
+    short: "0–100 headline",
     detail:
-      "Weighted blend of six factors below (technicals, momentum, risk, sentiment, data quality, structure). This is the number in the ring — your headline strength score.",
+      "Weighted average of the six factors below: technicals, momentum, risk, sentiment, data quality, and structure. The number in the ring.",
   },
   grade: {
     title: "Letter grade",
     short: "A+ to F",
-    detail: "Letter shorthand for the Overall Pulse Score. B = solid but not elite; use with the trade signal and regime.",
+    detail: "Shorthand for the overall score. Read it next to the signal and regime, not on its own.",
   },
   signal: {
     title: "Technical signal",
-    short: "From indicators",
+    short: "Indicator read",
     detail:
-      "Classic buy/sell/hold from RSI, MACD, moving averages, and trend tools on live or estimated price history. Can differ from the model tilt when data is thin.",
+      "Buy, sell, or hold from RSI, MACD, moving averages, and trend tools. Can diverge from the conviction score when feeds are thin.",
   },
   smart: {
     title: "Conviction Score",
     short: "Signal + risk + tape",
     detail:
-      "TipRanks-style 0–100 score combining the technical signal, confidence %, risk grade, and today’s price move. Often close to the Overall Pulse Score but calculated on a different formula.",
+      "0–100 score from the technical signal, confidence, risk grade, and today's move. Same scale as the overall score, different formula.",
   },
   edge: {
     title: "Pulse Edge",
-    short: "Fused quality",
+    short: "Trade quality",
     detail:
-      "Proprietary fusion of Conviction Score, model confidence, data integrity, and risk asymmetry. Low edge with a high composite usually means weak data or risk flags.",
+      "Combines conviction score, data integrity, and risk asymmetry. A low edge with a high overall score usually means weak data or risk flags.",
   },
   risk: {
     title: "Risk grade",
     short: "A best → F worst",
-    detail: "Letter from the red-flag engine (volatility, flags, financial stress). C = average risk; size positions accordingly.",
+    detail: "From the red-flag engine: volatility, flags, financial stress. C is average.",
   },
   alignment: {
     title: "Trend alignment",
     short: "6 checks",
-    detail: "How many of six trend tools agree (moving averages, MACD, stochastic). 6/6 = full bullish alignment; 0/6 = bearish stack.",
+    detail: "How many of six trend tools agree. 6/6 bullish stack, 0/6 bearish.",
   },
   integrity: {
     title: "Data integrity",
     short: "Feed quality",
-    detail: "How trustworthy quotes and chart history are. Below 60 = partial or estimated data — verify before acting on levels.",
+    detail: "Trust in quotes and chart history. Below 60 means partial or estimated data.",
   },
   pillar: {
-    title: "Factor pillar",
+    title: "Factor",
     short: "0–100 each",
-    detail: "One ingredient of the Overall Pulse Score. Weight % shows how much it moves the master score.",
+    detail: "One input to the overall score. Weight shows its share of the total.",
   },
 };
 
 export function scoreVerdict(composite: number, signal: string, smartLabel: string): string {
   const tone =
     composite >= 68
-      ? "Favorable setup if risk is acceptable"
+      ? "Setup leans constructive"
       : composite >= 52
-        ? "Mixed — wait for confirmation"
-        : "Weak setup — prioritize defense";
+        ? "Mixed tape. Wait for a cleaner read"
+        : "Weak read. Defense first";
 
   const signalNote = signal.toLowerCase().includes("hold")
-    ? "Technicals are neutral"
+    ? "Technicals neutral"
     : signal.toLowerCase().includes("buy")
-      ? "Technicals lean bullish"
+      ? "Technicals bullish"
       : signal.toLowerCase().includes("sell")
-        ? "Technicals lean bearish"
-        : "Technicals are mixed";
+        ? "Technicals bearish"
+        : "Technicals mixed";
 
   const disagree =
     (smartLabel.includes("Buy") && signal.includes("Sell")) ||
@@ -88,9 +88,9 @@ export function scoreVerdict(composite: number, signal: string, smartLabel: stri
     (smartLabel.includes("Strong") && signal === "Hold");
 
   if (disagree) {
-    return `${tone}. ${signalNote}, but the Conviction Score tilts ${smartLabel} — read both before sizing.`;
+    return `${tone}. ${signalNote}; conviction score says ${smartLabel}.`;
   }
-  return `${tone}. ${signalNote} · model tilt ${smartLabel}.`;
+  return `${tone}. ${signalNote}, conviction ${smartLabel}.`;
 }
 
 export function gradeFromComposite(composite: number): string {

@@ -121,7 +121,7 @@ export function StockPicks({
   if (loading) {
     return (
       <div className="mb-10">
-        <h2 className="text-[20px] font-semibold text-white mb-4 tracking-tight">Meridian picks</h2>
+        <h2 className="text-[20px] font-semibold text-white mb-4 tracking-tight">Featured</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[1, 2, 3].map((i) => (
             <div key={i} className="glass-card rounded-2xl p-6 h-48 skeleton-shine" />
@@ -134,7 +134,7 @@ export function StockPicks({
   if (error || !data) {
     return (
       <section className="mb-10">
-        <h2 className="text-[20px] font-semibold text-white mb-2 tracking-tight">Meridian picks</h2>
+        <h2 className="text-[20px] font-semibold text-white mb-2 tracking-tight">Featured</h2>
         <div className="glass-card rounded-2xl p-6 text-center">
           <p className="text-sm text-zinc-400 mb-4">{error || "Recommendations are temporarily unavailable."}</p>
           <button
@@ -163,9 +163,8 @@ export function StockPicks({
   return (
     <section className="mb-10">
       <ProSectionHeader
-        title="Meridian picks"
-        subtitle={`Live tape · ${TERMS.smartScore} · ${TERMS.edgeShort}-ranked`}
-        badge="PICKS"
+        title="Featured"
+        subtitle={`${TERMS.smartScore} and ${TERMS.edgeShort} on liquid names`}
       />
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <PickSection

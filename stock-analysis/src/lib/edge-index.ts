@@ -34,10 +34,10 @@ export function computeEdgeIndex(input: EdgeIndexInput): EdgeIndexResult {
   let conviction = smart.score * 0.6 + (input.confidence - 50) * 0.4;
   if (input.aiAlignsWithSignal) {
     conviction += 8;
-    drivers.push("AI narrative aligns with technical signal");
+    drivers.push("Research aligns with technical signal");
   } else if (input.aiAlignsWithSignal === false) {
     conviction -= 10;
-    warnings.push("AI view diverges from technical signal — lower conviction");
+    warnings.push("Research diverges from technical signal");
   }
   conviction = Math.max(0, Math.min(100, conviction));
 
@@ -45,7 +45,7 @@ export function computeEdgeIndex(input: EdgeIndexInput): EdgeIndexResult {
   const dq = input.researchQualityScore ?? 55;
   const dataIntegrity = dq;
   if (dq >= 80) drivers.push("High-quality live data feed");
-  else if (dq < 60) warnings.push("Thin or simulated data — verify before trading");
+  else if (dq < 60) warnings.push("Thin or simulated data. Verify before trading");
 
   // Risk asymmetry: good signal + low risk grade
   const riskMap: Record<string, number> = { A: 90, B: 75, C: 55, D: 35, F: 15 };

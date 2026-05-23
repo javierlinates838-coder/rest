@@ -44,14 +44,14 @@ export type PaidFeature =
 export const PAID_FEATURES: Record<PaidFeature, { title: string; description: string }> = {
   unlimited_analyses: {
     title: "Unlimited Pulse Scans",
-    description: "No daily cap on full Meridian AI research",
+    description: "No daily cap on full symbol research",
   },
   screener_advanced: {
     title: "Alpha Forge filters",
     description: "Sector, risk grade, and conviction thresholds",
   },
   research_export: {
-    title: "Meridian Brief exports",
+    title: "Research Brief exports",
     description: "Download Markdown research for your workflow",
   },
   watchlist_digest: {
@@ -76,7 +76,7 @@ export const PAID_FEATURES: Record<PaidFeature, { title: string; description: st
 export const PRO_FEATURES = PAID_FEATURES;
 
 export const COMPETITOR_STACK = [
-  { name: "TradingView Pro", cost: 180, note: "Charts — no Meridian Brief" },
+  { name: "TradingView Pro", cost: 180, note: "Charts only" },
   { name: "Seeking Alpha Premium", cost: 240, note: "Articles only" },
   { name: "TipRanks Premium", cost: 360, note: "Scores — no trade plan" },
 ];

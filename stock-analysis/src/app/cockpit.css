@@ -113,12 +113,7 @@
 }
 
 .cockpit-mesh {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(ellipse 80% 50% at 10% 0%, rgba(20, 184, 166, 0.14) 0%, transparent 55%),
-    radial-gradient(ellipse 60% 40% at 90% 100%, rgba(99, 102, 241, 0.08) 0%, transparent 50%);
+  display: none;
 }
 
 .cockpit-header {
@@ -279,46 +274,31 @@
 .score-hierarchy-primary,
 .score-hierarchy-row {
   display: flex;
-  gap: 0.55rem;
-  align-items: flex-start;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
   padding: 0.35rem 0;
 }
 
 .score-hierarchy-primary {
   padding-bottom: 0.4rem;
   margin-bottom: 0.25rem;
-  border-bottom: 1px solid rgba(45, 212, 191, 0.15);
-}
-
-.score-hierarchy-rank {
-  flex-shrink: 0;
-  width: 1.1rem;
-  height: 1.1rem;
-  border-radius: 0.25rem;
-  background: rgba(45, 212, 191, 0.15);
-  color: #5eead4;
-  font-size: 9px;
-  font-weight: 800;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .score-hierarchy-name {
-  display: block;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: #52525b;
+  font-size: 10px;
+  font-weight: 600;
+  color: #71717a;
+  flex-shrink: 0;
 }
 
 .score-hierarchy-val {
-  display: block;
   font-size: 11px;
   color: #e4e4e7;
   font-weight: 600;
-  margin-top: 0.1rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
 }
 
 .score-hierarchy-warn {

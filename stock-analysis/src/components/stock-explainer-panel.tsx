@@ -15,19 +15,15 @@ export function StockExplainerPanel({
   const [expanded, setExpanded] = useState(false);
 
   const showFull =
-    model.fullDescription &&
-    model.fullDescription.length > model.plainEnglish.length + 24;
+    model.fullDescription && model.fullDescription.length > model.body.length + 24;
 
   return (
-    <section className="company-pulse" aria-label={`What is ${quote.symbol}`}>
-      <div className="company-pulse-glow" aria-hidden />
+    <section className="company-pulse" aria-label={`${quote.symbol} company profile`}>
       <header className="company-pulse-header">
         <div>
           <p className="company-pulse-eyebrow">{model.eyebrow}</p>
           <h2 className="company-pulse-title">{model.headline}</h2>
-          <p className="company-pulse-name">{quote.name}</p>
         </div>
-        <span className="company-pulse-badge">Plain English</span>
       </header>
 
       {model.tags.length > 0 && (
@@ -40,11 +36,11 @@ export function StockExplainerPanel({
         </div>
       )}
 
-      <p className="company-pulse-lead">{model.elevatorPitch}</p>
+      <p className="company-pulse-lead">{model.summary}</p>
 
       <div className="company-pulse-body">
         <p className={`company-pulse-copy ${expanded ? "" : "company-pulse-copy--clamp"}`}>
-          {expanded && showFull ? model.fullDescription : model.plainEnglish}
+          {expanded && showFull ? model.fullDescription : model.body}
         </p>
         {showFull && (
           <button
@@ -52,7 +48,7 @@ export function StockExplainerPanel({
             className="company-pulse-toggle"
             onClick={() => setExpanded((e) => !e)}
           >
-            {expanded ? "Show less" : "Read full company profile"}
+            {expanded ? "Less" : "Full profile"}
           </button>
         )}
       </div>
@@ -79,15 +75,17 @@ export function StockExplainerPanel({
         </div>
       )}
 
-      <div className="company-pulse-lens">
-        <p className="company-pulse-lens-label">Why traders watch it</p>
-        <p className="company-pulse-lens-copy">{model.traderLens}</p>
-      </div>
+      {model.marketContext && (
+        <div className="company-pulse-lens">
+          <p className="company-pulse-lens-label">Market context</p>
+          <p className="company-pulse-lens-copy">{model.marketContext}</p>
+        </div>
+      )}
 
-      {model.meridianNote && (
-        <div className="company-pulse-meridian">
-          <p className="company-pulse-lens-label">{TERMS.meridianBrief} snapshot</p>
-          <p className="company-pulse-meridian-copy">{model.meridianNote}</p>
+      {model.researchNote && (
+        <div className="company-pulse-research">
+          <p className="company-pulse-lens-label">{TERMS.meridianBrief}</p>
+          <p className="company-pulse-research-copy">{model.researchNote}</p>
         </div>
       )}
     </section>

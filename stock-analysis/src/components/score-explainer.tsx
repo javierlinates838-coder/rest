@@ -15,7 +15,7 @@ export function ScoreTip({ id }: { id: ScoreKey }) {
 export function ScoreLegend({ open = false }: { open?: boolean }) {
   return (
     <details className="score-legend" open={open}>
-      <summary className="score-legend-summary">How to read these scores</summary>
+      <summary className="score-legend-summary">Score definitions</summary>
       <ul className="score-legend-list">
         {(Object.keys(SCORE_GUIDE) as ScoreKey[])
           .filter((k) => k !== "pillar")
@@ -30,10 +30,6 @@ export function ScoreLegend({ open = false }: { open?: boolean }) {
             );
           })}
       </ul>
-      <p className="score-legend-foot">
-        Overall Pulse Score (ring) = weighted pillars. Pulse Edge = fused trade-quality index. Technical
-        signal = what indicators say right now; they can disagree when data is limited.
-      </p>
     </details>
   );
 }
@@ -61,48 +57,26 @@ export function ScoreHierarchyStrip({
     (smartLabel.includes("Buy") && /sell/i.test(signal)) ||
     (smartLabel.includes("Sell") && /buy/i.test(signal));
 
+  const rows = [
+    { label: "Overall", value: `${composite} (${grade})`, primary: true },
+    { label: "Signal", value: `${signal}, ${confidence}% conf` },
+    { label: SCORE_GUIDE.smart.title, value: `${smartScore} · ${smartLabel}` },
+    { label: SCORE_GUIDE.edge.title, value: `${edgeScore} · ${edgeTier}` },
+  ];
+
   return (
     <div className="score-hierarchy">
-      <div className="score-hierarchy-primary">
-        <span className="score-hierarchy-rank">1</span>
-        <div>
-          <span className="score-hierarchy-name">Overall Pulse Score</span>
-          <span className="score-hierarchy-val">
-            {composite} <span className="text-zinc-500">({grade})</span>
-          </span>
+      {rows.map((row) => (
+        <div
+          key={row.label}
+          className={row.primary ? "score-hierarchy-primary" : "score-hierarchy-row"}
+        >
+          <span className="score-hierarchy-name">{row.label}</span>
+          <span className="score-hierarchy-val">{row.value}</span>
         </div>
-      </div>
-      <div className="score-hierarchy-row">
-        <span className="score-hierarchy-rank">2</span>
-        <div>
-          <span className="score-hierarchy-name">Technical signal</span>
-          <span className="score-hierarchy-val">
-            {signal} · {confidence}% confidence
-          </span>
-        </div>
-      </div>
-      <div className="score-hierarchy-row">
-        <span className="score-hierarchy-rank">3</span>
-        <div>
-          <span className="score-hierarchy-name">{SCORE_GUIDE.smart.title}</span>
-          <span className="score-hierarchy-val">
-            {smartScore} → {smartLabel}
-          </span>
-        </div>
-      </div>
-      <div className="score-hierarchy-row">
-        <span className="score-hierarchy-rank">4</span>
-        <div>
-          <span className="score-hierarchy-name">{SCORE_GUIDE.edge.title}</span>
-          <span className="score-hierarchy-val">
-            {edgeScore} · {edgeTier}
-          </span>
-        </div>
-      </div>
+      ))}
       {disagree && (
-        <p className="score-hierarchy-warn">
-          Signal and model tilt disagree — treat the Overall Pulse Score as the blend, not either label alone.
-        </p>
+        <p className="score-hierarchy-warn">Signal and conviction score diverge. Weight the overall score.</p>
       )}
     </div>
   );

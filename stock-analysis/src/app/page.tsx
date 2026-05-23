@@ -216,7 +216,9 @@ export default function DashboardPage() {
             {HERO.titleLead}{" "}
             <span className="gradient-text">{HERO.titleAccent}</span>
           </span>
-          <span className="hero-title-line hero-title-line-tail">{HERO.titleTail}</span>
+          {HERO.titleTail ? (
+            <span className="hero-title-line hero-title-line-tail">{HERO.titleTail}</span>
+          ) : null}
         </h1>
         <p className="hidden sm:block text-[15px] text-slate-400 max-w-xl mx-auto mb-8 leading-relaxed px-2">
           {HERO.subtitleDesktop}

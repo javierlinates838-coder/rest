@@ -6,17 +6,17 @@ import { TERMS } from "@/lib/brand";
 export function TradeSetupsStrip() {
   return (
     <section className="mb-8" aria-label="Trade setups">
-      <div className="glass-card rounded-2xl p-4 sm:p-5 border border-teal-500/15 bg-gradient-to-br from-teal-500/[0.06] to-transparent">
+      <div className="glass-card rounded-2xl p-4 sm:p-5 border border-white/[0.06]">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-teal-400/90 mb-1">
-              Actionable setups
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 mb-1">
+              Screener
             </p>
             <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
-              Find names worth trading today
+              Long and short lists, ranked
             </h2>
             <p className="text-[12px] text-zinc-500 mt-1 max-w-xl leading-relaxed">
-              {TERMS.alphaForge} ranks liquid tickers by long/short bias, conviction, and risk — then open any row for entry, stop, and target levels.
+              {TERMS.alphaForge} sorts liquid names by bias, conviction, and risk. Open any row for levels.
             </p>
           </div>
           <div className="flex flex-wrap gap-2 shrink-0">

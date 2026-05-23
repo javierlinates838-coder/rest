@@ -2,7 +2,6 @@
 
 import { formatCurrency } from "@/lib/utils";
 import { computeSmartScore } from "@/lib/smart-score";
-import { TERMS } from "@/lib/brand";
 import { SmartScoreGauge } from "@/components/smart-score-gauge";
 
 interface ActionBriefProps {
@@ -47,19 +46,19 @@ export function ActionBrief({
 
   const action =
     smart.label === "Strong Buy" || smart.label === "Buy"
-      ? "Bias favors long exposure — use the entry zone on pullbacks, honor the stop, and scale out into the target band."
+      ? "Long bias. Work entries on pullbacks; keep the stop."
       : smart.label === "Strong Sell" || smart.label === "Sell"
-        ? "Bias favors shorts or trims — avoid adding size until price reclaims structure or hits your invalidation."
-        : "No edge yet — wait for a clean break of the range before committing capital.";
+        ? "Short or trim bias. Don't add until structure improves."
+        : "Neutral. No clean break yet.";
 
   const metrics = [
-    tradingBias && { label: "Plan bias", value: tradingBias, tone: "neutral" as const },
-    entryPrimary != null && entryPrimary > 0 && { label: "Entry zone", value: formatCurrency(entryPrimary), tone: "neutral" as const },
+    tradingBias && { label: "Bias", value: tradingBias, tone: "neutral" as const },
+    entryPrimary != null && entryPrimary > 0 && { label: "Entry", value: formatCurrency(entryPrimary), tone: "neutral" as const },
     stopStandard != null && stopStandard > 0 && { label: "Stop", value: formatCurrency(stopStandard), tone: "bear" as const },
     targetBase != null && targetBase > 0 && { label: "Target", value: formatCurrency(targetBase), tone: "bull" as const },
     riskReward != null && riskReward > 0 && { label: "R:R", value: `${riskReward.toFixed(1)}×`, tone: "bull" as const },
     { label: "Confidence", value: `${confidence}%`, tone: "neutral" as const },
-    { label: "Risk grade", value: riskGrade, tone: "neutral" as const },
+    { label: "Risk", value: riskGrade, tone: "neutral" as const },
   ].filter(Boolean) as { label: string; value: string; tone: "bull" | "bear" | "neutral" }[];
 
   return (
@@ -71,16 +70,13 @@ export function ActionBrief({
       </div>
       {lowIntegrity && (
         <p className="px-4 pt-3 text-[11px] text-amber-200/90 border-b border-amber-500/15 bg-amber-500/5">
-          Limited live data — treat levels as orientation only until integrity improves.
+          Thin data on this symbol. Treat levels as rough until feeds improve.
         </p>
       )}
       <div className="brief-terminal-body ultra-card-inner">
         <div className="flex flex-wrap items-start justify-between gap-6 mb-5">
           <div className="flex-1 min-w-[200px]">
-            <div className="flex items-center gap-2 flex-wrap mb-2">
-              <span className="pro-badge">Brief + Technical</span>
-              <span className="text-[11px] font-mono text-zinc-500">Signal: {signal}</span>
-            </div>
+            <p className="text-[11px] font-mono text-zinc-500 mb-2">Signal · {signal}</p>
             <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight mb-2">
               {smart.label}
             </h2>
@@ -88,7 +84,7 @@ export function ActionBrief({
               {action}
             </p>
           </div>
-          <SmartScoreGauge score={smart.score} label={TERMS.smartScore} size="lg" />
+          <SmartScoreGauge score={smart.score} label="Conviction" size="lg" />
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
@@ -106,8 +102,8 @@ export function ActionBrief({
           ))}
         </div>
 
-        <p className="text-[10px] text-zinc-600 mt-4 font-mono leading-relaxed">
-          MODEL_OUTPUT · Not investment advice
+        <p className="text-[10px] text-zinc-600 mt-4 leading-relaxed">
+          Not investment advice.
         </p>
       </div>
     </div>

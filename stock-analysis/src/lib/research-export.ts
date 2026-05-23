@@ -23,11 +23,11 @@ export interface ExportableResearch {
 export function buildResearchMarkdown(r: ExportableResearch): string {
   const date = r.analyzedAt ? new Date(r.analyzedAt).toLocaleString() : new Date().toLocaleString();
   const lines = [
-    `# Meridian Brief — ${r.symbol} · StockPulse`,
+    `# Research Brief — ${r.symbol} · StockPulse`,
     ``,
-    `**${r.name}** · Generated ${date}`,
+    `**${r.name}** · ${date}`,
     ``,
-    `> Not financial advice. Proprietary StockPulse Edge Index.`,
+    `> Not financial advice.`,
     ``,
     `## Snapshot`,
     ``,
@@ -50,10 +50,10 @@ export function buildResearchMarkdown(r: ExportableResearch): string {
   }
 
   if (r.aiSummary) {
-    lines.push(`## AI narrative`, ``, r.aiSummary, ``);
+    lines.push(`## Summary`, ``, r.aiSummary, ``);
   }
   if (r.aiRecommendation && r.aiRecommendation !== r.signal) {
-    lines.push(`**AI recommendation:** ${r.aiRecommendation}`, ``);
+    lines.push(`**Recommendation:** ${r.aiRecommendation}`, ``);
   }
 
   if (r.redFlagCount && r.redFlagCount > 0) {

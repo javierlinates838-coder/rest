@@ -21,7 +21,7 @@ export function EdgeIndexPanel({ edge, symbol }: EdgeIndexPanelProps) {
       <div className="brief-terminal-header">
         <span className="brief-terminal-dot" />
         <span>{TERMS.edgeIndex}</span>
-        <span className="ml-auto font-mono text-teal-400/90">ONLY HERE</span>
+        <span className="ml-auto font-mono text-zinc-500">{symbol}</span>
       </div>
       <div className="p-5 sm:p-6 ultra-card-inner">
         <div className="flex flex-wrap items-start justify-between gap-4 mb-5">
@@ -32,11 +32,11 @@ export function EdgeIndexPanel({ edge, symbol }: EdgeIndexPanelProps) {
               </span>
               <div>
                 <div className={`text-lg font-bold ${edgeTierColor(edge.tier)}`}>{edge.tier}</div>
-                <div className="text-[11px] text-zinc-500 font-mono">Smart {edge.smartScore} fused</div>
+                <div className="text-[11px] text-zinc-500 font-mono">Conviction {edge.smartScore}</div>
               </div>
             </div>
             <p className="text-[12px] text-zinc-500 mt-2 max-w-md">
-              Our proprietary fusion for {symbol} — signal, {TERMS.dataGrade.toLowerCase()}, and risk asymmetry in one number.
+              Signal quality for {symbol}: conviction, {TERMS.dataGrade.toLowerCase()}, and risk in one score.
             </p>
           </div>
         </div>
@@ -60,7 +60,7 @@ export function EdgeIndexPanel({ edge, symbol }: EdgeIndexPanelProps) {
           {edge.drivers.length > 0 && (
             <div>
               <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-400/80 mb-2">
-                Edge drivers
+                Supports
               </div>
               <ul className="space-y-1.5">
                 {edge.drivers.map((d) => (
@@ -75,12 +75,12 @@ export function EdgeIndexPanel({ edge, symbol }: EdgeIndexPanelProps) {
           {edge.warnings.length > 0 && (
             <div>
               <div className="text-[10px] font-bold uppercase tracking-wider text-amber-400/80 mb-2">
-                Warnings
+                Flags
               </div>
               <ul className="space-y-1.5">
                 {edge.warnings.map((w) => (
                   <li key={w} className="text-[12px] text-zinc-400 flex gap-2">
-                    <span className="text-amber-500">!</span>
+                    <span className="text-amber-500">▼</span>
                     {w}
                   </li>
                 ))}

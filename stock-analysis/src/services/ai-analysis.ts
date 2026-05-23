@@ -93,9 +93,9 @@ function buildAnalysisPrompt(
 - Revenue Growth (YoY): ${quote.financials.revenueGrowth !== 0 ? `${(quote.financials.revenueGrowth * 100).toFixed(1)}%` : "n/a"}`
     : "";
 
-  return `You are an elite Wall Street quantitative analyst. Provide a comprehensive, data-driven analysis of ${quote.symbol} (${quote.name}).
+  return `Write a concise equity research note on ${quote.symbol} (${quote.name}). Use plain language. No hype, no filler. Cite the numbers provided.
 
-CURRENT DATA:
+DATA:
 - Price: $${quote.price.toFixed(2)} | Change: ${quote.changePercent.toFixed(2)}%
 - Market Cap: $${(quote.marketCap / 1e9).toFixed(2)}B | P/E: ${quote.peRatio.toFixed(2)} | EPS: $${quote.eps.toFixed(2)}
 - Beta: ${quote.beta.toFixed(2)} | Sector: ${quote.sector} | Industry: ${quote.industry}
@@ -121,16 +121,16 @@ NEWS: ${news.slice(0, 6).map((n) => `[${n.sentiment.toUpperCase()}] ${n.title}`)
 
 Respond with ONLY valid JSON (no markdown, no code fences):
 {
-  "summary": "3-4 sentence executive summary with specific numbers",
+  "summary": "2-3 tight sentences with specific numbers",
   "recommendation": "Strong Buy|Buy|Hold|Sell|Strong Sell",
   "confidence": 0-100,
   "priceTarget": {"low": number, "mid": number, "high": number},
   "riskLevel": "Low|Medium|High|Very High",
   "timeHorizon": "Pick ONE horizon that fits THIS stock only (examples: Tactical 2-6 weeks, Short-term 1-3 months, Swing 10-22 weeks, Position 6-14 months, Core hold 1-3 years) — must reflect beta, cap, volatility, and signal",
   "keyFactors": ["5-6 specific data-driven factors"],
-  "technicalOutlook": "detailed technical paragraph",
-  "fundamentalOutlook": "detailed fundamental paragraph",
-  "competitorAnalysis": "detailed peer comparison paragraph",
+  "technicalOutlook": "one paragraph, concrete levels",
+  "fundamentalOutlook": "one paragraph, valuation and business",
+  "competitorAnalysis": "one paragraph vs peers listed",
   "catalysts": ["4-5 upside catalysts — each MUST mention ${quote.symbol} or ${quote.name}"],
   "risks": ["4-5 downside risks — each MUST mention ${quote.symbol} or ${quote.sector}"],
   "sentimentScore": -100 to 100

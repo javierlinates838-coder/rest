@@ -16,7 +16,7 @@ export function CommandStatusBar({ indicesCount = 0, trendingCount = 0, loading 
         <div className="command-status-cluster">
           <span className="command-status-label">{BRAND.terminal}</span>
           <span className="command-status-value font-mono">
-            {loading ? "—" : "SYNCED"}
+            {loading ? "—" : "Live"}
           </span>
         </div>
         <div className="command-status-divider" aria-hidden />
@@ -33,14 +33,9 @@ export function CommandStatusBar({ indicesCount = 0, trendingCount = 0, loading 
             {loading ? "···" : trendingCount}
           </span>
         </div>
-        <div className="command-status-divider hidden md:block" aria-hidden />
-        <div className="command-status-cluster hidden md:flex">
-          <span className="command-status-label">Core</span>
-          <span className="command-status-value font-mono text-teal-300/90">Meridian AI</span>
-        </div>
         <div className="flex-1 hidden lg:block" />
         <Link href="/screener" className="command-status-cta pressable">
-          Open {TERMS.alphaForge}
+          {TERMS.alphaForge}
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
           </svg>

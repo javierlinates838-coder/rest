@@ -140,7 +140,7 @@ export function CompareClient() {
     <div className="page-shell page-shell-wide">
       <ProSectionHeader
         title={TERMS.twinLens}
-        subtitle="Side-by-side conviction — pick the name with the stronger signal before you size a trade"
+          subtitle="Two symbols, one view. Compare signal and conviction before you commit size."
         badge="COMPARE"
         action={
           symbols.length > 0 ? (
@@ -176,7 +176,7 @@ export function CompareClient() {
 
       {bestEdge && bestEdge.confidence >= 40 && (
         <div className="glass-card rounded-xl px-4 py-3 mb-6 border border-teal-500/25 bg-teal-500/5 text-sm text-teal-100/90">
-          Highest conviction in this lens:{" "}
+          Strongest read in this set:{" "}
           <button
             type="button"
             className="font-semibold text-white underline-offset-2 hover:underline"
@@ -256,7 +256,7 @@ export function CompareClient() {
                       <dd className="text-zinc-200 font-medium tabular-nums">{row.rsi}</dd>
                     </div>
                   </dl>
-                  <p className="text-[10px] text-teal-400/80 mt-4 font-medium">Open full {TERMS.pulseScan} →</p>
+                  <p className="text-[10px] text-zinc-500 mt-4 font-medium">Open {row.symbol} →</p>
                 </>
               )}
             </div>

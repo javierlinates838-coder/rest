@@ -180,7 +180,7 @@ export default function ScreenerPageClient() {
     <div className="page-shell page-shell-wide">
       <ProSectionHeader
         title={TERMS.alphaForge}
-        subtitle={`Ranked by ${TERMS.smartScore} and long/short bias — open any row for entry, stop, target, and ${TERMS.pulseScan}`}
+        subtitle={`Ranked by ${TERMS.smartScore} and bias. Open a row for entry, stop, and target.`}
         badge="FORGE"
       />
 

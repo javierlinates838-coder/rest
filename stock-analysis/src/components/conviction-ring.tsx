@@ -23,15 +23,6 @@ export function ConvictionRing({
   return (
     <div className="cockpit-ring" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="cockpit-ring-svg">
-        <defs>
-          <filter id="cockpit-glow">
-            <feGaussianBlur stdDeviation="2.5" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        </defs>
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -51,7 +42,6 @@ export function ConvictionRing({
           strokeDasharray={c}
           strokeDashoffset={offset}
           transform={`rotate(-90 ${size / 2} ${size / 2})`}
-          filter="url(#cockpit-glow)"
           className="cockpit-ring-progress"
         />
       </svg>

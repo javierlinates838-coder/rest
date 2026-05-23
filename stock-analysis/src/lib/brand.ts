@@ -6,11 +6,11 @@
 export const BRAND = {
   name: "StockPulse",
   terminal: "Pulse Terminal",
-  tagline: "Where conviction meets the tape",
-  shortTag: "Pulse · Edge · Truth",
-  metaTitle: "StockPulse — Pulse Terminal for Stock Research",
+  tagline: "Research on one screen",
+  shortTag: "Live · Research · Charts",
+  metaTitle: "StockPulse — Pulse Terminal",
   metaDescription:
-    "Institutional-grade stock research terminal — Pulse Edge Index, Meridian Briefs, Alpha Forge screeners, and integrity grades on every chart.",
+    "Live quotes, conviction scores, screeners, and research briefs on every ticker. Built for people who read charts before they click buy.",
 } as const;
 
 /** User-facing nav labels (routes unchanged) */
@@ -28,14 +28,14 @@ export const MOBILE_NAV = [
   { href: "/?search=1", label: "Scan", match: () => false },
 ] as const;
 
-/** Proprietary product terms — never say "AI stock analysis" generically */
+/** Product terms — short labels, no hype */
 export const TERMS = {
   pulseScan: "Pulse Scan",
-  pulseScanVerb: "Run Pulse Scan",
-  edgeIndex: "Pulse Edge Index",
+  pulseScanVerb: "Open Pulse Scan",
+  edgeIndex: "Pulse Edge",
   edgeShort: "Pulse Edge",
   smartScore: "Conviction Score",
-  meridianBrief: "Meridian Brief",
+  meridianBrief: "Research Brief",
   alphaForge: "Alpha Forge",
   twinLens: "Twin Lens",
   pulseWatch: "Pulse Watch",
@@ -49,16 +49,16 @@ export const TERMS = {
 } as const;
 
 export const HERO = {
-  eyebrow: "Pulse Terminal · Live market data",
-  titleLead: "Research with",
-  titleAccent: "conviction",
-  titleTail: "built in",
+  eyebrow: "Markets · Live",
+  titleLead: "Open a symbol.",
+  titleAccent: "Read the setup.",
+  titleTail: "",
   subtitleDesktop:
-    "Screen long and short setups, compare tickers side-by-side, and open any name for entry, stop, and target levels.",
-  subtitleMobile: "Setups · Compare · Scan · Edge",
+    "Screen by bias and risk, compare two names side by side, and pull entry, stop, and target on any ticker.",
+  subtitleMobile: "Screen · Compare · Research",
 } as const;
 
 export const FOOTER = {
-  legal: `${BRAND.name} Pulse Terminal — Research tooling, not investment advice.`,
-  feeds: ["Pulse Feed", "Sentiment", "Meridian Brief"],
+  legal: `${BRAND.name} — Research tooling, not investment advice.`,
+  feeds: ["Quotes", "News", "Research Brief"],
 } as const;

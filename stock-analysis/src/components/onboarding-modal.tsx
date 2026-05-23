@@ -35,39 +35,27 @@ export function OnboardingModal() {
           <div>
             <div className="text-[10px] font-mono uppercase tracking-widest text-teal-400">{BRAND.terminal}</div>
             <h2 id="onboard-title" className="text-xl font-bold text-white tracking-tight font-display">
-              Welcome to {BRAND.name}
+              {BRAND.name}
             </h2>
           </div>
         </div>
-        <ul className="space-y-2.5 text-[13px] text-zinc-400 mb-6">
-          <li className="flex gap-2">
-            <span className="text-teal-400 shrink-0 font-mono">01</span>
-            <span>
-              Run a <strong className="text-zinc-200">{TERMS.pulseScan}</strong> — {TERMS.meridianBrief} meets Wilder technicals.
-            </span>
+        <ul className="space-y-3 text-[13px] text-zinc-400 mb-6 list-disc pl-4">
+          <li>
+            Search a ticker and open <strong className="text-zinc-200">{TERMS.pulseScan}</strong> for levels and scores.
           </li>
-          <li className="flex gap-2">
-            <span className="text-teal-400 shrink-0 font-mono">02</span>
-            <span>
-              Read your <strong className="text-zinc-200">{TERMS.edgeIndex}</strong> — conviction only we calculate.
-            </span>
+          <li>
+            Read the <strong className="text-zinc-200">{TERMS.edgeIndex}</strong> before you size a position.
           </li>
-          <li className="flex gap-2">
-            <span className="text-teal-400 shrink-0 font-mono">03</span>
-            <span>
-              Hunt ideas in <strong className="text-zinc-200">{TERMS.alphaForge}</strong> · track names in {TERMS.pulseWatch}.
-            </span>
+          <li>
+            Use <strong className="text-zinc-200">{TERMS.alphaForge}</strong> to filter ideas; save names in {TERMS.pulseWatch}.
           </li>
         </ul>
-        <p className="text-[11px] text-zinc-500 mb-5 font-mono">
-          Full terminal access while we build — no paywalls.
-        </p>
         <button
           type="button"
           onClick={dismiss}
           className="w-full px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-sm font-semibold transition-colors"
         >
-          Enter terminal
+          Continue
         </button>
         <button
           type="button"
