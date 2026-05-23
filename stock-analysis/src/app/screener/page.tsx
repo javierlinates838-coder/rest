@@ -212,7 +212,9 @@ export default function ScreenerPage() {
 
       {relaxedFilters && !loading && rows.length > 0 && (
         <div className="glass-card rounded-xl px-4 py-3 mb-4 border border-amber-500/20 text-amber-200/90 text-sm">
-          Score, risk, or sector filters were loosened — bias ({bias}) still applied.
+          {bias === "bullish"
+            ? "Showing today’s gainers — strict long-bias signals were thin in this scan."
+            : `Score, risk, or sector filters were loosened — ${bias} bias still applied.`}
         </div>
       )}
 

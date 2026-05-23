@@ -19,6 +19,8 @@ export interface ScreenerRow {
   smartScore: number;
   smartLabel: string;
   tone: "bullish" | "neutral" | "bearish";
+  /** Tape + technical direction for Alpha Forge long/short filters */
+  forgeBias: "bullish" | "neutral" | "bearish";
   rsi: number;
   sector: string;
   peRatio: number;
@@ -63,20 +65,58 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
   ]);
 }
 
+function isBuyLabel(signal: string, label: string): boolean {
+  return signal === "Strong Buy" || signal === "Buy" || label === "Strong Buy" || label === "Buy";
+}
+
+function isSellLabel(signal: string, label: string): boolean {
+  return signal === "Strong Sell" || signal === "Sell" || label === "Strong Sell" || label === "Sell";
+}
+
+/** Symmetric long/short classification — session % change weighted like bear path */
+export function deriveForgeBias(input: {
+  changePercent: number;
+  signal: string;
+  smartLabel: string;
+  tone: ScreenerRow["tone"];
+  smartScore: number;
+  technicalSignal?: string;
+}): ScreenerRow["forgeBias"] {
+  const tech = input.technicalSignal ?? input.signal;
+
+  if (input.changePercent >= 0.35) return "bullish";
+  if (input.changePercent <= -0.35) return "bearish";
+
+  if (isBuyLabel(tech, input.smartLabel) || input.tone === "bullish") return "bullish";
+  if (isSellLabel(tech, input.smartLabel) || input.tone === "bearish") return "bearish";
+
+  if (input.changePercent > 0 && input.smartScore >= 48) return "bullish";
+  if (input.changePercent < 0 && input.smartScore <= 52) return "bearish";
+
+  return "neutral";
+}
+
 function rowFromQuote(quote: StockQuote, partial?: Partial<ScreenerRow>): ScreenerRow {
   const change = quote.changePercent;
-  const signal = change > 1.2 ? "Buy" : change < -1.2 ? "Sell" : "Hold";
+  const signal = change > 0.8 ? "Buy" : change < -0.8 ? "Sell" : "Hold";
   const smartScore = Math.round(
     Math.max(20, Math.min(80, 50 + change * 2.5 + (quote.beta > 1.5 ? -4 : 3)))
   );
   const smartLabel =
     smartScore >= 58 ? "Buy" : smartScore <= 42 ? "Sell" : "Hold";
-  const tone: ScreenerRow["tone"] =
-    signal.includes("Buy") || smartLabel.includes("Buy")
-      ? "bullish"
-      : signal.includes("Sell") || smartLabel.includes("Sell")
-        ? "bearish"
-        : "neutral";
+  const tone: ScreenerRow["tone"] = isBuyLabel(signal, smartLabel)
+    ? "bullish"
+    : isSellLabel(signal, smartLabel)
+      ? "bearish"
+      : "neutral";
+  const forgeBias = deriveForgeBias({
+    changePercent: change,
+    signal,
+    smartLabel,
+    tone,
+    smartScore,
+    technicalSignal: signal,
+  });
 
   return {
     symbol: quote.symbol,
@@ -89,6 +129,7 @@ function rowFromQuote(quote: StockQuote, partial?: Partial<ScreenerRow>): Screen
     smartScore,
     smartLabel,
     tone,
+    forgeBias,
     rsi: 50,
     sector: cleanDisplayLabel(quote.sector) || "",
     peRatio: quote.peRatio,
@@ -104,8 +145,8 @@ export async function buildScreenerUniverse(): Promise<string[]> {
   return Array.from(
     new Set([
       ...LIQUID_UNIVERSE,
-      ...gainers.slice(0, 5).map((g) => g.symbol),
-      ...losers.slice(0, 6).map((l) => l.symbol),
+      ...gainers.slice(0, 8).map((g) => g.symbol),
+      ...losers.slice(0, 5).map((l) => l.symbol),
     ])
   ).slice(0, FORGE_UNIVERSE_CAP);
 }
@@ -138,6 +179,14 @@ async function scoreForScreenerFull(symbol: string): Promise<ScreenerRow | null>
     rsi: indicators.rsi,
     researchQualityScore: quality.score,
   });
+  const forgeBias = deriveForgeBias({
+    changePercent: quote.changePercent,
+    signal,
+    smartLabel: smart.label,
+    tone: smart.tone,
+    smartScore: smart.score,
+    technicalSignal: adjusted.signal,
+  });
 
   return {
     symbol: quote.symbol,
@@ -150,6 +199,7 @@ async function scoreForScreenerFull(symbol: string): Promise<ScreenerRow | null>
     smartScore: smart.score,
     smartLabel: smart.label,
     tone: smart.tone,
+    forgeBias,
     rsi: Math.round(indicators.rsi),
     sector: quote.sector,
     peRatio: quote.peRatio,
@@ -174,20 +224,11 @@ export async function scoreForScreener(symbol: string): Promise<ScreenerRow | nu
 }
 
 export function rowMatchesBias(row: ScreenerRow, bias: "bullish" | "bearish"): boolean {
+  if (row.forgeBias === bias) return true;
   if (bias === "bullish") {
-    return (
-      row.tone === "bullish" ||
-      row.signal.includes("Buy") ||
-      row.smartLabel.includes("Buy") ||
-      (row.changePercent >= 0.8 && row.smartScore >= 54)
-    );
+    return row.changePercent > 0.15 && row.smartScore >= 47;
   }
-  return (
-    row.tone === "bearish" ||
-    row.signal.includes("Sell") ||
-    row.smartLabel.includes("Sell") ||
-    (row.changePercent <= -0.8 && row.smartScore <= 46)
-  );
+  return row.changePercent < -0.15 && row.smartScore <= 53;
 }
 
 export function sortScreenerRows(rows: ScreenerRow[], bias?: ScreenerFilter["bias"]): ScreenerRow[] {
@@ -197,6 +238,13 @@ export function sortScreenerRows(rows: ScreenerRow[], bias?: ScreenerFilter["bia
       const chg = a.changePercent - b.changePercent;
       if (chg !== 0) return chg;
       return a.smartScore - b.smartScore;
+    });
+  }
+  if (bias === "bullish") {
+    return copy.sort((a, b) => {
+      const chg = b.changePercent - a.changePercent;
+      if (chg !== 0) return chg;
+      return b.smartScore - a.smartScore;
     });
   }
   return copy.sort((a, b) => b.smartScore - a.smartScore);
@@ -307,7 +355,21 @@ export async function runScreener(filter: ScreenerFilter = {}): Promise<{
     if (filtered.length > 0) relaxedFilters = true;
   }
 
-  if (filtered.length === 0 && baseRows.length > 0 && filter.bias && filter.bias !== "any") {
+  if (
+    filtered.length === 0 &&
+    baseRows.length > 0 &&
+    filter.bias === "bullish"
+  ) {
+    const sessionLeaders = baseRows
+      .filter((r) => r.changePercent > 0)
+      .sort((a, b) => b.changePercent - a.changePercent);
+    if (sessionLeaders.length > 0) {
+      filtered = sessionLeaders;
+      relaxedFilters = true;
+    } else {
+      biasEmpty = true;
+    }
+  } else if (filtered.length === 0 && baseRows.length > 0 && filter.bias === "bearish") {
     biasEmpty = true;
   }
 
