@@ -87,6 +87,27 @@ export type SectorDefinition = (typeof SECTOR_DEFINITIONS)[number];
 
 export const SCREENER_SECTOR_OPTIONS = ["all", ...SECTOR_DEFINITIONS.map((d) => d.label)] as const;
 
+/** Liquid names per sector — merged into Alpha Forge universe when sector filter is active */
+export const SECTOR_FORGE_SYMBOLS: Record<SectorId, readonly string[]> = {
+  technology: ["AAPL", "MSFT", "NVDA", "AMD", "AVGO", "ORCL", "CRM", "INTC"],
+  communication: ["META", "GOOGL", "NFLX", "DIS", "CMCSA", "T", "VZ"],
+  financials: ["JPM", "V", "BAC", "WFC", "GS", "MS", "BLK"],
+  healthcare: ["UNH", "JNJ", "LLY", "PFE", "ABBV", "MRK", "TMO"],
+  "consumer-discretionary": ["AMZN", "TSLA", "HD", "MCD", "NKE", "SBUX", "LOW"],
+  "consumer-staples": ["PG", "KO", "PEP", "COST", "WMT", "PM", "CL"],
+  energy: ["XOM", "CVX", "COP", "SLB", "EOG", "MPC", "PSX"],
+  industrials: ["BA", "CAT", "GE", "HON", "UPS", "RTX", "DE"],
+  materials: ["LIN", "APD", "SHW", "FCX", "NEM", "DOW", "NUE"],
+  "real-estate": ["PLD", "AMT", "EQIX", "SPG", "O", "PSA", "WELL"],
+  utilities: ["NEE", "DUK", "SO", "D", "AEP", "EXC", "SRE"],
+};
+
+export function symbolsForSectorFilter(filterLabel: string): string[] {
+  const id = resolveSectorId(filterLabel);
+  if (!id) return [];
+  return [...(SECTOR_FORGE_SYMBOLS[id] ?? [])];
+}
+
 export type SectorPerformanceRow = {
   id: SectorId;
   label: string;

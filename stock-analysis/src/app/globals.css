@@ -1806,21 +1806,207 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: 0 0 4px 0;
 }
 
-.sector-rotation-board {
-  border: 1px solid rgba(45, 212, 191, 0.12);
-  background: linear-gradient(165deg, rgba(12, 18, 26, 0.98) 0%, rgba(6, 8, 12, 0.95) 100%);
+.sector-board {
+  border: 1px solid rgba(45, 212, 191, 0.1);
+  border-radius: 1rem;
+  padding: 1.25rem 1rem;
+  background: linear-gradient(165deg, rgba(10, 14, 20, 0.98) 0%, rgba(4, 6, 10, 0.96) 100%);
 }
 
-.sector-rank-lg {
-  font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 13px;
+@media (min-width: 640px) {
+  .sector-board {
+    padding: 1.5rem 1.5rem;
+  }
+}
+
+.sector-board-empty {
+  border: 1px dashed rgba(113, 113, 122, 0.35);
+  background: rgba(9, 9, 11, 0.6);
+}
+
+.sector-board-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.sector-board-forge-link {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgb(45, 212, 191);
+  white-space: nowrap;
+}
+
+.sector-board-forge-link:hover {
+  color: rgb(94, 234, 212);
+}
+
+.sector-macro-strip {
+  display: flex;
+  gap: 3px;
+  height: 6px;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+  background: rgba(39, 39, 42, 0.8);
+}
+
+.sector-macro-seg {
+  min-width: 4px;
+  border-radius: 2px;
+  transition: opacity 0.2s;
+}
+
+.sector-leader-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.sector-macro-highlight {
+  text-align: left;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid transparent;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.sector-macro-highlight--up {
+  border-color: rgba(52, 211, 153, 0.22);
+  background: rgba(52, 211, 153, 0.06);
+}
+
+.sector-macro-highlight--down {
+  border-color: rgba(248, 113, 113, 0.22);
+  background: rgba(248, 113, 113, 0.06);
+}
+
+.sector-macro-highlight:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.sector-macro-highlight-label {
+  display: block;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(161, 161, 170, 0.9);
+  margin-bottom: 0.25rem;
+}
+
+.sector-macro-highlight-name {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  line-height: 1.2;
+}
+
+.sector-macro-highlight-pct {
+  display: block;
+  font-size: 18px;
   font-weight: 800;
-  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  margin-top: 0.15rem;
 }
 
-.sector-rotation-row:focus-visible {
+.sector-macro-highlight-etf {
+  display: block;
+  font-size: 10px;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  color: #71717a;
+  margin-top: 0.15rem;
+}
+
+.sector-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+@media (min-width: 640px) {
+  .sector-card-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.625rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .sector-card-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.sector-card {
+  text-align: left;
+  border-radius: 0.75rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(24, 24, 27, 0.55);
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.sector-card:hover {
+  border-color: rgba(45, 212, 191, 0.28);
+  background: rgba(24, 24, 27, 0.85);
+}
+
+.sector-card:focus-visible {
   outline: 2px solid rgba(45, 212, 191, 0.45);
-  outline-offset: -2px;
+  outline-offset: 2px;
+}
+
+.sector-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.35rem;
+}
+
+.sector-card-rank {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.sector-card-etf {
+  font-size: 10px;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  color: #71717a;
+  font-weight: 600;
+}
+
+.sector-card-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #f4f4f5;
+  line-height: 1.25;
+  margin-bottom: 0.2rem;
+}
+
+.sector-card-change {
+  font-size: 15px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.sector-card-bar-track {
+  margin-top: 0.5rem;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(39, 39, 42, 0.9);
+  overflow: hidden;
+}
+
+.sector-card-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  min-width: 4px;
 }
 
 .pulse-feed-tag {

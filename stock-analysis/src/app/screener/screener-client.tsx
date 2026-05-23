@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { formatCurrency, formatPercent, getSignalColor } from "@/lib/utils";
 import { smartScoreColor } from "@/lib/smart-score";
@@ -15,6 +15,17 @@ import { fetchJsonWithTimeout } from "@/lib/fetch-json";
 type BiasFilter = "any" | "bullish" | "bearish";
 
 const DEFAULT_MIN_SCORE = 0;
+const SECTOR_OPTIONS = SCREENER_SECTOR_OPTIONS as readonly string[];
+
+function sectorFromUrl(raw: string | null): string {
+  if (raw && SECTOR_OPTIONS.includes(raw)) return raw;
+  return "all";
+}
+
+function biasFromUrl(raw: string | null): BiasFilter {
+  if (raw === "bullish" || raw === "bearish") return raw;
+  return "any";
+}
 
 interface ScreenerResponse {
   rows?: ScreenerRow[];
@@ -24,25 +35,45 @@ interface ScreenerResponse {
   relaxedFilters?: boolean;
   biasEmpty?: boolean;
   partialData?: boolean;
+  sectorKept?: boolean;
   error?: string;
 }
 
 export default function ScreenerPageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const urlSector = searchParams.get("sector");
+  const urlBias = searchParams.get("bias");
+
   const [rows, setRows] = useState<ScreenerRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [bias, setBias] = useState<BiasFilter>("any");
+  const [bias, setBias] = useState<BiasFilter>(() => biasFromUrl(urlBias));
   const [minScore, setMinScore] = useState(DEFAULT_MIN_SCORE);
   const [universeSize, setUniverseSize] = useState(0);
   const [maxSmartScore, setMaxSmartScore] = useState(0);
   const [maxRisk, setMaxRisk] = useState("");
-  const [sector, setSector] = useState("all");
+  const [sector, setSector] = useState(() => sectorFromUrl(urlSector));
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const [relaxedFilters, setRelaxedFilters] = useState(false);
   const [biasEmpty, setBiasEmpty] = useState(false);
   const [partialData, setPartialData] = useState(false);
+
+  const syncUrl = useCallback(
+    (nextBias: BiasFilter, nextSector: string) => {
+      const params = new URLSearchParams();
+      if (nextSector !== "all") params.set("sector", nextSector);
+      if (nextBias !== "any") params.set("bias", nextBias);
+      const q = params.toString();
+      router.replace(q ? `/screener?${q}` : "/screener", { scroll: false });
+    },
+    [router]
+  );
+
+  useEffect(() => {
+    setSector(sectorFromUrl(urlSector));
+    setBias(biasFromUrl(urlBias));
+  }, [urlSector, urlBias]);
 
   const fetchScreener = useCallback(async () => {
     const params = new URLSearchParams();
@@ -78,13 +109,6 @@ export default function ScreenerPageClient() {
   };
 
   useEffect(() => {
-    const fromUrl = searchParams.get("sector");
-    if (fromUrl && (SCREENER_SECTOR_OPTIONS as readonly string[]).includes(fromUrl)) {
-      setSector(fromUrl);
-    }
-  }, [searchParams]);
-
-  useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
@@ -107,32 +131,67 @@ export default function ScreenerPageClient() {
     };
   }, [fetchScreener]);
 
+  const setBiasAndUrl = (id: BiasFilter) => {
+    setBias(id);
+    syncUrl(id, sector);
+  };
+
+  const setSectorAndUrl = (value: string) => {
+    setSector(value);
+    syncUrl(bias, value);
+  };
+
   const resetFilters = () => {
     setBias("any");
     setMinScore(DEFAULT_MIN_SCORE);
     setMaxRisk("");
     setSector("all");
+    router.replace("/screener", { scroll: false });
   };
 
   const filtersActive =
     bias !== "any" || minScore > 0 || maxRisk !== "" || sector !== "all";
 
+  const relaxedMessage = useMemo(() => {
+    if (!relaxedFilters) return null;
+    if (bias === "bullish") {
+      return sector !== "all"
+        ? `Showing ${sector} names with positive tape — strict long-bias signals were thin.`
+        : "Showing today’s gainers — strict long-bias signals were thin in this scan.";
+    }
+    if (bias === "bearish") {
+      return sector !== "all"
+        ? `Showing ${sector} names on negative tape — strict short-bias signals were thin.`
+        : "Showing session decliners — strict short-bias signals were thin in this scan.";
+    }
+    if (sector !== "all") {
+      return `Score or risk filters were relaxed — still limited to ${sector}.`;
+    }
+    return "Score or risk filters were relaxed to surface results.";
+  }, [relaxedFilters, bias, sector]);
+
   return (
     <div className="page-shell page-shell-wide">
       <ProSectionHeader
         title={TERMS.alphaForge}
-        subtitle={`Universe ranked by ${TERMS.smartScore} + ${TERMS.edgeShort}`}
+        subtitle={`Universe ranked by ${TERMS.smartScore} + tape bias · long and short use different sorts`}
         badge="FORGE"
       />
 
       {sector !== "all" && (
         <div className="glass-card rounded-xl px-4 py-2.5 mb-4 border border-teal-500/20 text-sm text-teal-100/90 flex flex-wrap items-center justify-between gap-2">
           <span>
-            Sector filter: <strong className="text-white">{sector}</strong>
+            Sector: <strong className="text-white">{sector}</strong>
+            {bias !== "any" && (
+              <span className="text-zinc-500">
+                {" "}
+                · {bias === "bullish" ? "Long bias" : "Short bias"}
+              </span>
+            )}
           </span>
           <button
             type="button"
-            onClick={() => setSector("all")}
+            onClick={() => setSectorAndUrl("all")}
             className="text-[11px] text-zinc-400 hover:text-white"
           >
             Clear sector
@@ -152,7 +211,7 @@ export default function ScreenerPageClient() {
             <button
               key={id}
               type="button"
-              onClick={() => setBias(id)}
+              onClick={() => setBiasAndUrl(id)}
               className={`px-4 py-2 text-[12px] font-medium ${
                 bias === id ? "bg-teal-600/30 text-teal-200" : "text-zinc-400 hover:bg-zinc-800/50"
               }`}
@@ -192,7 +251,7 @@ export default function ScreenerPageClient() {
           Sector
           <select
             value={sector}
-            onChange={(e) => setSector(e.target.value)}
+            onChange={(e) => setSectorAndUrl(e.target.value)}
             className="bg-transparent text-white text-[12px] outline-none max-w-[180px] truncate"
           >
             {SCREENER_SECTOR_OPTIONS.map((s) => (
@@ -234,19 +293,20 @@ export default function ScreenerPageClient() {
         </div>
       )}
 
-      {relaxedFilters && !loading && rows.length > 0 && (
+      {relaxedMessage && !loading && rows.length > 0 && (
         <div className="glass-card rounded-xl px-4 py-3 mb-4 border border-amber-500/20 text-amber-200/90 text-sm">
-          {bias === "bullish"
-            ? "Showing today’s gainers — strict long-bias signals were thin in this scan."
-            : `Score, risk, or sector filters were loosened — ${bias} bias still applied.`}
+          {relaxedMessage}
         </div>
       )}
 
-      {biasEmpty && !loading && (
+      {biasEmpty && !loading && rows.length === 0 && (
         <div className="glass-card rounded-xl px-4 py-3 mb-4 border border-zinc-600/40 text-zinc-300 text-sm">
-          No symbols in today&apos;s universe match{" "}
-          <span className="font-medium text-white">{bias === "bearish" ? "short" : "long"} bias</span>.
-          Try <span className="text-white">All</span>, tap Refresh, or widen the tape on Hub.
+          No symbols match{" "}
+          <span className="font-medium text-white">
+            {bias === "bearish" ? "short" : bias === "bullish" ? "long" : ""} bias
+            {sector !== "all" ? ` in ${sector}` : ""}
+          </span>
+          . Try <span className="text-white">All</span>, another sector, or tap Refresh.
         </div>
       )}
 
@@ -296,16 +356,16 @@ export default function ScreenerPageClient() {
         </div>
       ) : (
         <div className="pro-table-wrap table-scroll">
-          <table className="w-full min-w-[640px]">
+          <table className="w-full min-w-[720px]">
             <thead>
               <tr className="border-b border-zinc-800 text-[10px] text-zinc-500 uppercase tracking-wider">
                 <th className="text-left px-5 py-3">Symbol</th>
                 <th className="text-right px-4 py-3">Price</th>
                 <th className="text-right px-4 py-3">Chg%</th>
+                <th className="text-center px-4 py-3">Bias</th>
                 <th className="text-center px-4 py-3">Smart</th>
                 <th className="text-center px-4 py-3">Signal</th>
                 <th className="text-center px-4 py-3">Risk</th>
-                <th className="text-right px-4 py-3">RSI</th>
                 <th className="text-right px-5 py-3">Sector</th>
               </tr>
             </thead>
@@ -327,6 +387,9 @@ export default function ScreenerPageClient() {
                     {formatPercent(row.changePercent)}
                   </td>
                   <td className="text-center px-4 py-3.5">
+                    <ForgeBiasPill bias={row.forgeBias} />
+                  </td>
+                  <td className="text-center px-4 py-3.5">
                     <span className={`score-pill ${smartScoreColor(row.smartScore)}`}>{row.smartScore}</span>
                     <div className="text-[10px] text-zinc-500 mt-1">{row.smartLabel}</div>
                   </td>
@@ -334,7 +397,6 @@ export default function ScreenerPageClient() {
                     {row.signal}
                   </td>
                   <td className="text-center px-4 py-3.5 text-zinc-300">{row.riskGrade}</td>
-                  <td className="text-right px-4 py-3.5 text-zinc-400 tabular-nums">{row.rsi}</td>
                   <td className="text-right px-5 py-3.5">
                     <SectorBadge label={displayOrDash(row.sector)} />
                   </td>
@@ -345,5 +407,20 @@ export default function ScreenerPageClient() {
         </div>
       )}
     </div>
+  );
+}
+
+function ForgeBiasPill({ bias }: { bias: ScreenerRow["forgeBias"] }) {
+  const styles =
+    bias === "bullish"
+      ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/25"
+      : bias === "bearish"
+        ? "bg-red-500/15 text-red-300 border-red-500/25"
+        : "bg-zinc-700/40 text-zinc-400 border-zinc-600/40";
+  const label = bias === "bullish" ? "Long" : bias === "bearish" ? "Short" : "Neutral";
+  return (
+    <span className={`text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-md border ${styles}`}>
+      {label}
+    </span>
   );
 }

@@ -7,7 +7,7 @@ import { computeSmartScore } from "@/lib/smart-score";
 import { fmpFetchGainers, fmpFetchLosers } from "@/services/fmp-api";
 import { LIQUID_UNIVERSE } from "@/lib/hub-symbols";
 import { cleanDisplayLabel } from "@/lib/display-labels";
-import { normalizeSectorLabel, sectorMatchesRow } from "@/lib/sectors";
+import { normalizeSectorLabel, sectorMatchesRow, symbolsForSectorFilter } from "@/lib/sectors";
 
 export interface ScreenerRow {
   symbol: string;
@@ -119,18 +119,23 @@ function rowFromQuote(quote: StockQuote, partial?: Partial<ScreenerRow>): Screen
   };
 }
 
-export async function buildScreenerUniverse(): Promise<string[]> {
+export async function buildScreenerUniverse(sectorFilter?: string): Promise<string[]> {
   const [gainers, losers] = await Promise.all([
     fmpFetchGainers().catch(() => []),
     fmpFetchLosers().catch(() => []),
   ]);
+  const sectorSyms =
+    sectorFilter && sectorFilter !== "all" ? symbolsForSectorFilter(sectorFilter) : [];
+  const cap = sectorSyms.length > 0 ? Math.max(FORGE_UNIVERSE_CAP, 22) : FORGE_UNIVERSE_CAP;
+
   return Array.from(
     new Set([
       ...LIQUID_UNIVERSE,
+      ...sectorSyms,
       ...gainers.slice(0, 8).map((g) => g.symbol),
-      ...losers.slice(0, 5).map((l) => l.symbol),
+      ...losers.slice(0, 8).map((l) => l.symbol),
     ])
-  ).slice(0, FORGE_UNIVERSE_CAP);
+  ).slice(0, cap);
 }
 
 async function scoreForScreenerFull(symbol: string): Promise<ScreenerRow | null> {
@@ -265,11 +270,16 @@ async function mapWithConcurrency<T, R>(
   return out;
 }
 
-type ScreenerCache = { rows: ScreenerRow[]; updatedAt: string; scoredAt: number };
+type ScreenerCache = { rows: ScreenerRow[]; updatedAt: string; scoredAt: number; symbolsKey: string };
 let scoredUniverseCache: ScreenerCache | null = null;
 
 export function clearScreenerCache(): void {
   scoredUniverseCache = null;
+}
+
+function applySectorPool(rows: ScreenerRow[], sector?: string): ScreenerRow[] {
+  if (!sector || sector === "all") return rows;
+  return rows.filter((r) => sectorMatchesRow(sector, r.sector));
 }
 
 export async function runScreener(filter: ScreenerFilter = {}): Promise<{
@@ -280,24 +290,31 @@ export async function runScreener(filter: ScreenerFilter = {}): Promise<{
   relaxedFilters?: boolean;
   biasEmpty?: boolean;
   partialData?: boolean;
+  sectorKept?: boolean;
 }> {
   const now = Date.now();
   let baseRows: ScreenerRow[];
   let updatedAt: string;
   let partialData = false;
 
-  if (scoredUniverseCache && now - scoredUniverseCache.scoredAt < SCORE_CACHE_MS) {
+  const symbols = await buildScreenerUniverse(filter.sector);
+  const symbolsKey = symbols.join(",");
+
+  if (
+    scoredUniverseCache &&
+    now - scoredUniverseCache.scoredAt < SCORE_CACHE_MS &&
+    scoredUniverseCache.symbolsKey === symbolsKey
+  ) {
     baseRows = scoredUniverseCache.rows;
     updatedAt = scoredUniverseCache.updatedAt;
   } else {
-    const symbols = await buildScreenerUniverse();
     const scored = await mapWithConcurrency(symbols, scoreForScreener, 4);
     baseRows = scored.filter((r): r is ScreenerRow => r !== null);
 
     if (baseRows.length === 0) {
       partialData = true;
       const emergency = await mapWithConcurrency(
-        LIQUID_UNIVERSE.slice(0, 10),
+        symbols.slice(0, 12),
         async (sym) => {
           try {
             const quote = await fetchStockQuote(sym);
@@ -313,46 +330,75 @@ export async function runScreener(filter: ScreenerFilter = {}): Promise<{
 
     updatedAt = new Date().toISOString();
     if (baseRows.length > 0) {
-      scoredUniverseCache = { rows: baseRows, updatedAt, scoredAt: now };
+      scoredUniverseCache = { rows: baseRows, updatedAt, scoredAt: now, symbolsKey };
     } else {
       scoredUniverseCache = null;
     }
   }
 
   const maxSmartScore = baseRows.reduce((m, r) => Math.max(m, r.smartScore), 0);
+  const sectorActive = Boolean(filter.sector && filter.sector !== "all");
   let filtered = sortScreenerRows(filterScreenerRows(baseRows, filter), filter.bias);
   let relaxedFilters = false;
   let biasEmpty = false;
+  let sectorKept = sectorActive;
 
-  const hasSoftFilters =
-    (filter.minSmartScore != null && filter.minSmartScore > 0) ||
-    Boolean(filter.maxRiskGrade) ||
-    (filter.sector != null && filter.sector !== "all");
+  const hasScoreOrRisk =
+    (filter.minSmartScore != null && filter.minSmartScore > 0) || Boolean(filter.maxRiskGrade);
 
-  if (filtered.length === 0 && baseRows.length > 0 && hasSoftFilters) {
-    const softFilter: ScreenerFilter = {
+  if (filtered.length === 0 && baseRows.length > 0 && hasScoreOrRisk) {
+    const scoreRelaxed: ScreenerFilter = {
       bias: filter.bias,
+      sector: filter.sector,
     };
-    filtered = sortScreenerRows(filterScreenerRows(baseRows, softFilter), filter.bias);
+    filtered = sortScreenerRows(filterScreenerRows(baseRows, scoreRelaxed), filter.bias);
     if (filtered.length > 0) relaxedFilters = true;
   }
 
-  if (
-    filtered.length === 0 &&
-    baseRows.length > 0 &&
-    filter.bias === "bullish"
-  ) {
-    const sessionLeaders = baseRows
-      .filter((r) => r.changePercent > 0)
-      .sort((a, b) => b.changePercent - a.changePercent);
-    if (sessionLeaders.length > 0) {
-      filtered = sessionLeaders;
+  if (filtered.length === 0 && baseRows.length > 0 && sectorActive) {
+    const sectorOnly = applySectorPool(baseRows, filter.sector);
+    if (sectorOnly.length > 0) {
+      filtered = sortScreenerRows(sectorOnly, filter.bias);
+      relaxedFilters = true;
+    }
+  }
+
+  if (filtered.length === 0 && baseRows.length > 0 && filter.bias === "bullish") {
+    let pool = baseRows.filter((r) => r.changePercent > 0 && rowMatchesBias(r, "bullish"));
+    if (pool.length === 0) {
+      pool = baseRows.filter((r) => r.changePercent > 0);
+    }
+    pool = applySectorPool(pool, filter.sector);
+    if (pool.length > 0) {
+      filtered = sortScreenerRows(pool, "bullish");
       relaxedFilters = true;
     } else {
       biasEmpty = true;
     }
   } else if (filtered.length === 0 && baseRows.length > 0 && filter.bias === "bearish") {
-    biasEmpty = true;
+    let pool = baseRows.filter((r) => rowMatchesBias(r, "bearish"));
+    if (pool.length === 0) {
+      pool = baseRows.filter((r) => r.changePercent < 0);
+    }
+    pool = applySectorPool(pool, filter.sector);
+    if (pool.length > 0) {
+      filtered = sortScreenerRows(pool, "bearish");
+      relaxedFilters = true;
+    } else {
+      biasEmpty = true;
+    }
+  } else if (
+    filtered.length === 0 &&
+    baseRows.length > 0 &&
+    filter.bias !== "bullish" &&
+    filter.bias !== "bearish" &&
+    sectorActive
+  ) {
+    const sectorOnly = applySectorPool(baseRows, filter.sector);
+    if (sectorOnly.length > 0) {
+      filtered = sortScreenerRows(sectorOnly, filter.bias);
+      relaxedFilters = true;
+    }
   }
 
   return {
@@ -362,6 +408,7 @@ export async function runScreener(filter: ScreenerFilter = {}): Promise<{
     maxSmartScore,
     relaxedFilters,
     biasEmpty,
+    sectorKept: sectorActive ? sectorKept : undefined,
     partialData: partialData || undefined,
   };
 }

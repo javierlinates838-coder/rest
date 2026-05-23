@@ -84,26 +84,31 @@ export default function DashboardPage() {
           fetch("/api/market"),
           fetch("/api/sectors"),
         ]);
-        const data = await marketRes.json();
+        const data = marketRes.ok ? await marketRes.json() : { error: "Market data unavailable" };
         const sectorPayload = sectorsRes.ok ? await sectorsRes.json() : null;
         if (cancelled) return;
-        if (!marketRes.ok) {
-          setMarketError(data.error || "Market data unavailable");
-          return;
-        }
-        setIndices(data.indices || []);
-        setTrending(data.trending || []);
+
         const sectorRows = sectorPayload?.sectors
           ? normalizeMarketSectors(sectorPayload.sectors)
-          : normalizeMarketSectors(data.sectors || []);
+          : marketRes.ok
+            ? normalizeMarketSectors(data.sectors || [])
+            : [];
         setSectors(sectorRows);
         setSectorsEstimated(
           Boolean(sectorPayload?.estimated ?? data.sectorsEstimated)
         );
         setSectorSource(sectorPayload?.source ?? data.sectorSource);
-        setGainers(data.topGainers || []);
-        setLosers(data.topLosers || []);
-        setDataSources(data.dataSources || {});
+
+        if (!marketRes.ok) {
+          setMarketError(data.error || "Market data unavailable");
+        } else {
+          setMarketError(null);
+          setIndices(data.indices || []);
+          setTrending(data.trending || []);
+          setGainers(data.topGainers || []);
+          setLosers(data.topLosers || []);
+          setDataSources(data.dataSources || {});
+        }
       } catch (e) {
         if (!cancelled) setMarketError("Could not load market data. Check your connection and try again.");
         console.error("Failed to fetch market data:", e);
@@ -307,7 +312,7 @@ export default function DashboardPage() {
               </div>
             ))}
           </div>
-          <div className="ultra-card rounded-2xl p-6 mb-10 skeleton-shine min-h-[280px]" aria-hidden />
+          <div className="sector-board mb-10 skeleton-shine min-h-[320px]" aria-hidden />
         </>
       ) : (
         <>
@@ -349,7 +354,6 @@ export default function DashboardPage() {
             sectors={sectors}
             estimated={sectorsEstimated}
             source={sectorSource}
-            layout="full"
           />
 
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 lg:gap-10">
