@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { LIFETIME } from "@/lib/subscription";
+import { lifetimePaymentLink } from "@/lib/stripe-server";
 
-/** Capture purchase intent before Stripe is wired — log for now, return checkout hint. */
+/** Capture purchase intent — redirects to Stripe when payment link is configured. */
 export async function POST(request: NextRequest) {
   let email = "";
   try {
@@ -15,7 +16,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Valid email required" }, { status: 400 });
   }
 
-  const stripeLink = process.env.STRIPE_LIFETIME_PAYMENT_LINK;
+  const stripeLink = lifetimePaymentLink();
 
   console.info("[purchase-interest]", { email, plan: "lifetime", price: LIFETIME.price });
 

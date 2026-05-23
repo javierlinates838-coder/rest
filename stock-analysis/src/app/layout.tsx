@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Plus_Jakarta_Sans, JetBrains_Mono, Syne } from "next/font/google";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { OnboardingModal } from "@/components/onboarding-modal";
+import { AccessWelcomeToast } from "@/components/access-welcome-toast";
 import { SiteNavLinks } from "@/components/site-nav-links";
 import { UsageMeter } from "@/components/usage-meter";
 import { BrandLogo, BrandWordmark } from "@/components/brand-logo";
@@ -76,6 +77,7 @@ export default function RootLayout({
             {children}
           </main>
           <OnboardingModal />
+          <AccessWelcomeToast />
 
           <MobileBottomNav />
 

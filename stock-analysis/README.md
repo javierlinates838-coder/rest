@@ -1,4 +1,12 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# StockPulse — Pulse Terminal
+
+AI + technical research terminal with **$29 lifetime** access (no subscription trap).
+
+## Monetization launch
+
+See **[MONETIZATION.md](./MONETIZATION.md)** for Stripe, Vercel env vars, and smoke tests.
+
+**Quick unlock (beta):** Access page → code `PULSE29` or `/api/activate-access?code=PULSE29`
 
 ## Getting Started
 

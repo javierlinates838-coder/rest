@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   LIFETIME,
   PLANS,
@@ -14,15 +14,20 @@ import {
 import { UsageMeter } from "@/components/usage-meter";
 import { BRAND, TERMS } from "@/lib/brand";
 import { PulseFrame } from "@/components/pulse-frame";
+import { PricingUrlActivate } from "@/components/pricing-url-activate";
 
-export default function PricingPage() {
+function PricingContent() {
   const router = useRouter();
-  const [code, setCode] = useState("");
+  const searchParams = useSearchParams();
+  const checkoutPending = searchParams.get("checkout") === "pending";
+  const urlError = searchParams.get("error");
+
+  const [code, setCode] = useState(searchParams.get("code") || "");
   const [email, setEmail] = useState("");
   const [activating, setActivating] = useState(false);
   const [reserving, setReserving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(urlError);
 
   const stackTotal = competitorStackTotal();
   const savings3yr = lifetimeSavingsVsStack(3);
@@ -76,6 +81,8 @@ export default function PricingPage() {
 
   return (
     <div className="page-shell page-shell-wide max-w-5xl mx-auto">
+      <PricingUrlActivate onActivated={setMessage} onError={setError} />
+
       <PulseFrame className="command-hero text-center mb-8 py-10">
         <div className="pulse-frame-inner">
           <span className="hero-eyebrow">One-time · No subscription trap</span>
@@ -89,11 +96,17 @@ export default function PricingPage() {
         </div>
       </PulseFrame>
 
+      {checkoutPending && (
+        <div className="mb-6 p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-100 text-sm text-center">
+          Stripe checkout is being wired. Use code{" "}
+          <span className="font-mono font-bold">{LIFETIME.publicCode}</span> below to unlock lifetime now, or reserve your spot.
+        </div>
+      )}
+
       <div className="max-w-xs mx-auto mb-8">
         <UsageMeter />
       </div>
 
-      {/* Hero offer — lifetime */}
       <div className="ultra-card rounded-2xl p-8 mb-8 ultra-card-inner glow-border relative overflow-hidden">
         <div className="absolute top-4 right-4 pro-badge">BEST VALUE</div>
         <div className="flex flex-wrap items-end gap-3 mb-2">
@@ -120,18 +133,28 @@ export default function PricingPage() {
 
         <div className="flex flex-col sm:flex-row gap-3">
           <a
-            href={`mailto:support@stockpulse.app?subject=Lifetime%20%24${LIFETIME.price}&body=I%20want%20to%20buy%20Pulse%20Prime%20Lifetime%20for%20%24${LIFETIME.price}.`}
+            href="/api/checkout"
             className="btn-primary pressable flex-1 text-center py-3.5 rounded-xl text-sm font-bold"
           >
-            Get Lifetime — ${LIFETIME.price}
+            Buy Lifetime — ${LIFETIME.price}
           </a>
-          <span className="flex-1 text-center py-3.5 text-[11px] text-zinc-500 font-mono self-center">
-            Stripe checkout wiring next · use code below today
-          </span>
+          <button
+            type="button"
+            onClick={() => {
+              document.getElementById("activate-section")?.scrollIntoView({ behavior: "smooth" });
+              setCode(LIFETIME.publicCode);
+            }}
+            className="flex-1 text-center py-3.5 rounded-xl border border-teal-500/40 bg-teal-500/10 text-teal-200 text-sm font-bold pressable"
+          >
+            Have a code? Activate
+          </button>
         </div>
+        <p className="text-[11px] text-zinc-500 font-mono mt-3 text-center">
+          Launch code <span className="text-teal-400">{LIFETIME.publicCode}</span> · Share link: /pricing?code=
+          {LIFETIME.publicCode}
+        </p>
       </div>
 
-      {/* Why one-time */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-10">
         <div className="pro-metric">
           <div className="pro-metric-label">vs subscriptions</div>
@@ -146,7 +169,7 @@ export default function PricingPage() {
         <div className="pro-metric">
           <div className="pro-metric-label">Break-even</div>
           <div className="pro-metric-value text-lg">{breakEvenMonths} mo</div>
-          <p className="pro-metric-delta text-zinc-500 text-[11px] mt-1">vs $12/mo apps</p>
+          <p className="pro-metric-delta text-zinc-500 text-[11px] mt-1">vs monthly research apps</p>
         </div>
       </div>
 
@@ -176,11 +199,11 @@ export default function PricingPage() {
         </div>
       </div>
 
-      {/* Reserve checkout */}
       <div className="ultra-card rounded-2xl p-6 mb-6 ultra-card-inner">
         <h3 className="text-lg font-bold text-white mb-2">Reserve Lifetime at ${LIFETIME.price}</h3>
         <p className="text-[13px] text-zinc-500 mb-4">
-          Stripe one-click checkout is next. Leave your email and we&apos;ll send the payment link — price locked at launch.
+          No Stripe yet? Leave your email — we&apos;ll send checkout. Already have Stripe? Set{" "}
+          <span className="font-mono text-zinc-400">STRIPE_LIFETIME_PAYMENT_LINK</span> in Vercel.
         </p>
         <form onSubmit={handleReserve} className="flex flex-wrap gap-2">
           <input
@@ -200,12 +223,17 @@ export default function PricingPage() {
         </form>
       </div>
 
-      {/* Activation codes */}
-      <div className="ultra-card rounded-2xl p-6 mb-8 ultra-card-inner">
+      <div id="activate-section" className="ultra-card rounded-2xl p-6 mb-8 ultra-card-inner">
         <h3 className="text-lg font-bold text-white mb-2">Already purchased or have a code?</h3>
         <p className="text-[13px] text-zinc-500 mb-4">
-          Lifetime code: <span className="font-mono text-teal-400">{LIFETIME.publicCode}</span> · Trial:{" "}
-          <span className="font-mono text-zinc-400">PULSE14</span> (30 days)
+          Lifetime: <span className="font-mono text-teal-400">{LIFETIME.publicCode}</span> · Trial:{" "}
+          <span className="font-mono text-zinc-400">PULSE14</span> (30 days) · Or use{" "}
+          <Link
+            href={`/api/activate-access?code=${LIFETIME.publicCode}`}
+            className="text-teal-400 hover:text-teal-300 font-mono text-[12px]"
+          >
+            one-click activate
+          </Link>
         </p>
         <form onSubmit={handleActivate} className="flex flex-wrap gap-2">
           <input
@@ -228,11 +256,20 @@ export default function PricingPage() {
 
       <p className="text-[11px] text-zinc-600 text-center leading-relaxed max-w-lg mx-auto">
         {BRAND.name} is research software, not investment advice. Lifetime includes terminal access; API/data costs from
-        your keys on Vercel.
+        your keys on Vercel. After Stripe payment, success URL:{" "}
+        <span className="font-mono text-zinc-500">/pricing/success?session_id=&#123;CHECKOUT_SESSION_ID&#125;</span>
       </p>
       <Link href="/" className="block text-center text-teal-400 text-sm font-medium mt-6 hover:text-teal-300">
         ← {TERMS.pulseHub}
       </Link>
     </div>
+  );
+}
+
+export default function PricingPage() {
+  return (
+    <Suspense fallback={<div className="page-shell py-20 text-center text-zinc-500">Loading Access…</div>}>
+      <PricingContent />
+    </Suspense>
   );
 }
