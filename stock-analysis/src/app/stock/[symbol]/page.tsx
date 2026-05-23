@@ -10,7 +10,10 @@ import {
   Tooltip, ResponsiveContainer, ReferenceLine, RadarChart, PolarGrid,
   PolarAngleAxis, PolarRadiusAxis, Radar, Legend,
 } from "recharts";
+import Link from "next/link";
 import { formatCurrency, formatLargeNumber, formatPercent, getSignalColor, getSignalBg } from "@/lib/utils";
+import { computeSmartScore, smartScoreColor } from "@/lib/smart-score";
+import { ActionBrief } from "@/components/action-brief";
 import { ApiError, fetchJson, fetchJsonWithTimeout } from "@/lib/fetch-json";
 import { aiEngineLabel, formatDataSourceLabel, userFacingFetchError } from "@/lib/display-labels";
 import { ErrorBoundary } from "@/components/error-boundary";
@@ -159,6 +162,7 @@ export default function StockPage() {
   const heroRef = useRef<HTMLDivElement>(null);
   const skipPeriodFetchRef = useRef(true);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [usageRemaining, setUsageRemaining] = useState<number | null>(null);
   const clientNow = useClientNow();
 
   const goBack = () => {
@@ -213,6 +217,10 @@ export default function StockPage() {
           throw new Error("We couldn't build a complete analysis for this symbol. Try again or pick another ticker.");
         }
         setData(parsed);
+        const usage = (analysisData as { usage?: { remaining: number } }).usage;
+        if (usage && typeof usage.remaining === "number") {
+          setUsageRemaining(usage.remaining);
+        }
 
         const stockHistory = stockData.history?.length ? stockData.history : [];
         const analysisHistory =
@@ -246,12 +254,16 @@ export default function StockPage() {
         setNewsSource(resolvedNews.source || null);
       } catch (e) {
         if (!cancelled) {
-          const message =
+          let message =
             e instanceof ApiError
               ? e.message
               : e instanceof Error
                 ? e.message
                 : "Failed to load stock data";
+          if (e instanceof ApiError && e.status === 429) {
+            message =
+              "You've used today's free deep analyses. Upgrade to Pro for unlimited research, or try again tomorrow.";
+          }
           setLoadError(message);
           setData(null);
           console.error("Failed to fetch:", e);
@@ -369,6 +381,14 @@ export default function StockPage() {
             {loadError ||
               "The analysis service did not return valid data. This often happens when API keys are missing on Vercel or the request timed out."}
           </p>
+          {loadError?.includes("free deep") && (
+            <Link
+              href="/pricing"
+              className="inline-block mb-4 px-5 py-2 rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-100 text-sm font-semibold hover:bg-amber-500/30"
+            >
+              View Pro plans
+            </Link>
+          )}
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <button
               type="button"
@@ -412,6 +432,15 @@ export default function StockPage() {
   }
 
   const redFlagCount = data?.redFlags?.filter((f) => f.severity === "critical").length || 0;
+
+  const smartScore = computeSmartScore({
+    signal: signal.signal,
+    confidence: signal.confidence,
+    riskGrade: riskScore?.grade ?? "C",
+    changePercent: quote.changePercent,
+    rsi: indicators.rsi,
+    researchQualityScore: researchQuality?.score,
+  });
 
   const tabs = [
     { id: "overview", label: "Overview" },
@@ -468,6 +497,31 @@ export default function StockPage() {
 
       {/* Quick Actions */}
       <QuickActions symbol={quote.symbol} onRefresh={() => setRefreshKey((k) => k + 1)} />
+
+      {usageRemaining !== null && usageRemaining <= 3 && (
+        <div className="glass-card rounded-xl px-4 py-3 mb-5 border border-amber-500/20 bg-amber-500/5 flex flex-wrap items-center justify-between gap-2">
+          <span className="text-[12px] text-amber-100/90">
+            {usageRemaining} free deep {usageRemaining === 1 ? "analysis" : "analyses"} left today
+          </span>
+          <Link href="/pricing" className="text-[12px] font-semibold text-amber-300 hover:text-amber-200">
+            Go Pro →
+          </Link>
+        </div>
+      )}
+
+      <ActionBrief
+        symbol={quote.symbol}
+        signal={signal.signal}
+        confidence={signal.confidence}
+        riskGrade={riskScore?.grade ?? "C"}
+        changePercent={quote.changePercent}
+        rsi={indicators.rsi}
+        researchQualityScore={researchQuality?.score}
+        tradingBias={tradingPlan?.bias}
+        entryPrimary={tradingPlan?.entry.primary}
+        stopStandard={tradingPlan?.stopLoss.standard}
+        targetBase={tradingPlan?.targets.base}
+      />
 
       {researchQuality && researchQuality.score < 70 && (
         <div className="glass-card rounded-xl px-4 py-3 mb-5 border border-amber-500/25 bg-amber-500/5">
@@ -576,7 +630,15 @@ export default function StockPage() {
         </div>
 
         {/* Signal + Risk Badges — stacked on mobile */}
-        <div className="grid grid-cols-1 gap-3 w-full sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 w-full sm:grid-cols-2 lg:grid-cols-4">
+          <div className="px-5 py-4 sm:px-7 sm:py-5 rounded-2xl border border-teal-500/20 bg-teal-500/5 text-center mobile-card-full animate-scaleIn">
+            <div className="text-[10px] text-zinc-400 font-semibold tracking-widest uppercase mb-1.5">Smart score</div>
+            <div className={`text-[28px] sm:text-[32px] font-bold tabular-nums ${smartScoreColor(smartScore.score)}`}>
+              {smartScore.score}
+            </div>
+            <div className="text-[12px] text-zinc-400 mt-1">{smartScore.label}</div>
+          </div>
+
           <div className={`signal-card-glow px-5 py-4 sm:px-7 sm:py-5 rounded-2xl border mobile-card-full ${getSignalBg(signal.signal)} text-center animate-scaleIn`}>
             <div className="text-[10px] text-zinc-400 font-semibold tracking-widest uppercase mb-1.5">Signal</div>
             <div className={`text-[22px] sm:text-[26px] font-semibold tracking-tight ${getSignalColor(signal.signal)}`}>{signal.signal.toUpperCase()}</div>

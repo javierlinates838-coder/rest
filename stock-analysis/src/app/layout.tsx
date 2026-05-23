@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
+import { OnboardingModal } from "@/components/onboarding-modal";
 import { SiteNavLinks } from "@/components/site-nav-links";
 import "./globals.css";
 
@@ -57,6 +58,7 @@ export default function RootLayout({
           </nav>
 
           <main className="flex-1 pb-mobile-nav sm:pb-safe w-full min-w-0 overflow-x-hidden page-enter">{children}</main>
+          <OnboardingModal />
 
           <MobileBottomNav />
 

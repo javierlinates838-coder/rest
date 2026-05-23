@@ -5,15 +5,18 @@ import { usePathname } from "next/navigation";
 
 const links = [
   { href: "/", label: "Dashboard", match: (p: string) => p === "/" },
+  { href: "/screener", label: "Screener", match: (p: string) => p.startsWith("/screener") },
   { href: "/watchlist", label: "Watchlist", match: (p: string) => p.startsWith("/watchlist") },
   { href: "/portfolio", label: "Portfolio", match: (p: string) => p.startsWith("/portfolio") },
+  { href: "/compare", label: "Compare", match: (p: string) => p.startsWith("/compare") },
+  { href: "/pricing", label: "Pricing", match: (p: string) => p.startsWith("/pricing") },
 ];
 
 export function SiteNavLinks() {
   const pathname = usePathname() || "/";
 
   return (
-    <div className="hidden sm:flex items-center gap-6">
+    <div className="hidden lg:flex items-center gap-5">
       {links.map((link) => {
         const active = link.match(pathname);
         return (

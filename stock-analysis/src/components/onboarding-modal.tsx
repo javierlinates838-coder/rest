@@ -1,0 +1,81 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+
+const STORAGE_KEY = "sp_onboarded_v1";
+
+export function OnboardingModal() {
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (localStorage.getItem(STORAGE_KEY) === "1") return;
+    const t = setTimeout(() => setOpen(true), 800);
+    return () => clearTimeout(t);
+  }, []);
+
+  const dismiss = () => {
+    localStorage.setItem(STORAGE_KEY, "1");
+    setOpen(false);
+  };
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 sm:p-6 bg-black/70 backdrop-blur-sm">
+      <div
+        className="glass-card rounded-2xl w-full max-w-md p-6 sm:p-8 border border-teal-500/20 animate-fadeIn shadow-2xl"
+        role="dialog"
+        aria-labelledby="onboard-title"
+      >
+        <div className="text-[10px] font-semibold tracking-widest uppercase text-teal-400 mb-2">
+          Welcome to StockPulse
+        </div>
+        <h2 id="onboard-title" className="text-xl font-bold text-white mb-3 tracking-tight">
+          Research-grade analysis in one tab
+        </h2>
+        <ul className="space-y-2.5 text-[13px] text-zinc-400 mb-6">
+          <li className="flex gap-2">
+            <span className="text-teal-400 shrink-0">1.</span>
+            Search any ticker — get signals, AI narrative, and risk grades.
+          </li>
+          <li className="flex gap-2">
+            <span className="text-teal-400 shrink-0">2.</span>
+            Use the <strong className="text-zinc-300 font-medium">Screener</strong> to find high Smart Score ideas.
+          </li>
+          <li className="flex gap-2">
+            <span className="text-teal-400 shrink-0">3.</span>
+            Compare up to 4 symbols side-by-side — save your portfolio locally.
+          </li>
+        </ul>
+        <p className="text-[11px] text-zinc-500 mb-5">
+          Free tier: 8 full AI analyses per day. Connect FMP + Gemini on Vercel for live data.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <button
+            type="button"
+            onClick={dismiss}
+            className="flex-1 px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-sm font-semibold transition-colors"
+          >
+            Start researching
+          </button>
+          <Link
+            href="/pricing"
+            onClick={dismiss}
+            className="flex-1 px-4 py-2.5 rounded-xl border border-zinc-700 text-zinc-300 text-sm font-medium text-center hover:bg-zinc-800/50 transition-colors"
+          >
+            View plans
+          </Link>
+        </div>
+        <button
+          type="button"
+          onClick={dismiss}
+          className="w-full mt-3 text-[11px] text-zinc-600 hover:text-zinc-400"
+        >
+          Don&apos;t show again
+        </button>
+      </div>
+    </div>
+  );
+}

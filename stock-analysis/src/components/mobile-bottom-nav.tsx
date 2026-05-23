@@ -25,12 +25,12 @@ const tabs = [
     ),
   },
   {
-    href: "/portfolio",
-    label: "Portfolio",
-    match: (path: string) => path.startsWith("/portfolio"),
+    href: "/screener",
+    label: "Screener",
+    match: (path: string) => path.startsWith("/screener"),
     icon: (active: boolean) => (
       <svg className={`w-[22px] h-[22px] ${active ? "text-teal-300" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={active ? 2 : 1.75} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={active ? 2 : 1.75} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
       </svg>
     ),
   },

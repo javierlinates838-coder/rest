@@ -9,6 +9,11 @@ import { fetchStockNewsForAI, newsProviderLabel } from "@/services/stock-news";
 import { normalizeAnalysisPayload } from "@/lib/normalize-analysis";
 import { assessResearchQuality, applyDataQualityToSignal } from "@/lib/research-quality";
 import { resolveSignal } from "@/lib/analysis-coherence";
+import {
+  FREE_DAILY_ANALYSES,
+  getAnalysisUsage,
+  nextUsageCookie,
+} from "@/lib/usage-limit";
 
 export const maxDuration = 60;
 
@@ -35,6 +40,19 @@ export async function GET(request: NextRequest) {
   }
 
   const upperSymbol = symbol.toUpperCase();
+
+  const usage = await getAnalysisUsage();
+  if (!usage.allowed) {
+    return NextResponse.json(
+      {
+        error: `Daily limit reached (${FREE_DAILY_ANALYSES} full analyses). Upgrade to Pro for unlimited research.`,
+        code: "LIMIT_REACHED",
+        remaining: 0,
+        limit: FREE_DAILY_ANALYSES,
+      },
+      { status: 429 }
+    );
+  }
 
   try {
     const quote = await fetchStockQuote(upperSymbol);
@@ -164,7 +182,25 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Failed to build analysis response" }, { status: 500 });
     }
 
-    return NextResponse.json(payload);
+    const response = NextResponse.json({
+      ...payload,
+      usage: {
+        remaining: usage.isPro ? 999 : Math.max(0, usage.remaining - 1),
+        limit: FREE_DAILY_ANALYSES,
+        isPro: usage.isPro,
+      },
+    });
+
+    if (!usage.isPro) {
+      const cookie = nextUsageCookie(usage.count);
+      response.cookies.set(cookie.name, cookie.value, {
+        path: "/",
+        maxAge: 60 * 60 * 24,
+        sameSite: "lax",
+      });
+    }
+
+    return response;
   } catch (e) {
     const message = e instanceof Error ? e.message : "Analysis failed";
     return NextResponse.json({ error: message }, { status: 500 });

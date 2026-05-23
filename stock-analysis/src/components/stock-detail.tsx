@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { readCompareList, toggleCompareSymbol } from "@/lib/compare-symbols";
 import { formatCurrency, formatPercent } from "@/lib/utils";
 import { useClientNow } from "@/lib/use-client-now";
 import {
@@ -612,12 +614,19 @@ function readWatchlistSymbols(): string[] {
 }
 
 export function QuickActions({ symbol, onRefresh }: { symbol: string; onRefresh?: () => void }) {
+  const router = useRouter();
   const [watchlistRevision, setWatchlistRevision] = useState(0);
+  const [compareRevision, setCompareRevision] = useState(0);
   const [copied, setCopied] = useState(false);
   const inWatchlist = useMemo(() => {
     void watchlistRevision;
     return readWatchlistSymbols().includes(symbol);
   }, [symbol, watchlistRevision]);
+
+  const inCompare = useMemo(() => {
+    void compareRevision;
+    return readCompareList().includes(symbol);
+  }, [symbol, compareRevision]);
 
   const toggleWatchlist = () => {
     const stored = JSON.parse(localStorage.getItem("watchlist") || "null") || ["AAPL", "TSLA", "NVDA", "GOOGL", "AMD", "MSFT"];
@@ -637,8 +646,31 @@ export function QuickActions({ symbol, onRefresh }: { symbol: string; onRefresh?
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const toggleCompare = () => {
+    toggleCompareSymbol(symbol);
+    setCompareRevision((n) => n + 1);
+  };
+
   return (
     <div className="fixed right-3 bottom-[5.5rem] sm:right-5 sm:bottom-5 flex flex-row sm:flex-col gap-2 z-40">
+      <button
+        onClick={toggleCompare}
+        className={`pressable group glass-card rounded-2xl p-3 hover:glow-border ${inCompare ? "border-teal-500/40" : ""}`}
+        title={inCompare ? "In compare list" : "Add to compare"}
+      >
+        <svg className={`w-5 h-5 ${inCompare ? "text-teal-400" : "text-zinc-400 group-hover:text-teal-400"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        </svg>
+      </button>
+      {inCompare && (
+        <button
+          type="button"
+          onClick={() => router.push("/compare")}
+          className="pressable sm:hidden glass-card rounded-2xl px-3 py-2 text-[10px] text-teal-300 font-semibold"
+        >
+          View
+        </button>
+      )}
       <button
         onClick={toggleWatchlist}
         className={`pressable group glass-card rounded-2xl p-3 hover:glow-border ${inWatchlist ? "border-amber-500/30" : ""}`}
