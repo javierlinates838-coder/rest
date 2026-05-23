@@ -26,6 +26,7 @@ import {
   userFacingFetchError,
 } from "@/lib/display-labels";
 import { ErrorBoundary } from "@/components/error-boundary";
+import { TERMS } from "@/lib/brand";
 import { normalizeAnalysisPayload } from "@/lib/normalize-analysis";
 import { priceChangePercent } from "@/lib/analysis-coherence";
 import { StockLogo } from "@/components/stock-logo";
@@ -469,7 +470,7 @@ export default function StockPage() {
   const tabs = [
     { id: "overview", label: "Overview" },
     { id: "technical", label: "Technical" },
-    { id: "ai-analysis", label: "AI Analysis" },
+    { id: "ai-analysis", label: TERMS.meridianBrief },
     { id: "red-flags", label: `Red Flags${redFlagCount > 0 ? ` (${redFlagCount})` : ""}` },
     { id: "competitors", label: "Competitors" },
     { id: "news", label: "News" },
@@ -689,7 +690,7 @@ export default function StockPage() {
             <div className={`text-[22px] sm:text-[26px] font-semibold tracking-tight ${getSignalColor(signal.signal)}`}>{signal.signal.toUpperCase()}</div>
             <div className="text-[12px] text-zinc-400 mt-1 font-light">Confidence: {signal.confidence}%</div>
             {aiAnalysis.recommendation !== signal.signal && (
-              <div className="text-[10px] text-zinc-500 mt-1.5">AI view: {aiAnalysis.recommendation}</div>
+              <div className="text-[10px] text-zinc-500 mt-1.5">Brief view: {aiAnalysis.recommendation}</div>
             )}
             <div className="w-full bg-zinc-800/50 rounded-full h-1.5 mt-2.5">
               <div
@@ -1122,7 +1123,7 @@ export default function StockPage() {
                 </svg>
               </div>
               <div>
-                <h3 className="text-lg font-bold text-white">AI Deep Analysis</h3>
+                <h3 className="text-lg font-bold text-white">{TERMS.meridianBrief}</h3>
                 <p className="text-xs text-zinc-500">{aiEngineLabel(dataSources)}</p>
               </div>
             </div>
@@ -1178,7 +1179,7 @@ export default function StockPage() {
           {/* Risk & Time Horizon */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="glass-card rounded-xl p-6">
-              <div className="text-xs text-zinc-500 mb-2">AI RISK VIEW</div>
+              <div className="text-xs text-zinc-500 mb-2">BRIEF RISK VIEW</div>
               <div className={`text-xl font-bold ${
                 aiAnalysis.riskLevel === "Low" ? "text-emerald-400" :
                 aiAnalysis.riskLevel === "Medium" ? "text-yellow-400" :

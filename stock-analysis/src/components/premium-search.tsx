@@ -101,7 +101,6 @@ export function PremiumSearch({
       {/* ——— Mobile premium search ——— */}
       <div className="sm:hidden w-full">
         <form onSubmit={onSubmit} className="search-hero-mobile">
-          <div className="search-hero-glow" aria-hidden />
           <div className="relative z-[1] p-4">
             <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-teal-400/90 mb-3 text-center font-mono">
               {TERMS.pulseScan} · Live integrity

@@ -447,29 +447,6 @@ export default function DashboardPage() {
                 </div>
               )}
 
-              {/* Features */}
-              <div className="glass-card rounded-2xl p-6 glow-border">
-                <h3 className="text-[15px] font-semibold text-white mb-4 tracking-tight">Platform highlights</h3>
-                <ul className="space-y-2.5">
-                  {[
-                    "Live quotes & historical charts",
-                    "AI deep dive with price targets",
-                    "Stacked news from multiple providers",
-                    "15+ technical indicators",
-                    "Peer comparison tables",
-                    "Fibonacci & support/resistance",
-                    "Risk scanner & trading plan",
-                    "Analyst consensus when available",
-                  ].map((feat) => (
-                    <li key={feat} className="flex items-center gap-2.5 text-[12px] text-zinc-400 font-light tracking-tight">
-                      <svg className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                      </svg>
-                      {feat}
-                    </li>
-                  ))}
-                </ul>
-              </div>
             </div>
           </div>
         </>

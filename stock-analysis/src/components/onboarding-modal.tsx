@@ -43,7 +43,7 @@ export function OnboardingModal() {
           <li className="flex gap-2">
             <span className="text-teal-400 shrink-0 font-mono">01</span>
             <span>
-              Run a <strong className="text-zinc-200">{TERMS.pulseScan}</strong> — Meridian AI meets Wilder technicals.
+              Run a <strong className="text-zinc-200">{TERMS.pulseScan}</strong> — {TERMS.meridianBrief} meets Wilder technicals.
             </span>
           </li>
           <li className="flex gap-2">

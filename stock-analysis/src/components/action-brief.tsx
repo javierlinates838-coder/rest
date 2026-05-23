@@ -68,7 +68,7 @@ export function ActionBrief({
         <div className="flex flex-wrap items-start justify-between gap-6 mb-5">
           <div className="flex-1 min-w-[200px]">
             <div className="flex items-center gap-2 flex-wrap mb-2">
-              <span className="pro-badge">AI + Technical</span>
+              <span className="pro-badge">Brief + Technical</span>
               <span className="text-[11px] font-mono text-zinc-500">Signal: {signal}</span>
             </div>
             <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight mb-2">

@@ -121,7 +121,7 @@ export function StockPicks({
   if (loading) {
     return (
       <div className="mb-10">
-        <h2 className="text-[20px] font-semibold text-white mb-4 tracking-tight">AI Stock Picks</h2>
+        <h2 className="text-[20px] font-semibold text-white mb-4 tracking-tight">Meridian picks</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[1, 2, 3].map((i) => (
             <div key={i} className="glass-card rounded-2xl p-6 h-48 skeleton-shine" />
@@ -134,7 +134,7 @@ export function StockPicks({
   if (error || !data) {
     return (
       <section className="mb-10">
-        <h2 className="text-[20px] font-semibold text-white mb-2 tracking-tight">AI Stock Picks</h2>
+        <h2 className="text-[20px] font-semibold text-white mb-2 tracking-tight">Meridian picks</h2>
         <div className="glass-card rounded-2xl p-6 text-center">
           <p className="text-sm text-zinc-400 mb-4">{error || "Recommendations are temporarily unavailable."}</p>
           <button
@@ -166,11 +166,6 @@ export function StockPicks({
         title="Meridian picks"
         subtitle={`Live tape · ${TERMS.smartScore} · ${TERMS.edgeShort}-ranked`}
         badge="PICKS"
-        icon={
-          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-          </svg>
-        }
       />
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <PickSection

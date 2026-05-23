@@ -174,7 +174,7 @@ export default function ComparePage() {
             onClick={() => router.push("/stock/AAPL")}
             className="text-teal-400 text-sm font-medium hover:text-teal-300"
           >
-            Analyze a stock and tap Compare →
+            Open a stock page and add symbols to Compare
           </button>
         </div>
       ) : loading ? (
@@ -241,7 +241,7 @@ export default function ComparePage() {
       )}
 
       <Link href="/screener" className="inline-block mt-8 text-sm text-teal-400 hover:text-teal-300 font-medium">
-        Find ideas in screener →
+        Browse Alpha Forge
       </Link>
     </div>
   );

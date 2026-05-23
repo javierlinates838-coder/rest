@@ -10,7 +10,7 @@ export const BRAND = {
   shortTag: "Pulse · Edge · Truth",
   metaTitle: "StockPulse — Pulse Terminal for Stock Research",
   metaDescription:
-    "Institutional-grade stock research terminal — Pulse Edge Index, Meridian AI briefs, Alpha Forge screeners, and honest data integrity grades on every chart.",
+    "Institutional-grade stock research terminal — Pulse Edge Index, Meridian Briefs, Alpha Forge screeners, and integrity grades on every chart.",
 } as const;
 
 /** User-facing nav labels (routes unchanged) */
@@ -50,12 +50,12 @@ export const TERMS = {
 } as const;
 
 export const HERO = {
-  eyebrow: "Pulse Terminal · Live integrity",
-  titleLead: "Your",
+  eyebrow: "Pulse Terminal · Live market data",
+  titleLead: "Research with",
   titleAccent: "conviction",
-  titleTail: "command center",
+  titleTail: "built in",
   subtitleDesktop:
-    "Pulse Edge, Meridian Briefs, and Wilder-native signals — we show when data is real and when it isn't.",
+    "Pulse Edge, Meridian Briefs, and Wilder-native signals — with integrity grades on quotes and charts.",
   subtitleMobile: "Edge · Brief · Forge · Scan",
 } as const;
 

@@ -42,7 +42,7 @@ export function MobileTrendingList({
           </div>
           <div className="text-right shrink-0">
             <p className="text-[15px] font-semibold text-white tabular-nums">{formatCurrency(stock.price)}</p>
-            <p className="text-[10px] text-teal-400/80 font-medium mt-0.5">Analyze →</p>
+            <p className="text-[10px] text-zinc-500 font-medium mt-0.5">Open</p>
           </div>
         </button>
       ))}

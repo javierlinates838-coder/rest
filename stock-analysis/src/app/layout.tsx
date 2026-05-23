@@ -68,14 +68,13 @@ export default function RootLayout({
       <body
         className={`${jakarta.variable} ${jetbrainsMono.variable} ${syne.variable} font-sans antialiased min-h-screen w-full max-w-[100vw] overflow-x-hidden has-mobile-nav`}
       >
-        <div className="pulse-rail" aria-hidden />
         <div className="app-canvas flex flex-col min-h-screen w-full min-w-0">
           <nav className="sticky top-0 z-50 nav-premium safe-top">
             <div className="nav-accent-line" aria-hidden />
             <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10">
               <div className="flex items-center justify-between h-14 sm:h-16 gap-3">
                 <Link href="/" className="flex items-center gap-2.5 sm:gap-3 group min-w-0 pressable">
-                  <div className="logo-float shrink-0 rounded-xl overflow-hidden shadow-[0_8px_24px_rgba(62,232,211,0.25)]">
+                  <div className="shrink-0 rounded-xl overflow-hidden border border-white/[0.06] shadow-sm">
                     <BrandLogo size={40} />
                   </div>
                   <BrandWordmark />
