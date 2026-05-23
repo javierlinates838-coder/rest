@@ -550,7 +550,7 @@ export default function StockPage() {
             {usageRemaining} free deep {usageRemaining === 1 ? "analysis" : "analyses"} left today
           </span>
           <Link href="/pricing" className="text-[12px] font-semibold text-amber-300 hover:text-amber-200">
-            Lifetime ${29} →
+            Lifetime ${LIFETIME.price} →
           </Link>
         </div>
       )}

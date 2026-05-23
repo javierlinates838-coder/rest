@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { formatCurrency, formatPercent } from "@/lib/utils";
 import { fetchJson } from "@/lib/fetch-json";
@@ -52,6 +52,7 @@ export default function PortfolioPage() {
   const [newSymbol, setNewSymbol] = useState("");
   const [newShares, setNewShares] = useState("");
   const [newCost, setNewCost] = useState("");
+  const holdingsLoadGen = useRef(0);
 
   const loadHoldings = (portfolio: { symbol: string; shares: number; avgCost: number }[]) => {
     return Promise.all(
@@ -116,11 +117,13 @@ export default function PortfolioPage() {
   };
 
   const saveEdit = async () => {
+    const gen = ++holdingsLoadGen.current;
     savePortfolio(draft);
     setIsSample(false);
     setEditing(false);
     setLoading(true);
     const results = await loadHoldings(draft);
+    if (gen !== holdingsLoadGen.current) return;
     setHoldings(results);
     setLoading(false);
   };
@@ -187,12 +190,14 @@ export default function PortfolioPage() {
             <button
               type="button"
               onClick={() => {
+                const gen = ++holdingsLoadGen.current;
                 clearPortfolio();
                 setDraft([]);
                 setEditing(false);
                 setIsSample(true);
                 setLoading(true);
                 void loadHoldings(SAMPLE_PORTFOLIO).then((r) => {
+                  if (gen !== holdingsLoadGen.current) return;
                   setHoldings(r);
                   setLoading(false);
                 });

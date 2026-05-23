@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { formatCurrency, formatPercent, getSignalColor } from "@/lib/utils";
@@ -34,16 +34,27 @@ export default function ScreenerPage() {
       .catch(() => null);
   }, []);
 
+  const fetchScreener = useCallback(async () => {
+    const params = new URLSearchParams();
+    if (bias !== "any") params.set("bias", bias);
+    params.set("minSmartScore", String(minScore));
+    if (maxRisk) params.set("maxRiskGrade", maxRisk);
+    if (sector && sector !== "all") params.set("sector", sector);
+    const res = await fetch(`/api/screener?${params}`);
+    const data = await res.json();
+    if (res.status === 403 && data.code === "PRO_REQUIRED") {
+      setGateOpen(true);
+      throw new Error(data.error);
+    }
+    if (!res.ok) throw new Error(data.error || "Screener failed");
+    return data as { rows?: ScreenerRow[]; updatedAt?: string };
+  }, [bias, minScore, maxRisk, sector]);
+
   const load = async () => {
     setLoading(true);
     setError(null);
     try {
-      const params = new URLSearchParams();
-      if (bias !== "any") params.set("bias", bias);
-      params.set("minSmartScore", String(minScore));
-      const res = await fetch(`/api/screener?${params}`);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Screener failed");
+      const data = await fetchScreener();
       setRows(data.rows || []);
       setUpdatedAt(data.updatedAt || null);
     } catch (e) {
@@ -60,19 +71,8 @@ export default function ScreenerPage() {
       setLoading(true);
       setError(null);
       try {
-        const params = new URLSearchParams();
-        if (bias !== "any") params.set("bias", bias);
-        params.set("minSmartScore", String(minScore));
-        if (maxRisk) params.set("maxRiskGrade", maxRisk);
-        if (sector && sector !== "all") params.set("sector", sector);
-        const res = await fetch(`/api/screener?${params}`);
-        const data = await res.json();
+        const data = await fetchScreener();
         if (cancelled) return;
-        if (res.status === 403 && data.code === "PRO_REQUIRED") {
-          setGateOpen(true);
-          throw new Error(data.error);
-        }
-        if (!res.ok) throw new Error(data.error || "Screener failed");
         setRows(data.rows || []);
         setUpdatedAt(data.updatedAt || null);
       } catch (e) {
@@ -85,7 +85,7 @@ export default function ScreenerPage() {
       }
     })();
     return () => { cancelled = true; };
-  }, [bias, minScore, maxRisk, sector]);
+  }, [fetchScreener]);
 
   return (
     <div className="page-shell page-shell-wide">

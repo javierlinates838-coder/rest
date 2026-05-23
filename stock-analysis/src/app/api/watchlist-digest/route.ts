@@ -5,6 +5,7 @@ import { fetchStockQuote, fetchHistoricalWithSource } from "@/services/stock-dat
 import { computeAllIndicators, generateSignal } from "@/lib/technical-analysis";
 import { resolveSignal } from "@/lib/analysis-coherence";
 import { applyDataQualityToSignal, assessResearchQuality } from "@/lib/research-quality";
+import { detectRedFlags, calculateRiskScore } from "@/lib/red-flags";
 
 export const maxDuration = 45;
 
@@ -45,10 +46,12 @@ export async function GET(request: NextRequest) {
         });
         const adjusted = applyDataQualityToSignal(raw, quality);
         const resolved = resolveSignal(adjusted.signal, adjusted.confidence);
+        const redFlags = detectRedFlags(history, indicators, quote);
+        const risk = calculateRiskScore(indicators, quote, redFlags);
         const edge = computeEdgeIndex({
           signal: resolved.signal,
           confidence: resolved.confidence,
-          riskGrade: "C",
+          riskGrade: risk.grade,
           changePercent: quote.changePercent,
           rsi: indicators.rsi,
           researchQualityScore: quality.score,

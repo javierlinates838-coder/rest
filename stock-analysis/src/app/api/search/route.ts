@@ -28,10 +28,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ results: [] });
   }
 
-  let results = await fmpSearchStock(query);
-  if (results.length === 0) {
-    results = fallbackSearch(query);
+  try {
+    let results = await fmpSearchStock(query);
+    if (results.length === 0) {
+      results = fallbackSearch(query);
+    }
+    return NextResponse.json({ results });
+  } catch (e) {
+    console.error("[search] FMP failed, using fallback:", e);
+    return NextResponse.json({ results: fallbackSearch(query) });
   }
-
-  return NextResponse.json({ results });
 }

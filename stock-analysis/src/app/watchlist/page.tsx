@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { formatCurrency, formatPercent, getSignalColor, getSignalBg } from "@/lib/utils";
 import { fetchQuoteSummary } from "@/lib/fetch-json";
@@ -8,6 +8,11 @@ import { ProSectionHeader } from "@/components/pro-section-header";
 import { UpgradeGate } from "@/components/upgrade-gate";
 import Link from "next/link";
 import { TERMS } from "@/lib/brand";
+import {
+  getWatchlistSymbols,
+  addWatchlistSymbol,
+  removeWatchlistSymbol,
+} from "@/lib/watchlist-storage";
 
 interface WatchlistItem {
   symbol: string;
@@ -18,8 +23,6 @@ interface WatchlistItem {
   confidence?: number;
   addedAt: string;
 }
-
-const DEFAULT_WATCHLIST = ["AAPL", "TSLA", "NVDA", "GOOGL", "AMD", "MSFT"];
 
 export default function WatchlistPage() {
   const router = useRouter();
@@ -33,6 +36,7 @@ export default function WatchlistPage() {
   } | null>(null);
   const [digestLoading, setDigestLoading] = useState(false);
   const [gateOpen, setGateOpen] = useState(false);
+  const loadGen = useRef(0);
 
   useEffect(() => {
     fetch("/api/usage")
@@ -42,11 +46,9 @@ export default function WatchlistPage() {
   }, []);
 
   const loadWatchlist = useCallback(async (showLoader = false) => {
+    const gen = ++loadGen.current;
     if (showLoader) setLoading(true);
-    const stored = typeof window !== "undefined"
-      ? JSON.parse(localStorage.getItem("watchlist") || "null")
-      : null;
-    const symbols: string[] = stored || DEFAULT_WATCHLIST;
+    const symbols = getWatchlistSymbols();
 
     const items = await Promise.all(
       symbols.map(async (sym): Promise<WatchlistItem> => {
@@ -73,19 +75,17 @@ export default function WatchlistPage() {
       })
     );
 
+    if (gen !== loadGen.current) return;
     setWatchlist(items);
     setLoading(false);
   }, []);
 
   useEffect(() => {
     let cancelled = false;
+    const gen = ++loadGen.current;
     (async () => {
       setLoading(true);
-      const stored = typeof window !== "undefined"
-        ? JSON.parse(localStorage.getItem("watchlist") || "null")
-        : null;
-      const symbols: string[] = stored || DEFAULT_WATCHLIST;
-
+      const symbols = getWatchlistSymbols();
       const items = await Promise.all(
         symbols.map(async (sym): Promise<WatchlistItem> => {
           try {
@@ -110,14 +110,13 @@ export default function WatchlistPage() {
           }
         })
       );
-
-      if (!cancelled) {
-        setWatchlist(items);
-        setLoading(false);
-      }
+      if (cancelled || gen !== loadGen.current) return;
+      setWatchlist(items);
+      setLoading(false);
     })();
     return () => {
       cancelled = true;
+      loadGen.current += 1;
     };
   }, []);
 
@@ -125,23 +124,14 @@ export default function WatchlistPage() {
     if (!newSymbol.trim()) return;
     const sym = newSymbol.trim().toUpperCase();
     if (watchlist.some((w) => w.symbol === sym)) return;
-
-    const stored = typeof window !== "undefined"
-      ? JSON.parse(localStorage.getItem("watchlist") || "null") || DEFAULT_WATCHLIST
-      : DEFAULT_WATCHLIST;
-    stored.push(sym);
-    localStorage.setItem("watchlist", JSON.stringify(stored));
+    addWatchlistSymbol(sym);
     setNewSymbol("");
     void loadWatchlist(true);
   };
 
   const removeFromWatchlist = (symbol: string) => {
-    const stored = typeof window !== "undefined"
-      ? JSON.parse(localStorage.getItem("watchlist") || "null") || DEFAULT_WATCHLIST
-      : DEFAULT_WATCHLIST;
-    const updated = stored.filter((s: string) => s !== symbol);
-    localStorage.setItem("watchlist", JSON.stringify(updated));
-    setWatchlist(watchlist.filter((w) => w.symbol !== symbol));
+    removeWatchlistSymbol(symbol);
+    setWatchlist((prev) => prev.filter((w) => w.symbol !== symbol));
   };
 
   const runDigest = async () => {

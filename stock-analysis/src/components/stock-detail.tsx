@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { readCompareList, toggleCompareSymbol } from "@/lib/compare-symbols";
+import { getWatchlistSymbols, addWatchlistSymbol, removeWatchlistSymbol } from "@/lib/watchlist-storage";
 import { formatCurrency, formatPercent } from "@/lib/utils";
 import { useClientNow } from "@/lib/use-client-now";
 import {
@@ -601,18 +602,6 @@ export function PriceActionCard({ data }: {
   );
 }
 
-function readWatchlistSymbols(): string[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem("watchlist");
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
 export function QuickActions({ symbol, onRefresh }: { symbol: string; onRefresh?: () => void }) {
   const router = useRouter();
   const [watchlistRevision, setWatchlistRevision] = useState(0);
@@ -620,7 +609,7 @@ export function QuickActions({ symbol, onRefresh }: { symbol: string; onRefresh?
   const [copied, setCopied] = useState(false);
   const inWatchlist = useMemo(() => {
     void watchlistRevision;
-    return readWatchlistSymbols().includes(symbol);
+    return getWatchlistSymbols().includes(symbol);
   }, [symbol, watchlistRevision]);
 
   const inCompare = useMemo(() => {
@@ -629,13 +618,10 @@ export function QuickActions({ symbol, onRefresh }: { symbol: string; onRefresh?
   }, [symbol, compareRevision]);
 
   const toggleWatchlist = () => {
-    const stored = JSON.parse(localStorage.getItem("watchlist") || "null") || ["AAPL", "TSLA", "NVDA", "GOOGL", "AMD", "MSFT"];
-    if (stored.includes(symbol)) {
-      const updated = stored.filter((s: string) => s !== symbol);
-      localStorage.setItem("watchlist", JSON.stringify(updated));
+    if (getWatchlistSymbols().includes(symbol)) {
+      removeWatchlistSymbol(symbol);
     } else {
-      stored.push(symbol);
-      localStorage.setItem("watchlist", JSON.stringify(stored));
+      addWatchlistSymbol(symbol);
     }
     setWatchlistRevision((n) => n + 1);
   };

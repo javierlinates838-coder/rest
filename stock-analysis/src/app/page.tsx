@@ -112,6 +112,12 @@ export default function DashboardPage() {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    };
+  }, []);
+
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
     if (searchTimeout.current) clearTimeout(searchTimeout.current);

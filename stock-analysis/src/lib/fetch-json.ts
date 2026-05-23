@@ -65,6 +65,8 @@ export interface QuoteSummary {
     signal: string;
     confidence: number;
   };
+  riskGrade?: string;
+  rsi?: number;
 }
 
 export function hasQuotePayload(data: unknown): data is QuoteSummary {

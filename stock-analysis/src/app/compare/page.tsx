@@ -9,6 +9,7 @@ import {
   toggleCompareSymbol,
   removeCompareSymbol,
   clearCompareList,
+  MAX_COMPARE_SYMBOLS,
 } from "@/lib/compare-symbols";
 import { fetchQuoteSummary } from "@/lib/fetch-json";
 import { computeSmartScore, smartScoreColor } from "@/lib/smart-score";
@@ -30,12 +31,21 @@ interface CompareRow {
 
 export default function ComparePage() {
   const router = useRouter();
-  const [symbols, setSymbols] = useState<string[]>(() =>
-    typeof window !== "undefined" ? readCompareList() : []
-  );
+  const [symbols, setSymbols] = useState<string[]>([]);
   const [rows, setRows] = useState<CompareRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [addInput, setAddInput] = useState("");
+  const [addError, setAddError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void Promise.resolve().then(() => {
+      if (!cancelled) setSymbols(readCompareList());
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const refreshList = () => {
     setSymbols(readCompareList());
@@ -62,9 +72,9 @@ export default function ComparePage() {
             const smart = computeSmartScore({
               signal,
               confidence,
-              riskGrade: "C",
+              riskGrade: data.riskGrade || "C",
               changePercent: data.quote.changePercent,
-              rsi: 50,
+              rsi: data.rsi ?? 50,
             });
             return {
               symbol: sym,
@@ -104,7 +114,12 @@ export default function ComparePage() {
     e.preventDefault();
     const sym = addInput.trim().toUpperCase();
     if (!sym) return;
-    toggleCompareSymbol(sym);
+    const { added } = toggleCompareSymbol(sym);
+    if (!added && !symbols.includes(sym)) {
+      setAddError(`Maximum ${MAX_COMPARE_SYMBOLS} symbols — remove one first.`);
+      return;
+    }
+    setAddError(null);
     setAddInput("");
     refreshList();
   };
@@ -117,6 +132,9 @@ export default function ComparePage() {
         badge="LENS"
       />
 
+      {addError && (
+        <p className="text-amber-300/90 text-sm mb-3">{addError}</p>
+      )}
       <form onSubmit={handleAdd} className="flex gap-2 mb-6 max-w-md ultra-card p-3">
         <input
           value={addInput}

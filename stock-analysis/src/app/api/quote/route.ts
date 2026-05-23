@@ -3,6 +3,7 @@ import { fetchStockQuote, fetchHistoricalWithSource } from "@/services/stock-dat
 import { computeAllIndicators, generateSignal } from "@/lib/technical-analysis";
 import { resolveSignal } from "@/lib/analysis-coherence";
 import { applyDataQualityToSignal, assessResearchQuality } from "@/lib/research-quality";
+import { detectRedFlags, calculateRiskScore } from "@/lib/red-flags";
 
 /** Lightweight quote + technical signal (no AI, news, or competitors). */
 export async function GET(request: NextRequest) {
@@ -29,6 +30,8 @@ export async function GET(request: NextRequest) {
     });
     const adjusted = applyDataQualityToSignal(raw, quality);
     const resolved = resolveSignal(adjusted.signal, adjusted.confidence);
+    const redFlags = detectRedFlags(history, indicators, quote);
+    const risk = calculateRiskScore(indicators, quote, redFlags);
 
     return NextResponse.json({
       quote: {
@@ -40,6 +43,8 @@ export async function GET(request: NextRequest) {
         signal: resolved.signal,
         confidence: resolved.confidence,
       },
+      riskGrade: risk.grade,
+      rsi: Math.round(indicators.rsi),
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Quote fetch failed";
