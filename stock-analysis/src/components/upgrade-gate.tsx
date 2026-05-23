@@ -1,20 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { PRO_FEATURES } from "@/lib/subscription";
+import { PAID_FEATURES, LIFETIME } from "@/lib/subscription";
 import { TERMS } from "@/lib/brand";
 
 interface UpgradeGateProps {
   open: boolean;
   onClose: () => void;
-  feature: keyof typeof PRO_FEATURES;
+  feature: keyof typeof PAID_FEATURES;
   title?: string;
 }
 
 export function UpgradeGate({ open, onClose, feature, title }: UpgradeGateProps) {
   if (!open) return null;
 
-  const meta = PRO_FEATURES[feature];
+  const meta = PAID_FEATURES[feature];
 
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
@@ -30,7 +30,7 @@ export function UpgradeGate({ open, onClose, feature, title }: UpgradeGateProps)
           <p className="text-[14px] text-zinc-400 leading-relaxed mb-5">{meta.description}</p>
 
           <ul className="space-y-2 mb-6">
-            {Object.values(PRO_FEATURES)
+            {Object.values(PAID_FEATURES)
               .slice(0, 5)
               .map((f) => (
                 <li key={f.title} className="flex gap-2 text-[12px] text-zinc-400">
@@ -46,7 +46,7 @@ export function UpgradeGate({ open, onClose, feature, title }: UpgradeGateProps)
               onClick={onClose}
               className="btn-primary pressable w-full text-center py-3 rounded-xl text-sm font-bold"
             >
-              Unlock {TERMS.pulsePrime} — $12/mo
+              Lifetime ${LIFETIME.price} — pay once
             </Link>
             <button
               type="button"

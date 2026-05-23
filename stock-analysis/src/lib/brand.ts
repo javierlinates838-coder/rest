@@ -45,6 +45,7 @@ export const TERMS = {
   theLedger: "The Ledger",
   signalWire: "Signal Wire",
   pulsePrime: "Pulse Prime",
+  pulseLifetime: "Pulse Prime Lifetime",
   pulseHub: "Pulse Hub",
   dataGrade: "Integrity Grade",
   liveTape: "Live Tape",

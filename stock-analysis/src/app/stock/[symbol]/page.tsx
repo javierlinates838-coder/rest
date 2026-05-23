@@ -19,6 +19,7 @@ import { SmartScoreGauge } from "@/components/smart-score-gauge";
 import { EdgeIndexPanel } from "@/components/edge-index-panel";
 import { ResearchExportButton } from "@/components/research-export-button";
 import { UpgradeGate } from "@/components/upgrade-gate";
+import { LIFETIME } from "@/lib/subscription";
 import { ApiError, fetchJson, fetchJsonWithTimeout } from "@/lib/fetch-json";
 import { aiEngineLabel, formatDataSourceLabel, userFacingFetchError } from "@/lib/display-labels";
 import { ErrorBoundary } from "@/components/error-boundary";
@@ -279,7 +280,7 @@ export default function StockPage() {
                 : "Failed to load stock data";
           if (e instanceof ApiError && e.status === 429) {
             message =
-              "You've used today's free deep analyses. Upgrade to Pro for unlimited research, or try again tomorrow.";
+              `You've used today's free deep analyses. Lifetime ($${LIFETIME.price} once) unlocks unlimited research, or try again tomorrow.`;
           }
           setLoadError(message);
           setData(null);
@@ -403,7 +404,7 @@ export default function StockPage() {
               href="/pricing"
               className="inline-block mb-4 px-5 py-2 rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-100 text-sm font-semibold hover:bg-amber-500/30"
             >
-              View Pro plans
+              Get Lifetime access
             </Link>
           )}
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -549,7 +550,7 @@ export default function StockPage() {
             {usageRemaining} free deep {usageRemaining === 1 ? "analysis" : "analyses"} left today
           </span>
           <Link href="/pricing" className="text-[12px] font-semibold text-amber-300 hover:text-amber-200">
-            Go Pro →
+            Lifetime ${29} →
           </Link>
         </div>
       )}

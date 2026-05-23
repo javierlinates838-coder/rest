@@ -2,11 +2,14 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { LIFETIME } from "@/lib/subscription";
 
 interface UsageState {
   allowed: boolean;
   remaining: number;
   isPro: boolean;
+  isLifetime?: boolean;
+  plan?: string;
   count: number;
   limit: number;
 }
@@ -22,12 +25,27 @@ export function UsageMeter({ compact = false }: { compact?: boolean }) {
   }, []);
 
   if (!usage) return null;
+
+  if (usage.isPro && usage.isLifetime) {
+    return (
+      <Link
+        href="/pricing"
+        className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30 hover:bg-emerald-500/20 ${compact ? "" : ""}`}
+        title={LIFETIME.name}
+      >
+        <span className={`font-mono font-bold text-emerald-300 ${compact ? "text-[8px]" : "text-[9px]"}`}>
+          LIFETIME
+        </span>
+      </Link>
+    );
+  }
+
   if (usage.isPro) {
     return (
       <Link
         href="/pricing"
         className={`pro-badge ${compact ? "text-[8px]" : ""} hover:opacity-90`}
-        title="Pulse Prime member"
+        title="Full access"
       >
         PRIME
       </Link>
@@ -41,7 +59,7 @@ export function UsageMeter({ compact = false }: { compact?: boolean }) {
       <Link
         href="/pricing"
         className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-amber-500/10 border border-amber-500/25 hover:bg-amber-500/15 transition-colors"
-        title={`${usage.remaining} analyses left today`}
+        title={`${usage.remaining} scans left · Lifetime $${LIFETIME.price}`}
       >
         <span className="text-[9px] font-mono font-bold text-amber-200">{usage.remaining}</span>
         <span className="text-[8px] text-amber-200/70 uppercase">left</span>
@@ -53,7 +71,7 @@ export function UsageMeter({ compact = false }: { compact?: boolean }) {
     <div className="usage-meter ultra-card p-3 rounded-xl">
       <div className="flex justify-between items-center mb-2">
         <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-          Daily research quota
+          Daily Pulse Scans
         </span>
         <span className="text-[11px] font-mono text-white">
           {usage.count}/{usage.limit}
@@ -65,14 +83,12 @@ export function UsageMeter({ compact = false }: { compact?: boolean }) {
           style={{ width: `${pct}%` }}
         />
       </div>
-      {usage.remaining <= 3 && (
-        <Link
-          href="/pricing"
-          className="block mt-2 text-[11px] font-semibold text-amber-300 hover:text-amber-200"
-        >
-          Upgrade for unlimited →
-        </Link>
-      )}
+      <Link
+        href="/pricing"
+        className="block mt-2 text-[11px] font-semibold text-teal-300 hover:text-teal-200"
+      >
+        Lifetime ${LIFETIME.price} — pay once →
+      </Link>
     </div>
   );
 }

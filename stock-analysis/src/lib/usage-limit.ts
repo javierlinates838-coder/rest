@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
+import { accessFromCookies, COOKIES, type AccessPlan } from "@/lib/access";
 
-const COOKIE_NAME = "sp_daily_analyses";
 export const FREE_DAILY_ANALYSES = 8;
 
 interface UsageState {
@@ -23,34 +23,49 @@ function parseUsage(raw: string | undefined): UsageState {
   return { date: todayKey(), count: 0 };
 }
 
+export async function getAccessStatus() {
+  const store = await cookies();
+  return accessFromCookies((name) => store.get(name));
+}
+
 export async function getAnalysisUsage(): Promise<{
   allowed: boolean;
   remaining: number;
   isPro: boolean;
+  isLifetime: boolean;
+  plan: AccessPlan;
   count: number;
 }> {
-  if (process.env.SP_DISABLE_LIMITS === "true") {
-    return { allowed: true, remaining: 999, isPro: true, count: 0 };
+  const access = await getAccessStatus();
+
+  if (access.hasFullAccess) {
+    return {
+      allowed: true,
+      remaining: 999,
+      isPro: true,
+      isLifetime: access.isLifetime,
+      plan: access.plan,
+      count: 0,
+    };
   }
 
   const store = await cookies();
-  if (store.get("sp_pro")?.value === "1") {
-    return { allowed: true, remaining: 999, isPro: true, count: 0 };
-  }
-
-  const usage = parseUsage(store.get(COOKIE_NAME)?.value);
+  const usage = parseUsage(store.get(COOKIES.dailyAnalyses)?.value);
   const remaining = Math.max(0, FREE_DAILY_ANALYSES - usage.count);
+
   return {
     allowed: usage.count < FREE_DAILY_ANALYSES,
     remaining,
     isPro: false,
+    isLifetime: false,
+    plan: "free",
     count: usage.count,
   };
 }
 
 export function nextUsageCookie(currentCount: number): { name: string; value: string } {
   return {
-    name: COOKIE_NAME,
+    name: COOKIES.dailyAnalyses,
     value: JSON.stringify({ date: todayKey(), count: currentCount + 1 }),
   };
 }

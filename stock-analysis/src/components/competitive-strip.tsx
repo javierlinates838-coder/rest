@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { ProSectionHeader } from "@/components/pro-section-header";
+import { LIFETIME } from "@/lib/subscription";
 
 const COMPARISONS = [
   { us: "Smart Score + institutional brief", them: "TipRanks analyst scores", win: "Unified AI + TA" },
   { us: "Live screener with risk grades", them: "Finviz (paid filters)", win: "Included" },
-  { us: "8 free deep dives → Pro unlimited", them: "Seeking Alpha paywall", win: "Lower entry" },
+  { us: "8 free deep dives → Lifetime unlimited", them: "Seeking Alpha paywall", win: "Pay once" },
   { us: "4-symbol compare workspace", them: "TradingView multi-chart Pro", win: "Research-first" },
 ];
 
@@ -27,7 +28,7 @@ export function CompetitiveStrip() {
             href="/pricing"
             className="command-status-cta pressable"
           >
-            Pro $12/mo
+            Lifetime ${LIFETIME.price}
           </Link>
         }
       />

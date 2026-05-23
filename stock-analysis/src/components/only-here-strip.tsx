@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { TERMS } from "@/lib/brand";
+import { LIFETIME } from "@/lib/subscription";
 
 const EDGES = [
   {
@@ -50,10 +51,10 @@ export function OnlyHereStrip() {
       </div>
       <div className="text-center mt-8">
         <Link href="/pricing" className="btn-primary pressable inline-flex px-8 py-3 rounded-xl text-sm font-bold">
-          Unlock {TERMS.pulsePrime}
+          Lifetime ${LIFETIME.price} — one payment
         </Link>
         <p className="text-[11px] text-zinc-600 mt-3 font-mono">
-          Beta access · code PULSE14 on Access page
+          No subscription · code {LIFETIME.publicCode} on Access page
         </p>
       </div>
     </section>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { BRAND, TERMS } from "@/lib/brand";
+import { LIFETIME } from "@/lib/subscription";
 import { BrandLogo } from "@/components/brand-logo";
 
 const STORAGE_KEY = "sp_onboarded_v2";
@@ -61,7 +62,8 @@ export function OnboardingModal() {
           </li>
         </ul>
         <p className="text-[11px] text-zinc-500 mb-5 font-mono">
-          Free: 8 {TERMS.pulseScan}s/day · {TERMS.pulsePrime} beta <span className="text-teal-400">PULSE14</span>
+          Free: 8 {TERMS.pulseScan}s/day · Lifetime <span className="text-teal-400">${LIFETIME.price}</span> once (
+          {LIFETIME.publicCode})
         </p>
         <div className="flex flex-col sm:flex-row gap-2">
           <button
@@ -76,7 +78,7 @@ export function OnboardingModal() {
             onClick={dismiss}
             className="flex-1 px-4 py-2.5 rounded-xl border border-zinc-700 text-zinc-300 text-sm font-medium text-center hover:bg-zinc-800/50 transition-colors"
           >
-            Access · {TERMS.pulsePrime}
+            Access · ${LIFETIME.price} lifetime
           </Link>
         </div>
         <button

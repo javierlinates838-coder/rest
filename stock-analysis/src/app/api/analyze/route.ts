@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
   if (!usage.allowed) {
     return NextResponse.json(
       {
-        error: `Daily limit reached (${FREE_DAILY_ANALYSES} full analyses). Upgrade to Pro for unlimited research.`,
+        error: `Daily limit reached (${FREE_DAILY_ANALYSES} full analyses). Lifetime unlocks unlimited research — see Access.`,
         code: "LIMIT_REACHED",
         remaining: 0,
         limit: FREE_DAILY_ANALYSES,
@@ -188,6 +188,8 @@ export async function GET(request: NextRequest) {
         remaining: usage.isPro ? 999 : Math.max(0, usage.remaining - 1),
         limit: FREE_DAILY_ANALYSES,
         isPro: usage.isPro,
+        isLifetime: usage.isLifetime,
+        plan: usage.plan,
       },
     });
 

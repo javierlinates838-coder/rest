@@ -95,7 +95,7 @@ export default function ScreenerPage() {
         badge="FORGE"
         action={
           <Link href="/pricing" className="command-status-cta pressable">
-            Pro filters
+            Unlock filters
           </Link>
         }
       />
