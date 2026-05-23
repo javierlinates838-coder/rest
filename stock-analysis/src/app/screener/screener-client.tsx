@@ -351,7 +351,7 @@ export default function ScreenerPageClient() {
             Retry scan
           </button>
           <p className="text-[11px] text-zinc-600">
-            If this keeps happening, add FMP_API_KEY and FINNHUB_API_KEY on Vercel (stock-analysis root).
+            If this keeps happening, live market data may be unavailable — try again in a few minutes.
           </p>
         </div>
       ) : (

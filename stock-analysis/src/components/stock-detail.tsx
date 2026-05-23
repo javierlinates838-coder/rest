@@ -89,8 +89,8 @@ export function DayRangeSlider({ low, high, current, label = "Day Range" }: {
       </div>
       <div className="relative h-1.5 bg-gradient-to-r from-red-500/30 via-yellow-500/30 to-emerald-500/30 rounded-full">
         <div
-          className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full border-2 border-teal-500 shadow-lg shadow-teal-500/50 transition-all duration-700"
-          style={{ left: `calc(${position}% - 6px)` }}
+          className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 bg-white rounded-full border-2 border-teal-500 shadow-lg shadow-teal-500/50 transition-all duration-700"
+          style={{ left: `${position}%` }}
         />
       </div>
       <div className="flex justify-between items-center mt-1.5">
@@ -174,7 +174,7 @@ function formatTimeRemaining(minutes: number): string {
 export function VolumeGauge({ volume, avgVolume }: { volume: number; avgVolume: number }) {
   if (avgVolume === 0) return null;
   const ratio = volume / avgVolume;
-  const pct = Math.min(ratio * 50, 100);
+  const pct = Math.min(100, Math.max(4, (ratio / 2) * 100));
   const isHigh = ratio > 1.5;
   const isVeryHigh = ratio > 2.5;
 

@@ -21,7 +21,7 @@ export function SectorHeatmap({
     return (
       <div className="sector-board-empty rounded-2xl p-8 text-center">
         <p className="text-sm text-zinc-400">Sector rotation data is loading or unavailable.</p>
-        <p className="text-[11px] text-zinc-600 mt-2">Retry from the banner above, or check FMP_API_KEY on Vercel.</p>
+        <p className="text-[11px] text-zinc-600 mt-2">Retry from the banner above — sector data refreshes automatically when available.</p>
       </div>
     );
   }
@@ -33,8 +33,8 @@ export function SectorHeatmap({
   const sourceLabel = estimated
     ? "Sector ETFs (XLK, XLF, …)"
     : source === "mixed"
-      ? "FMP sectors + ETF fill"
-      : "FMP sector snapshot";
+      ? "Live sectors + ETF proxies"
+      : "Live sector snapshot";
 
   return (
     <section className="sector-board mb-10">
@@ -121,7 +121,7 @@ export function SectorHeatmap({
       </div>
 
       <p className="text-[11px] text-zinc-600 mt-4 text-center sm:text-left">
-        Tap a sector to screen names in Alpha Forge · ranks are sector ETFs / FMP sector performance, not single stocks
+        Tap a sector to screen names in Alpha Forge · ranks reflect sector ETFs and broad sector performance, not single stocks
       </p>
     </section>
   );

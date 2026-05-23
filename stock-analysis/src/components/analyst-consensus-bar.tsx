@@ -20,11 +20,11 @@ export function AnalystConsensusBar({
 
   const bullPct = Math.round(((strongBuy + buy) / total) * 100);
   const rows = [
-    { label: "Strong Buy", count: strongBuy },
-    { label: "Buy", count: buy },
-    { label: "Hold", count: hold },
-    { label: "Sell", count: sell },
-    { label: "Strong Sell", count: strongSell },
+    { label: "Strong Buy", count: strongBuy, color: "bg-emerald-500" },
+    { label: "Buy", count: buy, color: "bg-emerald-400/80" },
+    { label: "Hold", count: hold, color: "bg-zinc-500" },
+    { label: "Sell", count: sell, color: "bg-red-400/80" },
+    { label: "Strong Sell", count: strongSell, color: "bg-red-500" },
   ];
 
   return (
@@ -40,13 +40,13 @@ export function AnalystConsensusBar({
         <span className="text-xl font-semibold text-zinc-300 tabular-nums shrink-0">{bullPct}%</span>
       </div>
 
-      <div className="flex h-2 rounded-full overflow-hidden bg-zinc-800 mb-3">
+      <div className="flex h-2 rounded-full overflow-hidden bg-zinc-800 mb-3 min-w-0">
         {rows.map((r) =>
           r.count > 0 ? (
             <div
               key={r.label}
-              className="bg-zinc-600 min-w-[2px]"
-              style={{ flexGrow: r.count }}
+              className={`${r.color} min-w-[3px] shrink-0`}
+              style={{ flex: `${r.count} 1 0` }}
               title={`${r.label}: ${r.count}`}
             />
           ) : null

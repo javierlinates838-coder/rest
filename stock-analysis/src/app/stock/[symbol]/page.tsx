@@ -21,9 +21,9 @@ import { ResearchExportButton } from "@/components/research-export-button";
 import { ApiError, fetchJson, fetchJsonWithTimeout } from "@/lib/fetch-json";
 import {
   aiEngineLabel,
+  chartDataLabel,
   cleanDisplayLabel,
   displayOrDash,
-  formatDataSourceLabel,
   userFacingFetchError,
 } from "@/lib/display-labels";
 import { ErrorBoundary } from "@/components/error-boundary";
@@ -136,10 +136,6 @@ function parseAnalysis(data: unknown): AnalysisData | null {
   return normalizeAnalysisPayload(data) as AnalysisData | null;
 }
 
-function shortDataSource(label: string): string {
-  return formatDataSourceLabel(label);
-}
-
 export default function StockPage() {
   const params = useParams();
   const rawSymbol = params?.symbol;
@@ -172,14 +168,7 @@ export default function StockPage() {
     }
   };
 
-  const chartSourceLabel =
-    chartSource === "fmp"
-      ? "Live · FMP"
-      : chartSource === "yahoo"
-        ? "Live · Yahoo Finance"
-        : chartSource === "simulated"
-          ? "Simulated prices"
-          : null;
+  const chartSourceLabel = chartDataLabel(chartSource);
 
   // Full analysis load when symbol changes (not on chart period change)
   useEffect(() => {
@@ -374,7 +363,7 @@ export default function StockPage() {
           </h2>
           <p className="text-sm text-zinc-400 mb-6 leading-relaxed">
             {loadError ||
-              "The analysis service did not return valid data. This often happens when API keys are missing on Vercel or the request timed out."}
+              "The analysis service did not return valid data. Live data may be unavailable or the request timed out — try again shortly."}
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <button
@@ -606,6 +595,9 @@ export default function StockPage() {
                 {quote.high52 > quote.low52 && (
                   <DayRangeSlider low={quote.low52} high={quote.high52} current={quote.price} label="52-week range" />
                 )}
+                {quote.avgVolume > 0 && quote.volume > 0 && (
+                  <VolumeGauge volume={quote.volume} avgVolume={quote.avgVolume} />
+                )}
               </div>
             )}
           </div>
@@ -644,7 +636,7 @@ export default function StockPage() {
       {activeTab === "overview" && (chartSource === "simulated" || newsSource === "generated" || (researchQuality && researchQuality.score < 55)) && (
         <div className="glass-card rounded-xl px-4 py-3 mb-6 border border-amber-500/20 bg-amber-500/5 text-[12px] text-amber-200/90 leading-relaxed">
           {chartSource === "simulated" && (
-            <span>Technical signals use simulated OHLCV — not valid for trading decisions until live chart data is connected. </span>
+            <span>Technical signals use estimated price history — not valid for trading decisions until live chart data is available. </span>
           )}
           {newsSource === "generated" && (
             <span>Headlines are illustrative placeholders, not reported news. </span>
@@ -1030,7 +1022,7 @@ export default function StockPage() {
                 style={{ left: "0%", width: "100%" }}
               />
               <div
-                className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full border-2 border-teal-500"
+                className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 bg-white rounded-full border-2 border-teal-500"
                 style={{
                   left: `${(() => {
                     const span = aiAnalysis.priceTarget.high - aiAnalysis.priceTarget.low;

@@ -53,12 +53,12 @@ export function assessResearchQuality(input: {
 
   if (!input.hasFmpKey && !input.hasFinnhubKey) {
     score -= 12;
-    issues.push("No premium market data API key — relying on free-tier or fallback sources.");
+    issues.push("Limited live market feeds — some quotes and history use fallback sources.");
   }
 
   if (!process.env.GEMINI_API_KEY && !process.env.OPENAI_API_KEY) {
     score -= 18;
-    issues.push("No AI API key — narrative analysis uses the built-in rules engine.");
+    issues.push("Narrative brief uses the built-in rules engine instead of full AI synthesis.");
   }
 
   score = Math.max(0, Math.min(100, Math.round(score)));
@@ -105,10 +105,10 @@ export function applyDataQualityToSignal(
 
   if (quality.chartSource === "simulated") {
     confidence = Math.min(confidence, 40);
-    reasons.unshift("Simulated chart data — signal confidence capped");
+    reasons.unshift("Estimated price history — signal confidence capped");
     if (outSignal === "Strong Buy" || outSignal === "Strong Sell") {
       outSignal = "Hold";
-      reasons.push("Strong directional signal suppressed on simulated prices");
+      reasons.push("Strong directional signal suppressed on estimated prices");
     }
   }
 

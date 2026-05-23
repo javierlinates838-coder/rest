@@ -69,7 +69,7 @@ export function VolatilityForgePanel({
         {(chartSimulated || forge.levelsEstimated) && (
           <p className="text-[11px] text-amber-200/80 mt-3">
             {chartSimulated
-              ? "Simulated chart — levels are estimates."
+              ? "Estimated price history — levels are illustrative only."
               : "Using ATR estimates — pivots did not bracket live price."}
           </p>
         )}

@@ -61,7 +61,6 @@ export default function DashboardPage() {
   const [sectors, setSectors] = useState<SectorPerformanceRow[]>([]);
   const [gainers, setGainers] = useState<MoverStock[]>([]);
   const [losers, setLosers] = useState<MoverStock[]>([]);
-  const [dataSources, setDataSources] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [marketError, setMarketError] = useState<string | null>(null);
   const [sectorsEstimated, setSectorsEstimated] = useState(false);
@@ -107,7 +106,6 @@ export default function DashboardPage() {
           setTrending(data.trending || []);
           setGainers(data.topGainers || []);
           setLosers(data.topLosers || []);
-          setDataSources(data.dataSources || {});
         }
       } catch (e) {
         if (!cancelled) setMarketError("Could not load market data. Check your connection and try again.");
@@ -251,13 +249,6 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {Object.keys(dataSources).length > 0 && (
-          <div className="hidden sm:flex justify-center flex-wrap gap-2 mt-6">
-            {Object.entries(dataSources).map(([key, value]) => (
-              <span key={key} className="data-source-tag">{value}</span>
-            ))}
-          </div>
-        )}
         </div>
       </PulseFrame>
 
@@ -288,7 +279,6 @@ export default function DashboardPage() {
                     setSectorSource(sectorPayload?.source ?? data.sectorSource);
                     setGainers(data.topGainers || []);
                     setLosers(data.topLosers || []);
-                    setDataSources(data.dataSources || {});
                   }
                 })
                 .catch(() => setMarketError("Could not load market data."))

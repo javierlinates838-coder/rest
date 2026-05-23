@@ -59,5 +59,5 @@ export const HERO = {
 
 export const FOOTER = {
   legal: `${BRAND.name} Pulse Terminal — Research tooling, not investment advice.`,
-  feeds: ["Pulse Feed · FMP", "Sentiment · Finnhub", "Narrative · Gemini"],
+  feeds: ["Pulse Feed", "Sentiment", "Meridian Brief"],
 } as const;
