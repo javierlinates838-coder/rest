@@ -8,6 +8,7 @@ import type { ScreenerRow } from "@/lib/screener";
 import { SCREENER_SECTOR_OPTIONS } from "@/lib/screener-constants";
 import { ProSectionHeader } from "@/components/pro-section-header";
 import { TERMS } from "@/lib/brand";
+import { displayOrDash } from "@/lib/display-labels";
 import { fetchJsonWithTimeout } from "@/lib/fetch-json";
 
 type BiasFilter = "any" | "bullish" | "bearish";
@@ -287,7 +288,7 @@ export default function ScreenerPage() {
                   </td>
                   <td className="text-center px-4 py-3.5 text-zinc-300">{row.riskGrade}</td>
                   <td className="text-right px-4 py-3.5 text-zinc-400 tabular-nums">{row.rsi}</td>
-                  <td className="text-right px-5 py-3.5 text-[11px] text-zinc-500">{row.sector || "—"}</td>
+                  <td className="text-right px-5 py-3.5 text-[11px] text-zinc-500">{displayOrDash(row.sector)}</td>
                 </tr>
               ))}
             </tbody>

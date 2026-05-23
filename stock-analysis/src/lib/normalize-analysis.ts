@@ -11,6 +11,7 @@ import {
   deriveTimeHorizon,
   ensureSymbolInBullets,
 } from "@/lib/investment-profile";
+import { displayOrDash } from "@/lib/display-labels";
 
 type LooseRecord = Record<string, unknown>;
 
@@ -20,7 +21,9 @@ function num(v: unknown, fallback = 0): number {
 }
 
 function str(v: unknown, fallback = ""): string {
-  return typeof v === "string" ? v : fallback;
+  const raw = typeof v === "string" ? v.trim() : fallback;
+  if (!raw || /^unknown$/i.test(raw) || /^n\/a$/i.test(raw)) return "";
+  return raw;
 }
 
 function arr<T>(v: unknown): T[] {
@@ -219,8 +222,8 @@ export function normalizeAnalysisPayload(raw: any): any {
     marketCap: num(quote.marketCap),
     peRatio: num(quote.peRatio),
     dividendYield: num(quote.dividendYield),
-    sector: str(quote.sector, "Unknown"),
-    industry: str(quote.industry, "Unknown"),
+    sector: str(quote.sector),
+    industry: str(quote.industry),
     changePercent: num(quote.changePercent),
     rsi: num(indicators.rsi, 50),
     adx: num(indicators.adx, 25),
@@ -241,12 +244,12 @@ export function normalizeAnalysisPayload(raw: any): any {
 
   const catalystFallback = [
     `${str(quote.symbol).toUpperCase()} technical signal: ${resolved.signal}`,
-    `${str(quote.sector)} sector drivers for ${str(quote.symbol).toUpperCase()}`,
+    `${str(quote.sector) || "Market"} sector drivers for ${str(quote.symbol).toUpperCase()}`,
     `Volatility (beta ${num(quote.beta).toFixed(2)}) shapes ${str(quote.symbol).toUpperCase()} risk/reward`,
   ];
   const riskFallback = [
     `${str(quote.symbol).toUpperCase()} breaks key support — momentum could accelerate`,
-    `Sector or macro shock hits ${str(quote.sector)} names including ${str(quote.symbol).toUpperCase()}`,
+    `Sector or macro shock hits ${str(quote.sector) || "related"} names including ${str(quote.symbol).toUpperCase()}`,
     `Valuation compression if growth disappoints at ${str(quote.symbol).toUpperCase()}`,
   ];
 
@@ -270,8 +273,8 @@ export function normalizeAnalysisPayload(raw: any): any {
       previousClose: num(quote.previousClose, price),
       dividendYield: num(quote.dividendYield),
       beta: num(quote.beta),
-      sector: str(quote.sector, "Unknown"),
-      industry: str(quote.industry, "Unknown"),
+      sector: str(quote.sector),
+      industry: str(quote.industry),
       exchange: str(quote.exchange, "NASDAQ"),
       description: str(quote.description),
     },
@@ -319,7 +322,7 @@ export function normalizeAnalysisPayload(raw: any): any {
       peRatio: num(c.peRatio),
       changePercent: num(c.changePercent),
       revenue: num(c.revenue),
-      sector: str(c.sector, "Unknown"),
+      sector: str(c.sector),
     })),
     aiAnalysis: {
       summary: str(ai.summary, "Analysis summary unavailable."),
@@ -336,7 +339,7 @@ export function normalizeAnalysisPayload(raw: any): any {
         : [
             `${str(quote.symbol).toUpperCase()} at $${price.toFixed(2)} — ${resolved.signal} (${resolved.confidence}%)`,
             `RSI ${num(indicators.rsi, 50).toFixed(1)} · ADX ${num(indicators.adx, 25).toFixed(1)}`,
-            `Beta ${num(quote.beta).toFixed(2)} · ${str(quote.sector)} / ${str(quote.industry)}`,
+            `Beta ${num(quote.beta).toFixed(2)} · ${displayOrDash(str(quote.sector))} / ${displayOrDash(str(quote.industry))}`,
           ],
       technicalOutlook: str(ai.technicalOutlook, "Technical outlook unavailable."),
       fundamentalOutlook: str(ai.fundamentalOutlook, "Fundamental outlook unavailable."),

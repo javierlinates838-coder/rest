@@ -6,6 +6,7 @@ import { applyDataQualityToSignal, assessResearchQuality } from "@/lib/research-
 import { computeSmartScore } from "@/lib/smart-score";
 import { fmpFetchGainers, fmpFetchLosers } from "@/services/fmp-api";
 import { LIQUID_UNIVERSE } from "@/lib/hub-symbols";
+import { cleanDisplayLabel } from "@/lib/display-labels";
 
 export interface ScreenerRow {
   symbol: string;
@@ -77,7 +78,7 @@ function rowFromQuote(quote: StockQuote, partial?: Partial<ScreenerRow>): Screen
     smartScore,
     smartLabel: smartScore >= 58 ? "Buy" : smartScore <= 42 ? "Sell" : "Hold",
     rsi: 50,
-    sector: quote.sector || "Unknown",
+    sector: cleanDisplayLabel(quote.sector) || "",
     peRatio: quote.peRatio,
     ...partial,
   };

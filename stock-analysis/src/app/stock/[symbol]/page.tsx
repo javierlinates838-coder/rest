@@ -18,7 +18,13 @@ import { SmartScoreGauge } from "@/components/smart-score-gauge";
 import { EdgeIndexPanel } from "@/components/edge-index-panel";
 import { ResearchExportButton } from "@/components/research-export-button";
 import { ApiError, fetchJson, fetchJsonWithTimeout } from "@/lib/fetch-json";
-import { aiEngineLabel, formatDataSourceLabel, userFacingFetchError } from "@/lib/display-labels";
+import {
+  aiEngineLabel,
+  cleanDisplayLabel,
+  displayOrDash,
+  formatDataSourceLabel,
+  userFacingFetchError,
+} from "@/lib/display-labels";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { normalizeAnalysisPayload } from "@/lib/normalize-analysis";
 import { priceChangePercent } from "@/lib/analysis-coherence";
@@ -592,10 +598,18 @@ export default function StockPage() {
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-2xl sm:text-[32px] font-semibold text-white tracking-tight">{quote.symbol}</h1>
-                <span className="px-2 py-0.5 text-[10px] font-semibold bg-zinc-800/60 text-zinc-500 rounded-md tracking-wider uppercase">{quote.exchange}</span>
+                {cleanDisplayLabel(quote.exchange) ? (
+                  <span className="px-2 py-0.5 text-[10px] font-semibold bg-zinc-800/60 text-zinc-500 rounded-md tracking-wider uppercase">
+                    {cleanDisplayLabel(quote.exchange)}
+                  </span>
+                ) : null}
               </div>
               <p className="text-[14px] sm:text-[16px] text-zinc-400 font-light tracking-tight truncate mt-0.5">{quote.name}</p>
-              <span className="inline-block mt-1.5 px-2.5 py-0.5 text-[10px] font-medium bg-teal-500/10 text-teal-400 rounded-md tracking-wide">{quote.sector}</span>
+              {cleanDisplayLabel(quote.sector) ? (
+                <span className="inline-block mt-1.5 px-2.5 py-0.5 text-[10px] font-medium bg-teal-500/10 text-teal-400 rounded-md tracking-wide">
+                  {cleanDisplayLabel(quote.sector)}
+                </span>
+              ) : null}
             </div>
           </div>
 
@@ -892,7 +906,7 @@ export default function StockPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
             {[
               { label: "Market Cap", value: formatLargeNumber(quote.marketCap), tooltip: "Total market value of outstanding shares" },
-              { label: "P/E Ratio", value: quote.peRatio > 0 ? quote.peRatio.toFixed(2) : "N/A", tooltip: "Price-to-Earnings ratio" },
+              { label: "P/E Ratio", value: quote.peRatio > 0 ? quote.peRatio.toFixed(2) : "—", tooltip: "Price-to-Earnings ratio" },
               { label: "EPS", value: formatCurrency(quote.eps), tooltip: "Earnings Per Share (trailing 12 months)" },
               { label: "52W High", value: formatCurrency(quote.high52), tooltip: "Highest price in the last 52 weeks" },
               { label: "52W Low", value: formatCurrency(quote.low52), tooltip: "Lowest price in the last 52 weeks" },
@@ -900,8 +914,8 @@ export default function StockPage() {
               { label: "Beta", value: quote.beta > 0 ? quote.beta.toFixed(2) : "—", tooltip: "Volatility relative to the market (1.0 = market)" },
               { label: "Dividend Yield", value: quote.dividendYield > 0 ? `${quote.dividendYield.toFixed(2)}%` : "—", tooltip: "Annual dividend as % of price" },
               { label: "Day Range", value: `${formatCurrency(quote.dayLow)} – ${formatCurrency(quote.dayHigh)}`, tooltip: "Today's trading range" },
-              { label: "Sector", value: quote.sector, tooltip: "Market sector classification" },
-              { label: "Industry", value: quote.industry, tooltip: "Specific industry within sector" },
+              { label: "Sector", value: displayOrDash(quote.sector), tooltip: "Market sector classification" },
+              { label: "Industry", value: displayOrDash(quote.industry), tooltip: "Specific industry within sector" },
               { label: "Open", value: formatCurrency(quote.open), tooltip: "Today's opening price" },
             ].map((stat, i) => (
               <div key={stat.label} className={`glass-card rounded-xl p-4 animate-fadeInUp stagger-${Math.min(i + 1, 8)} premium-tooltip`} data-tooltip={stat.tooltip}>

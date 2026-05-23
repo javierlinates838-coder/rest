@@ -2,6 +2,7 @@ import type { PriceData } from "@/lib/technical-analysis";
 import { createSeededRandom } from "@/lib/seeded-random";
 import { fmpFetchQuote, fmpFetchProfile, fmpFetchHistorical, fmpFetchPeers, fmpFetchFinancials, type FMPFinancials } from "./fmp-api";
 import { finnhubFetchQuote, finnhubFetchPeers, finnhubFetchBasicFinancials } from "./finnhub-api";
+import { cleanDisplayLabel } from "@/lib/display-labels";
 
 export type PriceHistorySource = "fmp" | "yahoo" | "simulated";
 
@@ -105,8 +106,8 @@ export async function fetchStockQuote(symbol: string): Promise<StockQuote> {
       previousClose: fmpQuote.previousClose || (fmpQuote.price - fmpQuote.change),
       dividendYield: fmpProfile?.lastDiv ? (fmpProfile.lastDiv / fmpQuote.price) * 100 : 0,
       beta: fmpProfile?.beta || 0,
-      sector: fmpProfile?.sector || POPULAR_STOCKS[upperSymbol]?.sector || "Unknown",
-      industry: fmpProfile?.industry || "Unknown",
+      sector: cleanDisplayLabel(fmpProfile?.sector) || POPULAR_STOCKS[upperSymbol]?.sector || "",
+      industry: cleanDisplayLabel(fmpProfile?.industry) || "",
       exchange: fmpQuote.exchange || fmpProfile?.exchange || "NASDAQ",
       description: fmpProfile?.description || "",
       financials: fmpFinancials || undefined,
@@ -148,8 +149,8 @@ export async function fetchStockQuote(symbol: string): Promise<StockQuote> {
       previousClose: finnhubQuote.pc,
       dividendYield: (m["dividendYieldIndicatedAnnual"] as number) || 0,
       beta: (m["beta"] as number) || fmpProfile?.beta || 0,
-      sector: fmpProfile?.sector || POPULAR_STOCKS[upperSymbol]?.sector || "Unknown",
-      industry: fmpProfile?.industry || "Unknown",
+      sector: cleanDisplayLabel(fmpProfile?.sector) || POPULAR_STOCKS[upperSymbol]?.sector || "",
+      industry: cleanDisplayLabel(fmpProfile?.industry) || "",
       exchange: fmpProfile?.exchange || "NASDAQ",
       description: fmpProfile?.description || "",
       financials: fmpFinancials || undefined,
@@ -183,8 +184,8 @@ export async function fetchStockQuote(symbol: string): Promise<StockQuote> {
       previousClose: quote.regularMarketPreviousClose || 0,
       dividendYield: quote.dividendYield || 0,
       beta: quote.beta || 0,
-      sector: profile?.assetProfile?.sector || POPULAR_STOCKS[upperSymbol]?.sector || "Unknown",
-      industry: profile?.assetProfile?.industry || "Unknown",
+      sector: cleanDisplayLabel(profile?.assetProfile?.sector) || POPULAR_STOCKS[upperSymbol]?.sector || "",
+      industry: cleanDisplayLabel(profile?.assetProfile?.industry) || "",
       exchange: quote.exchange || "NASDAQ",
       description: profile?.assetProfile?.longBusinessSummary || "",
     };
@@ -308,7 +309,7 @@ export async function fetchCompetitors(symbol: string): Promise<CompetitorData[]
             peRatio,
             changePercent,
             revenue,
-            sector: profile?.sector || POPULAR_STOCKS[sym]?.sector || "Unknown",
+            sector: cleanDisplayLabel(profile?.sector) || POPULAR_STOCKS[sym]?.sector || "",
           });
         } else {
           competitors.push(generateMockCompetitor(sym));

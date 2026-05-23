@@ -218,7 +218,7 @@ const SECTOR_EVENTS: Record<string, { title: string; description: string; type: 
 
 export function generateKeyEvents(
   symbol: string,
-  sector: string = "Unknown",
+  sector: string = "",
   companyName?: string
 ): KeyEvent[] {
   const hash = symbol.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
@@ -271,7 +271,7 @@ export function generateKeyEvents(
       type: "economic",
       title: "CPI / inflation print",
       importance: "medium",
-      description: `Macro rates narrative — affects ${sector} and ${symbol} multiples.`,
+      description: `Macro rates narrative — affects ${sector || "this sector"} and ${symbol} multiples.`,
       daysAway: macroDays,
     });
   } else {

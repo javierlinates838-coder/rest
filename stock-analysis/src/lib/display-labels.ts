@@ -1,5 +1,20 @@
 /** User-facing labels — never expose env var names or deploy tooling. */
 
+const BLANK_LABEL = /^$|^(unknown|n\/a|na|null|undefined|—|-)$/i;
+
+/** Strip placeholder junk; use before storing or showing labels. */
+export function cleanDisplayLabel(value?: string | null): string {
+  const s = (value ?? "").trim();
+  if (!s || BLANK_LABEL.test(s)) return "";
+  if (/^unknown$/i.test(s)) return "";
+  return s;
+}
+
+/** Value for UI tables and stats — em dash when missing. */
+export function displayOrDash(value?: string | null): string {
+  return cleanDisplayLabel(value) || "—";
+}
+
 export function formatDataSourceLabel(raw: string): string {
   const s = raw.trim();
   if (!s) return "Data";
