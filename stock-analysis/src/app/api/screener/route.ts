@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runScreener, type ScreenerFilter } from "@/lib/screener";
-import { getAnalysisUsage } from "@/lib/usage-limit";
-
 export const maxDuration = 60;
 
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
   const filter: ScreenerFilter = {};
-  const usage = await getAnalysisUsage();
 
   const bias = params.get("bias");
   if (bias === "bullish" || bias === "bearish" || bias === "any") {
@@ -19,16 +16,6 @@ export async function GET(request: NextRequest) {
 
   const maxRisk = params.get("maxRiskGrade");
   const sector = params.get("sector");
-
-  if ((maxRisk || (sector && sector !== "all")) && !usage.isPro) {
-    return NextResponse.json(
-      {
-        error: "Sector and risk filters require StockPulse Pro.",
-        code: "PRO_REQUIRED",
-      },
-      { status: 403 }
-    );
-  }
 
   if (maxRisk) filter.maxRiskGrade = maxRisk;
   if (sector) filter.sector = sector;

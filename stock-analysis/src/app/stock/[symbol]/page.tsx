@@ -10,7 +10,6 @@ import {
   Tooltip, ResponsiveContainer, ReferenceLine, RadarChart, PolarGrid,
   PolarAngleAxis, PolarRadiusAxis, Radar, Legend,
 } from "recharts";
-import Link from "next/link";
 import { formatCurrency, formatLargeNumber, formatPercent, getSignalColor, getSignalBg } from "@/lib/utils";
 import { computeSmartScore } from "@/lib/smart-score";
 import { computeEdgeIndex } from "@/lib/edge-index";
@@ -18,9 +17,6 @@ import { ActionBrief } from "@/components/action-brief";
 import { SmartScoreGauge } from "@/components/smart-score-gauge";
 import { EdgeIndexPanel } from "@/components/edge-index-panel";
 import { ResearchExportButton } from "@/components/research-export-button";
-import { UpgradeGate } from "@/components/upgrade-gate";
-import { LIFETIME } from "@/lib/subscription";
-import { BETA_MODE } from "@/lib/product-phase";
 import { ApiError, fetchJson, fetchJsonWithTimeout } from "@/lib/fetch-json";
 import { aiEngineLabel, formatDataSourceLabel, userFacingFetchError } from "@/lib/display-labels";
 import { ErrorBoundary } from "@/components/error-boundary";
@@ -169,19 +165,7 @@ export default function StockPage() {
   const heroRef = useRef<HTMLDivElement>(null);
   const skipPeriodFetchRef = useRef(true);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [usageRemaining, setUsageRemaining] = useState<number | null>(null);
-  const [isPro, setIsPro] = useState(false);
-  const [edgeGateOpen, setEdgeGateOpen] = useState(false);
   const clientNow = useClientNow();
-
-  useEffect(() => {
-    fetch("/api/usage")
-      .then((r) => r.json())
-      .then((u) => {
-        if (u.isPro) setIsPro(true);
-      })
-      .catch(() => null);
-  }, []);
 
   const goBack = () => {
     if (typeof window !== "undefined" && window.history.length > 1) {
@@ -235,11 +219,6 @@ export default function StockPage() {
           throw new Error("We couldn't build a complete analysis for this symbol. Try again or pick another ticker.");
         }
         setData(parsed);
-        const usage = (analysisData as { usage?: { remaining: number; isPro?: boolean } }).usage;
-        if (usage && typeof usage.remaining === "number") {
-          setUsageRemaining(usage.remaining);
-        }
-        if (usage?.isPro) setIsPro(true);
 
         const stockHistory = stockData.history?.length ? stockData.history : [];
         const analysisHistory =
@@ -281,7 +260,7 @@ export default function StockPage() {
                 : "Failed to load stock data";
           if (e instanceof ApiError && e.status === 429) {
             message =
-              `You've used today's free deep analyses. Lifetime ($${LIFETIME.price} once) unlocks unlimited research, or try again tomorrow.`;
+              "You've used today's analysis limit. Try again tomorrow.";
           }
           setLoadError(message);
           setData(null);
@@ -400,14 +379,6 @@ export default function StockPage() {
             {loadError ||
               "The analysis service did not return valid data. This often happens when API keys are missing on Vercel or the request timed out."}
           </p>
-          {loadError?.includes("free deep") && (
-            <Link
-              href="/pricing"
-              className="inline-block mb-4 px-5 py-2 rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-100 text-sm font-semibold hover:bg-amber-500/30"
-            >
-              {BETA_MODE ? "Unlock with beta code" : "Get Lifetime access"}
-            </Link>
-          )}
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <button
               type="button"
@@ -545,20 +516,8 @@ export default function StockPage() {
       {/* Quick Actions */}
       <QuickActions symbol={quote.symbol} onRefresh={() => setRefreshKey((k) => k + 1)} />
 
-      {usageRemaining !== null && !isPro && usageRemaining <= 3 && (
-        <div className="glass-card rounded-xl px-4 py-3 mb-5 border border-amber-500/20 bg-amber-500/5 flex flex-wrap items-center justify-between gap-2">
-          <span className="text-[12px] text-amber-100/90">
-            {usageRemaining} free deep {usageRemaining === 1 ? "analysis" : "analyses"} left today
-          </span>
-          <Link href="/pricing" className="text-[12px] font-semibold text-amber-300 hover:text-amber-200">
-            Lifetime ${LIFETIME.price} →
-          </Link>
-        </div>
-      )}
-
       <div className="flex flex-wrap items-center justify-end gap-2 mb-4">
         <ResearchExportButton
-          isPro={isPro}
           data={{
             symbol: quote.symbol,
             name: quote.name,
@@ -581,12 +540,7 @@ export default function StockPage() {
         />
       </div>
 
-      <EdgeIndexPanel
-        edge={edgeIndex}
-        symbol={quote.symbol}
-        isPro={isPro}
-        onUpgrade={() => setEdgeGateOpen(true)}
-      />
+      <EdgeIndexPanel edge={edgeIndex} symbol={quote.symbol} />
 
       <ActionBrief
         symbol={quote.symbol}
@@ -1765,11 +1719,6 @@ export default function StockPage() {
           </div>
         );
       })()}
-      <UpgradeGate
-        open={edgeGateOpen}
-        onClose={() => setEdgeGateOpen(false)}
-        feature="edge_index_full"
-      />
     </div>
     </ErrorBoundary>
   );

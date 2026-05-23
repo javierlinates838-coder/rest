@@ -1,6 +1,8 @@
 /**
- * Full-access detection — lifetime one-time, trial/subscription, or dev bypass.
+ * Full-access detection — open build, cookies, or dev bypass.
  */
+
+import { OPEN_ACCESS } from "@/lib/product-phase";
 
 export const COOKIES = {
   lifetime: "sp_lifetime",
@@ -20,7 +22,7 @@ export interface AccessStatus {
 
 /** Read access from cookie store (server). */
 export function accessFromCookies(get: (name: string) => { value: string } | undefined): AccessStatus {
-  if (process.env.SP_DISABLE_LIMITS === "true") {
+  if (OPEN_ACCESS || process.env.SP_DISABLE_LIMITS === "true") {
     return { hasFullAccess: true, plan: "lifetime", isLifetime: true, isTrial: false };
   }
 

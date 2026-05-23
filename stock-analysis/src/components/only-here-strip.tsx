@@ -2,8 +2,6 @@
 
 import Link from "next/link";
 import { TERMS } from "@/lib/brand";
-import { LIFETIME } from "@/lib/subscription";
-import { BETA_MODE } from "@/lib/product-phase";
 
 const EDGES = [
   {
@@ -51,14 +49,9 @@ export function OnlyHereStrip() {
         ))}
       </div>
       <div className="text-center mt-8">
-        <Link href="/pricing" className="btn-primary pressable inline-flex px-8 py-3 rounded-xl text-sm font-bold">
-          {BETA_MODE ? `Beta access · code ${LIFETIME.publicCode}` : `Lifetime $${LIFETIME.price} — one payment`}
+        <Link href="/screener" className="btn-primary pressable inline-flex px-8 py-3 rounded-xl text-sm font-bold">
+          Open {TERMS.alphaForge} →
         </Link>
-        <p className="text-[11px] text-zinc-600 mt-3 font-mono">
-          {BETA_MODE
-            ? "Payments later — mastering the terminal first"
-            : `No subscription · code ${LIFETIME.publicCode} on Access`}
-        </p>
       </div>
     </section>
   );

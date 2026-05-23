@@ -3,9 +3,7 @@ import Link from "next/link";
 import { Plus_Jakarta_Sans, JetBrains_Mono, Syne } from "next/font/google";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { OnboardingModal } from "@/components/onboarding-modal";
-import { AccessWelcomeToast } from "@/components/access-welcome-toast";
 import { SiteNavLinks } from "@/components/site-nav-links";
-import { UsageMeter } from "@/components/usage-meter";
 import { BrandLogo, BrandWordmark } from "@/components/brand-logo";
 import { BRAND, FOOTER } from "@/lib/brand";
 import "./globals.css";
@@ -66,7 +64,6 @@ export default function RootLayout({
 
                 <div className="flex items-center gap-2 sm:gap-4 shrink-0">
                   <SiteNavLinks />
-                  <UsageMeter compact />
                   <span className="live-badge-pro hidden md:inline-flex">{BRAND.shortTag}</span>
                 </div>
               </div>
@@ -77,7 +74,6 @@ export default function RootLayout({
             {children}
           </main>
           <OnboardingModal />
-          <AccessWelcomeToast />
 
           <MobileBottomNav />
 

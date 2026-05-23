@@ -2,13 +2,11 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { formatCurrency, formatPercent, getSignalColor } from "@/lib/utils";
 import { smartScoreColor } from "@/lib/smart-score";
 import type { ScreenerRow } from "@/lib/screener";
 import { ProSectionHeader } from "@/components/pro-section-header";
 import { TERMS } from "@/lib/brand";
-import { UpgradeGate } from "@/components/upgrade-gate";
 
 type BiasFilter = "any" | "bullish" | "bearish";
 
@@ -23,16 +21,7 @@ export default function ScreenerPage() {
   const [minScore, setMinScore] = useState(55);
   const [maxRisk, setMaxRisk] = useState("");
   const [sector, setSector] = useState("all");
-  const [isPro, setIsPro] = useState(false);
-  const [gateOpen, setGateOpen] = useState(false);
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetch("/api/usage")
-      .then((r) => r.json())
-      .then((u) => setIsPro(Boolean(u.isPro)))
-      .catch(() => null);
-  }, []);
 
   const fetchScreener = useCallback(async () => {
     const params = new URLSearchParams();
@@ -42,10 +31,6 @@ export default function ScreenerPage() {
     if (sector && sector !== "all") params.set("sector", sector);
     const res = await fetch(`/api/screener?${params}`);
     const data = await res.json();
-    if (res.status === 403 && data.code === "PRO_REQUIRED") {
-      setGateOpen(true);
-      throw new Error(data.error);
-    }
     if (!res.ok) throw new Error(data.error || "Screener failed");
     return data as { rows?: ScreenerRow[]; updatedAt?: string };
   }, [bias, minScore, maxRisk, sector]);
@@ -93,11 +78,6 @@ export default function ScreenerPage() {
         title={TERMS.alphaForge}
         subtitle={`Universe ranked by ${TERMS.smartScore} + ${TERMS.edgeShort}`}
         badge="FORGE"
-        action={
-          <Link href="/pricing" className="command-status-cta pressable">
-            Unlock filters
-          </Link>
-        }
       />
 
       <div className="flex flex-wrap gap-3 mb-6 ultra-card p-4">
@@ -131,13 +111,7 @@ export default function ScreenerPage() {
           Max risk
           <select
             value={maxRisk}
-            onChange={(e) => {
-              if (!isPro && e.target.value) {
-                setGateOpen(true);
-                return;
-              }
-              setMaxRisk(e.target.value);
-            }}
+            onChange={(e) => setMaxRisk(e.target.value)}
             className="bg-transparent text-white text-[12px] outline-none"
           >
             <option value="">Any</option>
@@ -147,19 +121,12 @@ export default function ScreenerPage() {
               </option>
             ))}
           </select>
-          {!isPro && <span className="pro-badge text-[8px]">PRO</span>}
         </label>
         <label className="flex items-center gap-2 text-[12px] text-zinc-400 rounded-xl px-3 py-2 border border-zinc-800">
           Sector
           <select
             value={sector}
-            onChange={(e) => {
-              if (!isPro && e.target.value !== "all") {
-                setGateOpen(true);
-                return;
-              }
-              setSector(e.target.value);
-            }}
+            onChange={(e) => setSector(e.target.value)}
             className="bg-transparent text-white text-[12px] outline-none max-w-[120px]"
           >
             {SECTORS.map((s) => (
@@ -168,7 +135,6 @@ export default function ScreenerPage() {
               </option>
             ))}
           </select>
-          {!isPro && <span className="pro-badge text-[8px]">PRO</span>}
         </label>
         <button
           type="button"
@@ -179,12 +145,6 @@ export default function ScreenerPage() {
           Refresh
         </button>
       </div>
-
-      <UpgradeGate
-        open={gateOpen}
-        onClose={() => setGateOpen(false)}
-        feature="screener_advanced"
-      />
 
       {error && (
         <div className="glass-card rounded-xl px-4 py-3 mb-6 border border-red-500/20 text-red-200/90 text-sm">

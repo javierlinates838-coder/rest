@@ -2,8 +2,6 @@
 
 import Link from "next/link";
 import { ProSectionHeader } from "@/components/pro-section-header";
-import { LIFETIME } from "@/lib/subscription";
-import { BETA_MODE } from "@/lib/product-phase";
 
 const COMPARISONS = [
   { us: "Smart Score + institutional brief", them: "TipRanks analyst scores", win: "Unified AI + TA" },
@@ -25,11 +23,8 @@ export function CompetitiveStrip() {
           </svg>
         }
         action={
-          <Link
-            href="/pricing"
-            className="command-status-cta pressable"
-          >
-            {BETA_MODE ? `Beta · ${LIFETIME.publicCode}` : `Lifetime $${LIFETIME.price}`}
+          <Link href="/screener" className="command-status-cta pressable">
+            Alpha Forge →
           </Link>
         }
       />

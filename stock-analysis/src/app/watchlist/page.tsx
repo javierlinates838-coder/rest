@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { formatCurrency, formatPercent, getSignalColor, getSignalBg } from "@/lib/utils";
 import { fetchQuoteSummary } from "@/lib/fetch-json";
 import { ProSectionHeader } from "@/components/pro-section-header";
-import { UpgradeGate } from "@/components/upgrade-gate";
 import Link from "next/link";
 import { TERMS } from "@/lib/brand";
 import {
@@ -29,21 +28,12 @@ export default function WatchlistPage() {
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [newSymbol, setNewSymbol] = useState("");
-  const [isPro, setIsPro] = useState(false);
   const [digest, setDigest] = useState<{
     summary: { tracked: number; bullish: number; bearish: number; topPick: string | null; avgEdge: number };
     rows: { symbol: string; edgeScore: number; edgeTier: string; signal: string }[];
   } | null>(null);
   const [digestLoading, setDigestLoading] = useState(false);
-  const [gateOpen, setGateOpen] = useState(false);
   const loadGen = useRef(0);
-
-  useEffect(() => {
-    fetch("/api/usage")
-      .then((r) => r.json())
-      .then((u) => setIsPro(Boolean(u.isPro)))
-      .catch(() => null);
-  }, []);
 
   const loadWatchlist = useCallback(async (showLoader = false) => {
     const gen = ++loadGen.current;
@@ -135,10 +125,6 @@ export default function WatchlistPage() {
   };
 
   const runDigest = async () => {
-    if (!isPro) {
-      setGateOpen(true);
-      return;
-    }
     setDigestLoading(true);
     const symbols = watchlist.map((w) => w.symbol).join(",");
     try {
@@ -157,7 +143,7 @@ export default function WatchlistPage() {
     <div className="page-shell page-shell-wide">
       <ProSectionHeader
         title={TERMS.pulseWatch}
-        subtitle={`Live conviction — ${TERMS.pulsePrime} morning digest ranks by ${TERMS.edgeShort}`}
+        subtitle={`Live conviction — morning digest ranks by ${TERMS.edgeShort}`}
         badge="WATCH"
         action={
           <button
@@ -167,7 +153,6 @@ export default function WatchlistPage() {
             className="command-status-cta pressable disabled:opacity-50"
           >
             {digestLoading ? "Scanning…" : "Morning digest"}
-            {!isPro && " 🔒"}
           </button>
         }
       />
@@ -217,8 +202,6 @@ export default function WatchlistPage() {
           </button>
         </form>
       </div>
-
-      <UpgradeGate open={gateOpen} onClose={() => setGateOpen(false)} feature="watchlist_digest" />
 
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

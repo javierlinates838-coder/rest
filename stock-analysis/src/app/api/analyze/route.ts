@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
   if (!usage.allowed) {
     return NextResponse.json(
       {
-        error: `Daily limit reached (${FREE_DAILY_ANALYSES} full analyses). Lifetime unlocks unlimited research — see Access.`,
+        error: `Daily limit reached (${FREE_DAILY_ANALYSES} full analyses). Try again tomorrow.`,
         code: "LIMIT_REACHED",
         remaining: 0,
         limit: FREE_DAILY_ANALYSES,

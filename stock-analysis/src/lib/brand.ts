@@ -21,7 +21,6 @@ export const NAV = [
   { href: "/portfolio", label: "The Ledger", match: (p: string) => p.startsWith("/portfolio") },
   { href: "/compare", label: "Twin Lens", match: (p: string) => p.startsWith("/compare") },
   { href: "/alerts", label: "Signal Wire", match: (p: string) => p.startsWith("/alerts") },
-  { href: "/pricing", label: "Access", match: (p: string) => p.startsWith("/pricing") },
 ] as const;
 
 export const MOBILE_NAV = [

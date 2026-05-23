@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAnalysisUsage } from "@/lib/usage-limit";
 import { computeEdgeIndex } from "@/lib/edge-index";
 import { fetchStockQuote, fetchHistoricalWithSource } from "@/services/stock-data";
 import { computeAllIndicators, generateSignal } from "@/lib/technical-analysis";
@@ -10,17 +9,6 @@ import { detectRedFlags, calculateRiskScore } from "@/lib/red-flags";
 export const maxDuration = 45;
 
 export async function GET(request: NextRequest) {
-  const usage = await getAnalysisUsage();
-  if (!usage.isPro) {
-    return NextResponse.json(
-      {
-        error: "Watchlist digest is a Pro feature.",
-        code: "PRO_REQUIRED",
-      },
-      { status: 403 }
-    );
-  }
-
   const symbolsParam = request.nextUrl.searchParams.get("symbols");
   const symbols = (symbolsParam || "AAPL,MSFT,NVDA")
     .split(",")
