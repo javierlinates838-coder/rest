@@ -55,7 +55,7 @@ export function OnboardingModal() {
           <li className="flex gap-2">
             <span className="text-teal-400 shrink-0 font-mono">03</span>
             <span>
-              Hunt ideas in <strong className="text-zinc-200">{TERMS.alphaForge}</strong> · compare in {TERMS.twinLens}.
+              Hunt ideas in <strong className="text-zinc-200">{TERMS.alphaForge}</strong> · track names in {TERMS.pulseWatch}.
             </span>
           </li>
         </ul>

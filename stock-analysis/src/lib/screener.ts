@@ -18,6 +18,7 @@ export interface ScreenerRow {
   riskGrade: string;
   smartScore: number;
   smartLabel: string;
+  tone: "bullish" | "neutral" | "bearish";
   rsi: number;
   sector: string;
   peRatio: number;
@@ -30,7 +31,7 @@ export type ScreenerFilter = {
   sector?: string;
 };
 
-const FORGE_UNIVERSE_CAP = 14;
+const FORGE_UNIVERSE_CAP = 18;
 const SCORE_TIMEOUT_MS = 14_000;
 const SCORE_CACHE_MS = 90_000;
 
@@ -64,19 +65,30 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
 
 function rowFromQuote(quote: StockQuote, partial?: Partial<ScreenerRow>): ScreenerRow {
   const change = quote.changePercent;
+  const signal = change > 1.2 ? "Buy" : change < -1.2 ? "Sell" : "Hold";
   const smartScore = Math.round(
-    Math.max(25, Math.min(55, 42 + change * 1.2 + (quote.beta > 1.5 ? -3 : 2)))
+    Math.max(20, Math.min(80, 50 + change * 2.5 + (quote.beta > 1.5 ? -4 : 3)))
   );
+  const smartLabel =
+    smartScore >= 58 ? "Buy" : smartScore <= 42 ? "Sell" : "Hold";
+  const tone: ScreenerRow["tone"] =
+    signal.includes("Buy") || smartLabel.includes("Buy")
+      ? "bullish"
+      : signal.includes("Sell") || smartLabel.includes("Sell")
+        ? "bearish"
+        : "neutral";
+
   return {
     symbol: quote.symbol,
     name: quote.name,
     price: quote.price,
     changePercent: change,
-    signal: change > 1.5 ? "Buy" : change < -1.5 ? "Sell" : "Hold",
+    signal,
     confidence: 35,
     riskGrade: quote.beta > 1.4 ? "C" : "B",
     smartScore,
-    smartLabel: smartScore >= 58 ? "Buy" : smartScore <= 42 ? "Sell" : "Hold",
+    smartLabel,
+    tone,
     rsi: 50,
     sector: cleanDisplayLabel(quote.sector) || "",
     peRatio: quote.peRatio,
@@ -92,8 +104,8 @@ export async function buildScreenerUniverse(): Promise<string[]> {
   return Array.from(
     new Set([
       ...LIQUID_UNIVERSE,
-      ...gainers.slice(0, 4).map((g) => g.symbol),
-      ...losers.slice(0, 3).map((l) => l.symbol),
+      ...gainers.slice(0, 5).map((g) => g.symbol),
+      ...losers.slice(0, 6).map((l) => l.symbol),
     ])
   ).slice(0, FORGE_UNIVERSE_CAP);
 }
@@ -137,6 +149,7 @@ async function scoreForScreenerFull(symbol: string): Promise<ScreenerRow | null>
     riskGrade: risk.grade,
     smartScore: smart.score,
     smartLabel: smart.label,
+    tone: smart.tone,
     rsi: Math.round(indicators.rsi),
     sector: quote.sector,
     peRatio: quote.peRatio,
@@ -160,13 +173,42 @@ export async function scoreForScreener(symbol: string): Promise<ScreenerRow | nu
   }
 }
 
+export function rowMatchesBias(row: ScreenerRow, bias: "bullish" | "bearish"): boolean {
+  if (bias === "bullish") {
+    return (
+      row.tone === "bullish" ||
+      row.signal.includes("Buy") ||
+      row.smartLabel.includes("Buy") ||
+      (row.changePercent >= 0.8 && row.smartScore >= 54)
+    );
+  }
+  return (
+    row.tone === "bearish" ||
+    row.signal.includes("Sell") ||
+    row.smartLabel.includes("Sell") ||
+    (row.changePercent <= -0.8 && row.smartScore <= 46)
+  );
+}
+
+export function sortScreenerRows(rows: ScreenerRow[], bias?: ScreenerFilter["bias"]): ScreenerRow[] {
+  const copy = [...rows];
+  if (bias === "bearish") {
+    return copy.sort((a, b) => {
+      const chg = a.changePercent - b.changePercent;
+      if (chg !== 0) return chg;
+      return a.smartScore - b.smartScore;
+    });
+  }
+  return copy.sort((a, b) => b.smartScore - a.smartScore);
+}
+
 export function filterScreenerRows(rows: ScreenerRow[], filter: ScreenerFilter): ScreenerRow[] {
   const minScore = filter.minSmartScore;
   const hasMin = minScore != null && minScore > 0;
 
   return rows.filter((r) => {
-    if (filter.bias === "bullish" && !r.signal.includes("Buy")) return false;
-    if (filter.bias === "bearish" && !r.signal.includes("Sell")) return false;
+    if (filter.bias === "bullish" && !rowMatchesBias(r, "bullish")) return false;
+    if (filter.bias === "bearish" && !rowMatchesBias(r, "bearish")) return false;
     if (hasMin && r.smartScore < minScore) return false;
     if (filter.maxRiskGrade) {
       const maxIdx = GRADE_ORDER.indexOf(filter.maxRiskGrade);
@@ -206,6 +248,7 @@ export async function runScreener(filter: ScreenerFilter = {}): Promise<{
   universeSize: number;
   maxSmartScore: number;
   relaxedFilters?: boolean;
+  biasEmpty?: boolean;
   partialData?: boolean;
 }> {
   const now = Date.now();
@@ -247,12 +290,25 @@ export async function runScreener(filter: ScreenerFilter = {}): Promise<{
   }
 
   const maxSmartScore = baseRows.reduce((m, r) => Math.max(m, r.smartScore), 0);
-  let filtered = filterScreenerRows(baseRows, filter).sort((a, b) => b.smartScore - a.smartScore);
+  let filtered = sortScreenerRows(filterScreenerRows(baseRows, filter), filter.bias);
   let relaxedFilters = false;
+  let biasEmpty = false;
 
-  if (filtered.length === 0 && baseRows.length > 0) {
-    filtered = [...baseRows].sort((a, b) => b.smartScore - a.smartScore);
-    relaxedFilters = true;
+  const hasSoftFilters =
+    (filter.minSmartScore != null && filter.minSmartScore > 0) ||
+    Boolean(filter.maxRiskGrade) ||
+    (filter.sector != null && filter.sector !== "all");
+
+  if (filtered.length === 0 && baseRows.length > 0 && hasSoftFilters) {
+    const softFilter: ScreenerFilter = {
+      bias: filter.bias,
+    };
+    filtered = sortScreenerRows(filterScreenerRows(baseRows, softFilter), filter.bias);
+    if (filtered.length > 0) relaxedFilters = true;
+  }
+
+  if (filtered.length === 0 && baseRows.length > 0 && filter.bias && filter.bias !== "any") {
+    biasEmpty = true;
   }
 
   return {
@@ -261,6 +317,7 @@ export async function runScreener(filter: ScreenerFilter = {}): Promise<{
     universeSize: baseRows.length,
     maxSmartScore,
     relaxedFilters,
+    biasEmpty,
     partialData: partialData || undefined,
   };
 }

@@ -74,8 +74,10 @@ export function buildPriceTargets(
     return { low: Math.min(low, price), mid, high: Math.max(high, mid) };
   }
 
+  const minLeg = Math.max(price * 0.02, atr * 0.75);
+
   const bb = indicators?.bollingerBands;
-  if (bb && bb.upper > bb.lower) {
+  if (bb && bb.upper - bb.lower >= minLeg * 2) {
     return {
       low: round2(bb.lower),
       mid: round2(price),
@@ -84,10 +86,37 @@ export function buildPriceTargets(
   }
 
   return {
-    low: round2(price - atr * 1.2),
+    low: round2(price - Math.max(atr * 1.5, minLeg * 2)),
     mid: round2(price),
-    high: round2(price + atr * 1.2),
+    high: round2(price + Math.max(atr * 1.5, minLeg * 2)),
   };
+}
+
+function enforceTargetSpread(
+  price: number,
+  recommendation: string,
+  targets: { low: number; mid: number; high: number },
+  indicators?: Pick<TechnicalIndicators, "atr" | "supportLevels" | "resistanceLevels" | "bollingerBands">
+): { low: number; mid: number; high: number } {
+  const atr =
+    indicators?.atr && indicators.atr > 0 ? indicators.atr : Math.max(price * 0.025, 0.01);
+  const minSpan = Math.max(price * 0.04, atr * 2);
+
+  let { low, mid, high } = targets;
+  if (high - low < minSpan) {
+    return buildPriceTargets(price, recommendation, indicators);
+  }
+
+  const leg = minSpan / 3;
+  low = round2(Math.min(low, mid - leg, high - leg * 2));
+  high = round2(Math.max(high, mid + leg, low + leg * 2));
+  mid = round2(Math.max(low + leg, Math.min(high - leg, mid)));
+
+  if (high - low < minSpan) {
+    return buildPriceTargets(price, recommendation, indicators);
+  }
+
+  return { low, mid, high };
 }
 
 export function normalizePriceTargets(
@@ -107,22 +136,22 @@ export function normalizePriceTargets(
 
   let [low, mid, high] = values;
 
-  if (high - low < price * 0.015) {
-    return defaults;
-  }
-
   const rec = normalizeRecommendation(recommendation, "Hold");
-  if (rec.includes("Buy")) {
-    low = Math.min(low, price * 0.995);
-    high = Math.max(high, price * 1.01);
-    mid = Math.max(mid, price * 0.995);
-  } else if (rec.includes("Sell")) {
-    high = Math.min(high, price * 1.04);
-    low = Math.min(low, price * 0.98);
-    mid = Math.min(mid, price * 1.01);
+  if (high - low < price * 0.015) {
+    return enforceTargetSpread(price, rec, defaults, indicators);
   }
 
-  return { low: round2(low), mid: round2(mid), high: round2(high) };
+  if (rec.includes("Buy")) {
+    low = Math.min(low, price * 0.99);
+    high = Math.max(high, price * 1.02);
+    mid = Math.max(Math.min(mid, high - price * 0.005), low + price * 0.005);
+  } else if (rec.includes("Sell")) {
+    high = Math.max(high, price * 1.01);
+    low = Math.min(low, price * 0.98);
+    mid = Math.min(Math.max(mid, low + price * 0.005), high - price * 0.005);
+  }
+
+  return enforceTargetSpread(price, rec, { low: round2(low), mid: round2(mid), high: round2(high) }, indicators);
 }
 
 export function priceChangePercent(target: number, current: number): string {

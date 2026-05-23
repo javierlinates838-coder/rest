@@ -18,8 +18,6 @@ export const NAV = [
   { href: "/", label: "Pulse Hub", match: (p: string) => p === "/" },
   { href: "/screener", label: "Alpha Forge", match: (p: string) => p.startsWith("/screener") },
   { href: "/watchlist", label: "Pulse Watch", match: (p: string) => p.startsWith("/watchlist") },
-  { href: "/portfolio", label: "The Ledger", match: (p: string) => p.startsWith("/portfolio") },
-  { href: "/compare", label: "Twin Lens", match: (p: string) => p.startsWith("/compare") },
 ] as const;
 
 export const MOBILE_NAV = [

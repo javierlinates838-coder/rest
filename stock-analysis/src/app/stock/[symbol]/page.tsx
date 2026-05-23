@@ -1134,11 +1134,11 @@ export default function StockPage() {
           <div className="glass-card rounded-xl p-6">
             <h3 className="text-lg font-bold text-white mb-1">Price Target Projections</h3>
             <p className="text-[11px] text-zinc-500 mb-4">
-              Bear = downside · Base = expected path · Bull = upside vs current ${quote.price.toFixed(2)}
+              Downside · base case · upside vs current ${quote.price.toFixed(2)}
             </p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4 mb-6">
               <div className="text-center p-4 bg-red-500/10 rounded-xl border border-red-500/20">
-                <div className="text-xs text-zinc-500 mb-1">Bear (low)</div>
+                <div className="text-xs text-zinc-500 mb-1">Downside</div>
                 <div className="text-2xl font-bold text-red-400">{formatCurrency(aiAnalysis.priceTarget.low)}</div>
                 <div className="text-xs text-zinc-500 mt-1">{priceChangePercent(aiAnalysis.priceTarget.low, quote.price)}</div>
               </div>
@@ -1148,7 +1148,7 @@ export default function StockPage() {
                 <div className="text-xs text-zinc-500 mt-1">{priceChangePercent(aiAnalysis.priceTarget.mid, quote.price)}</div>
               </div>
               <div className="text-center p-4 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
-                <div className="text-xs text-zinc-500 mb-1">Bull (high)</div>
+                <div className="text-xs text-zinc-500 mb-1">Upside</div>
                 <div className="text-2xl font-bold text-emerald-400">{formatCurrency(aiAnalysis.priceTarget.high)}</div>
                 <div className="text-xs text-zinc-500 mt-1">{priceChangePercent(aiAnalysis.priceTarget.high, quote.price)}</div>
               </div>

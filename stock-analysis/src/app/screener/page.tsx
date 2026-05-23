@@ -21,6 +21,7 @@ interface ScreenerResponse {
   universeSize?: number;
   maxSmartScore?: number;
   relaxedFilters?: boolean;
+  biasEmpty?: boolean;
   partialData?: boolean;
   error?: string;
 }
@@ -38,6 +39,7 @@ export default function ScreenerPage() {
   const [sector, setSector] = useState("all");
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const [relaxedFilters, setRelaxedFilters] = useState(false);
+  const [biasEmpty, setBiasEmpty] = useState(false);
   const [partialData, setPartialData] = useState(false);
 
   const fetchScreener = useCallback(async () => {
@@ -55,6 +57,7 @@ export default function ScreenerPage() {
     setUniverseSize(data.universeSize ?? 0);
     setMaxSmartScore(data.maxSmartScore ?? 0);
     setRelaxedFilters(Boolean(data.relaxedFilters));
+    setBiasEmpty(Boolean(data.biasEmpty));
     setPartialData(Boolean(data.partialData));
   };
 
@@ -115,16 +118,22 @@ export default function ScreenerPage() {
 
       <div className="flex flex-wrap gap-3 mb-6 ultra-card p-4">
         <div className="flex rounded-xl border border-zinc-800 overflow-hidden">
-          {(["any", "bullish", "bearish"] as const).map((b) => (
+          {(
+            [
+              { id: "any" as const, label: "All" },
+              { id: "bullish" as const, label: "Long bias" },
+              { id: "bearish" as const, label: "Short bias" },
+            ] as const
+          ).map(({ id, label }) => (
             <button
-              key={b}
+              key={id}
               type="button"
-              onClick={() => setBias(b)}
-              className={`px-4 py-2 text-[12px] font-medium capitalize ${
-                bias === b ? "bg-teal-600/30 text-teal-200" : "text-zinc-400 hover:bg-zinc-800/50"
+              onClick={() => setBias(id)}
+              className={`px-4 py-2 text-[12px] font-medium ${
+                bias === id ? "bg-teal-600/30 text-teal-200" : "text-zinc-400 hover:bg-zinc-800/50"
               }`}
             >
-              {b}
+              {label}
             </button>
           ))}
         </div>
@@ -203,7 +212,15 @@ export default function ScreenerPage() {
 
       {relaxedFilters && !loading && rows.length > 0 && (
         <div className="glass-card rounded-xl px-4 py-3 mb-4 border border-amber-500/20 text-amber-200/90 text-sm">
-          No names matched every filter — showing the full ranked universe. Loosen filters or tap Reset.
+          Score, risk, or sector filters were loosened — bias ({bias}) still applied.
+        </div>
+      )}
+
+      {biasEmpty && !loading && (
+        <div className="glass-card rounded-xl px-4 py-3 mb-4 border border-zinc-600/40 text-zinc-300 text-sm">
+          No symbols in today&apos;s universe match{" "}
+          <span className="font-medium text-white">{bias === "bearish" ? "short" : "long"} bias</span>.
+          Try <span className="text-white">All</span>, tap Refresh, or widen the tape on Hub.
         </div>
       )}
 
@@ -235,7 +252,11 @@ export default function ScreenerPage() {
         </div>
       ) : rows.length === 0 ? (
         <div className="glass-card rounded-xl p-8 text-center text-zinc-500 text-sm space-y-3">
-          <p>Alpha Forge could not load any symbols.</p>
+          <p>
+            {biasEmpty
+              ? `No ${bias === "bearish" ? "short-bias" : "long-bias"} names in the current universe.`
+              : "Alpha Forge could not load any symbols."}
+          </p>
           <button
             type="button"
             onClick={() => void load()}
