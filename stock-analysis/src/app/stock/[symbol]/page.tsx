@@ -13,9 +13,11 @@ import {
 import { formatCurrency, formatLargeNumber, formatPercent, getSignalColor, getSignalBg } from "@/lib/utils";
 import { computeSmartScore } from "@/lib/smart-score";
 import { computeEdgeIndex } from "@/lib/edge-index";
-import { ActionBrief } from "@/components/action-brief";
-import { SmartScoreGauge } from "@/components/smart-score-gauge";
+import { StockConvictionRail } from "@/components/stock-conviction-rail";
+import { VolatilityForgePanel } from "@/components/volatility-forge-panel";
+import { AnalystConsensusBar } from "@/components/analyst-consensus-bar";
 import { EdgeIndexPanel } from "@/components/edge-index-panel";
+import type { TradingPlan } from "@/lib/trading-plan";
 import { ResearchExportButton } from "@/components/research-export-button";
 import { ApiError, fetchJson, fetchJsonWithTimeout } from "@/lib/fetch-json";
 import {
@@ -32,7 +34,7 @@ import { priceChangePercent } from "@/lib/analysis-coherence";
 import { StockLogo } from "@/components/stock-logo";
 import {
   AnimatedNumber, Sparkline, DayRangeSlider, MarketSession, VolumeGauge,
-  TradingPlanCard, KeyEventsCard, InstitutionalCard, PriceActionCard,
+  KeyEventsCard, InstitutionalCard, PriceActionCard,
   QuickActions, NewsFilters, SentimentTimeline, StickyMiniHeader,
 } from "@/components/stock-detail";
 import {
@@ -99,18 +101,7 @@ interface AnalysisData {
     grade: string;
     verdict: string;
   };
-  tradingPlan?: {
-    bias: string;
-    entry: { primary: number; secondary: number; aggressive: number };
-    targets: { conservative: number; base: number; ambitious: number };
-    stopLoss: { tight: number; standard: number; wide: number };
-    riskReward: { conservative: number; base: number; ambitious: number };
-    positionSize: { percentOfPortfolio: number; sharesPer1k: number };
-    timeframe: string;
-    notes: string[];
-    invalidationLevel: number;
-    confidence: number;
-  };
+  tradingPlan?: TradingPlan;
   keyEvents?: { date: string; type: string; title: string; importance: string; description: string; daysAway: number }[];
   institutional?: {
     totalInstitutionalPercent: number;
@@ -547,22 +538,6 @@ export default function StockPage() {
         />
       </div>
 
-      <EdgeIndexPanel edge={edgeIndex} symbol={quote.symbol} />
-
-      <ActionBrief
-        symbol={quote.symbol}
-        signal={signal.signal}
-        confidence={signal.confidence}
-        riskGrade={riskScore?.grade ?? "C"}
-        changePercent={quote.changePercent}
-        rsi={indicators.rsi}
-        researchQualityScore={researchQuality?.score}
-        tradingBias={tradingPlan?.bias}
-        entryPrimary={tradingPlan?.entry.primary}
-        stopStandard={tradingPlan?.stopLoss.standard}
-        targetBase={tradingPlan?.targets.base}
-      />
-
       {researchQuality && researchQuality.score < 70 && (
         <div className="glass-card rounded-xl px-4 py-3 mb-5 border border-amber-500/25 bg-amber-500/5">
           <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
@@ -677,74 +652,15 @@ export default function StockPage() {
           </div>
         </div>
 
-        {/* Signal + Risk Badges — stacked on mobile */}
-        <div className="grid grid-cols-1 gap-3 w-full sm:grid-cols-2 lg:grid-cols-4">
-          <div className="ultra-card signal-card-pro px-5 py-4 sm:px-7 sm:py-5 text-center mobile-card-full animate-scaleIn flex flex-col items-center justify-center">
-            <div className="text-[10px] text-zinc-400 font-semibold tracking-widest uppercase mb-2">Smart score</div>
-            <SmartScoreGauge score={smartScore.score} size="md" />
-            <div className="text-[12px] text-zinc-400 mt-2 font-mono">{smartScore.label}</div>
-          </div>
-
-          <div className={`signal-card-glow signal-card-pro px-5 py-4 sm:px-7 sm:py-5 rounded-2xl border mobile-card-full ${getSignalBg(signal.signal)} text-center animate-scaleIn`}>
-            <div className="text-[10px] text-zinc-400 font-semibold tracking-widest uppercase mb-1.5">Signal</div>
-            <div className={`text-[22px] sm:text-[26px] font-semibold tracking-tight ${getSignalColor(signal.signal)}`}>{signal.signal.toUpperCase()}</div>
-            <div className="text-[12px] text-zinc-400 mt-1 font-light">Confidence: {signal.confidence}%</div>
-            {aiAnalysis.recommendation !== signal.signal && (
-              <div className="text-[10px] text-zinc-500 mt-1.5">Brief view: {aiAnalysis.recommendation}</div>
-            )}
-            <div className="w-full bg-zinc-800/50 rounded-full h-1.5 mt-2.5">
-              <div
-                className={`h-1.5 rounded-full transition-all duration-1000 ${signal.signal.includes("Buy") ? "bg-emerald-500" : signal.signal.includes("Sell") ? "bg-red-500" : "bg-yellow-500"}`}
-                style={{ width: `${signal.confidence}%` }}
-              />
-            </div>
-          </div>
-
-          {riskScore && (
-            <div className={`signal-card-pro px-5 py-4 sm:px-7 sm:py-5 rounded-2xl border text-center mobile-card-full animate-scaleIn stagger-2 ${
-              riskScore.grade === "A" ? "bg-emerald-500/5 border-emerald-500/20" :
-              riskScore.grade === "B" ? "bg-green-500/5 border-green-500/20" :
-              riskScore.grade === "C" ? "bg-yellow-500/5 border-yellow-500/20" :
-              riskScore.grade === "D" ? "bg-orange-500/5 border-orange-500/20" :
-              "bg-red-500/5 border-red-500/20"
-            }`}>
-              <div className="text-[10px] text-zinc-400 font-semibold tracking-widest uppercase mb-1.5">Risk grade</div>
-              <div className={`text-[28px] sm:text-[32px] font-bold tracking-tight ${
-                riskScore.grade === "A" ? "text-emerald-400" :
-                riskScore.grade === "B" ? "text-green-400" :
-                riskScore.grade === "C" ? "text-yellow-400" :
-                riskScore.grade === "D" ? "text-orange-400" :
-                "text-red-400"
-              }`}>{riskScore.grade}</div>
-              <div className="text-[10px] text-zinc-500 mt-0.5">{riskScore.overall}/100 · higher = riskier</div>
-            </div>
-          )}
-
-          <div className="glass-card rounded-2xl p-4 mobile-card-full animate-scaleIn stagger-3 sm:col-span-2 lg:col-span-1">
-            <div className="grid grid-cols-2 gap-3 text-[11px]">
-              <div>
-                <div className="text-zinc-500 text-[9px] tracking-wider uppercase">Day range</div>
-                <div className="text-white font-medium text-[11px]">
-                  {quote.dayLow > 0 ? formatCurrency(quote.dayLow) : "—"} – {quote.dayHigh > 0 ? formatCurrency(quote.dayHigh) : "—"}
-                </div>
-              </div>
-              <div>
-                <div className="text-zinc-500 text-[9px] tracking-wider uppercase">52W range</div>
-                <div className="text-white font-medium text-[11px]">
-                  {quote.low52 > 0 ? formatCurrency(quote.low52) : "—"} – {quote.high52 > 0 ? formatCurrency(quote.high52) : "—"}
-                </div>
-              </div>
-              <div>
-                <div className="text-zinc-500 text-[9px] tracking-wider uppercase">Mkt Cap</div>
-                <div className="text-white font-medium">{formatLargeNumber(quote.marketCap)}</div>
-              </div>
-              <div>
-                <div className="text-zinc-500 text-[9px] tracking-wider uppercase">P/E</div>
-                <div className="text-white font-medium">{quote.peRatio > 0 ? quote.peRatio.toFixed(1) : "—"}</div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <StockConvictionRail
+          edge={edgeIndex}
+          smart={smartScore}
+          signal={signal.signal}
+          confidence={signal.confidence}
+          riskGrade={riskScore?.grade ?? "C"}
+          riskScore={riskScore?.overall}
+          changePercent={displayChangePercent}
+        />
       </div>
 
       {/* Tab Navigation */}
@@ -779,31 +695,25 @@ export default function StockPage() {
       )}
 
       {activeTab === "overview" && analystRecommendations && analystRecommendations.length > 0 && (
-        <div className="glass-card rounded-2xl p-4 sm:p-6 mb-6 glow-border">
-          <h3 className="text-[15px] font-semibold text-white mb-4 tracking-tight">Wall Street Analyst Consensus</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 text-center">
-            {[
-              { label: "Strong Buy", value: analystRecommendations[0]?.strongBuy ?? 0, color: "text-emerald-400 bg-emerald-500/10" },
-              { label: "Buy", value: analystRecommendations[0]?.buy ?? 0, color: "text-green-400 bg-green-500/10" },
-              { label: "Hold", value: analystRecommendations[0]?.hold ?? 0, color: "text-yellow-400 bg-yellow-500/10" },
-              { label: "Sell", value: analystRecommendations[0]?.sell ?? 0, color: "text-orange-400 bg-orange-500/10" },
-              { label: "Strong Sell", value: analystRecommendations[0]?.strongSell ?? 0, color: "text-red-400 bg-red-500/10" },
-            ].map((rec) => (
-              <div key={rec.label} className={`rounded-xl py-3 ${rec.color}`}>
-                <div className="text-[22px] font-semibold tracking-tight">{rec.value}</div>
-                <div className="text-[10px] font-medium tracking-wider uppercase mt-0.5 opacity-70">{rec.label}</div>
-              </div>
-            ))}
-          </div>
-          <div className="text-[10px] text-zinc-600 mt-3 text-right tracking-wide">Period: {analystRecommendations[0]?.period ?? "—"}</div>
-        </div>
+        <AnalystConsensusBar
+          strongBuy={analystRecommendations[0]?.strongBuy ?? 0}
+          buy={analystRecommendations[0]?.buy ?? 0}
+          hold={analystRecommendations[0]?.hold ?? 0}
+          sell={analystRecommendations[0]?.sell ?? 0}
+          strongSell={analystRecommendations[0]?.strongSell ?? 0}
+          period={analystRecommendations[0]?.period}
+        />
       )}
 
       {/* Overview Tab */}
       {activeTab === "overview" && (
         <div className="space-y-6">
           {/* Trading Plan - the centerpiece */}
-          {tradingPlan && <TradingPlanCard plan={tradingPlan} currentPrice={quote.price} />}
+          {tradingPlan && (
+            <VolatilityForgePanel plan={tradingPlan} currentPrice={quote.price} />
+          )}
+
+          <EdgeIndexPanel edge={edgeIndex} symbol={quote.symbol} />
 
           {/* Price Action + Institutional Side by Side */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

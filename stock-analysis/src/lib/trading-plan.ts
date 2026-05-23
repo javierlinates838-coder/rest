@@ -1,5 +1,6 @@
 import type { TechnicalIndicators, PriceData } from "./technical-analysis";
 import { deriveTimeHorizon } from "./investment-profile";
+import { buildVolatilityForge, type VolatilityForge } from "./volatility-forge";
 
 export interface TradingPlan {
   bias: "long" | "short" | "neutral";
@@ -12,6 +13,7 @@ export interface TradingPlan {
   notes: string[];
   invalidationLevel: number;
   confidence: number;
+  forge: VolatilityForge;
 }
 
 export interface KeyEvent {
@@ -60,65 +62,56 @@ export function generateTradingPlan(
     changePercent: number;
   }
 ): TradingPlan {
-  const bias: "long" | "short" | "neutral" =
-    signal.signal.includes("Buy") ? "long" :
-    signal.signal.includes("Sell") ? "short" : "neutral";
+  const forge = buildVolatilityForge(price, indicators, signal);
+  const active =
+    forge.recommended === "long"
+      ? forge.long
+      : forge.recommended === "short"
+        ? forge.short
+        : null;
 
-  const atr = indicators.atr || price * 0.02;
-  const support = indicators.supportLevels[0] || price * 0.96;
+  const bias: "long" | "short" | "neutral" =
+    forge.recommended === "wait" ? "neutral" : forge.recommended;
+
+  const atr = forge.atr;
+  const support = forge.support;
   const nextSupport = indicators.supportLevels[1] || support * 0.97;
-  const resistance = indicators.resistanceLevels[0] || price * 1.04;
+  const resistance = forge.resistance;
   const nextResistance = indicators.resistanceLevels[1] || resistance * 1.03;
 
   let entry, targets, stopLoss;
 
-  if (bias === "long") {
+  if (active) {
     entry = {
-      primary: Number((price - atr * 0.3).toFixed(2)),
-      secondary: Number((support + (price - support) * 0.3).toFixed(2)),
-      aggressive: Number((price * 1.005).toFixed(2)),
+      primary: active.entry,
+      secondary: round2(active.entry - (bias === "long" ? atr * 0.5 : -atr * 0.5)),
+      aggressive: round2(bias === "long" ? price * 1.003 : price * 0.997),
     };
     targets = {
-      conservative: Number((price + atr * 1.5).toFixed(2)),
-      base: Number(resistance.toFixed(2)),
-      ambitious: Number(nextResistance.toFixed(2)),
+      conservative: active.targets[0],
+      base: active.targets[1],
+      ambitious: active.targets[2],
     };
     stopLoss = {
-      tight: Number((price - atr * 1.2).toFixed(2)),
-      standard: Number((support - atr * 0.3).toFixed(2)),
-      wide: Number((nextSupport).toFixed(2)),
-    };
-  } else if (bias === "short") {
-    entry = {
-      primary: Number((price + atr * 0.3).toFixed(2)),
-      secondary: Number((resistance - (resistance - price) * 0.3).toFixed(2)),
-      aggressive: Number((price * 0.995).toFixed(2)),
-    };
-    targets = {
-      conservative: Number((price - atr * 1.5).toFixed(2)),
-      base: Number(support.toFixed(2)),
-      ambitious: Number(nextSupport.toFixed(2)),
-    };
-    stopLoss = {
-      tight: Number((price + atr * 1.2).toFixed(2)),
-      standard: Number((resistance + atr * 0.3).toFixed(2)),
-      wide: Number((nextResistance).toFixed(2)),
+      tight: round2(active.stop + (bias === "long" ? atr * 0.35 : -atr * 0.35)),
+      standard: active.stop,
+      wide: round2(active.stop + (bias === "long" ? -atr * 0.6 : atr * 0.6)),
     };
   } else {
     entry = {
-      primary: Number(price.toFixed(2)),
-      secondary: Number((price * 0.98).toFixed(2)),
-      aggressive: Number((price * 1.02).toFixed(2)),
+      primary: forge.long.entry,
+      secondary: forge.short.entry,
+      aggressive: Number(price.toFixed(2)),
     };
     targets = {
-      conservative: Number((price * 1.03).toFixed(2)),
-      base: Number((price * 1.06).toFixed(2)),
-      ambitious: Number((price * 1.1).toFixed(2)),
+      conservative: forge.long.targets[0],
+      base: forge.long.targets[1],
+      ambitious: forge.short.targets[1],
     };
     stopLoss = {
-      tight: Number((price * 0.98).toFixed(2)),
-      standard: Number((price * 0.95).toFixed(2)),
-      wide: Number((price * 0.92).toFixed(2)),
+      tight: forge.long.stop,
+      standard: forge.short.stop,
+      wide: round2((forge.long.stop + forge.short.stop) / 2),
     };
   }
 
@@ -162,6 +155,11 @@ export function generateTradingPlan(
         : "6–14 months · position";
 
   const notes: string[] = [];
+  if (forge.recommended === "wait") {
+    notes.push(
+      `info|No high-conviction side — Long setup if price holds above ${support.toFixed(2)} · Short if rejected below ${resistance.toFixed(2)}`
+    );
+  }
   if (indicators.rsi > 70) notes.push("warning|RSI in overbought territory — wait for pullback to primary entry");
   if (indicators.rsi < 30) notes.push("positive|RSI in oversold zone — favorable risk/reward on long entries");
   if (indicators.adx > 25) notes.push(`positive|ADX ${indicators.adx.toFixed(0)} confirms strong trend — momentum strategies favored`);
@@ -194,7 +192,12 @@ export function generateTradingPlan(
     notes,
     invalidationLevel,
     confidence: signal.confidence,
+    forge,
   };
+}
+
+function round2(n: number): number {
+  return Number(n.toFixed(2));
 }
 
 const SECTOR_EVENTS: Record<string, { title: string; description: string; type: KeyEvent["type"] }[]> = {

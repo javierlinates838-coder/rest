@@ -12,6 +12,8 @@ import {
   ensureSymbolInBullets,
 } from "@/lib/investment-profile";
 import { displayOrDash } from "@/lib/display-labels";
+import type { TradingPlan } from "@/lib/trading-plan";
+import { buildVolatilityForge } from "@/lib/volatility-forge";
 
 type LooseRecord = Record<string, unknown>;
 
@@ -68,6 +70,7 @@ function normalizeTradingPlan(raw: unknown, price: number) {
     notes: arr<string>(p.notes),
     invalidationLevel: num(p.invalidationLevel, price * 0.94),
     confidence: num(p.confidence, 50),
+    forge: p.forge as TradingPlan["forge"] | undefined,
   };
 }
 
@@ -213,7 +216,11 @@ export function normalizeAnalysisPayload(raw: any): any {
   const priceTarget = normalizePriceTargets(price, recommendation, ai.priceTarget, indicatorsNorm);
   const riskScoreNorm = raw.riskScore ? normalizeRiskScore(raw.riskScore) : null;
 
-  const tradingPlan = normalizeTradingPlan(raw.tradingPlan, price);
+  const tradingPlanBase = normalizeTradingPlan(raw.tradingPlan, price);
+  const forge =
+    tradingPlanBase.forge ??
+    buildVolatilityForge(price, indicatorsNorm, resolved);
+  const tradingPlan = { ...tradingPlanBase, forge };
 
   const horizon = deriveTimeHorizon({
     symbol: str(quote.symbol).toUpperCase(),
