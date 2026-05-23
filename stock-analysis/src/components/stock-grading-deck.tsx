@@ -1,11 +1,11 @@
 "use client";
 
-import type { ReactNode } from "react";
 import { formatLargeNumber, getSignalColor } from "@/lib/utils";
 import { SmartScoreGauge } from "@/components/smart-score-gauge";
 import { edgeTierColor } from "@/lib/edge-index";
 import type { EdgeIndexResult } from "@/lib/edge-index";
 import type { SmartScoreResult } from "@/lib/smart-score";
+import { smartScoreColor } from "@/lib/smart-score";
 import { TERMS } from "@/lib/brand";
 
 export function StockGradingDeck({
@@ -26,65 +26,61 @@ export function StockGradingDeck({
   quote: { marketCap: number; peRatio: number };
 }) {
   const lowConviction = confidence < 35;
-  const displayConf = lowConviction ? 0 : confidence;
-  const riskColor =
-    riskGrade === "A" || riskGrade === "B"
-      ? "text-emerald-400"
-      : riskGrade === "C"
-        ? "text-zinc-300"
-        : "text-red-400";
+  const displayConf = Math.max(4, Math.min(100, confidence));
+  const signalTone = toneFromSignal(signal);
+  const riskLetterClass = letterClassForRisk(riskGrade);
 
   return (
-    <div
-      className="border-t border-zinc-800/80 bg-zinc-950/40"
-      aria-label="Conviction grades"
-    >
-      <div className="flex overflow-x-auto snap-x snap-mandatory sm:overflow-visible sm:grid sm:grid-cols-4 sm:divide-x sm:divide-zinc-800/80">
-        <MetricStrip label={TERMS.smartScore}>
-          <div className="flex items-center gap-3">
-            <SmartScoreGauge score={smart.score} size="sm" />
-            <span className="text-[13px] font-medium text-zinc-300">{smart.label}</span>
+    <div className="grading-deck grading-deck--hero" aria-label="Conviction grades">
+      <div className="grading-deck-row">
+        <div className="grading-cell grading-cell--score">
+          <span className="grading-label">{TERMS.smartScore}</span>
+          <SmartScoreGauge score={smart.score} size="sm" />
+          <span className={`grading-score-label ${smartScoreColor(smart.score)}`}>{smart.label}</span>
+        </div>
+
+        <div className={`grading-cell grading-cell--signal grading-cell--${signalTone}`}>
+          <span className="grading-label">Signal</span>
+          <p className={`grading-signal ${getSignalColor(signal)}`}>{signal}</p>
+          <div className="grading-conf-track" aria-hidden>
+            <div className="grading-conf-fill" style={{ width: `${displayConf}%` }} />
           </div>
-        </MetricStrip>
+          <span className="grading-sublabel">
+            {lowConviction ? "Low conviction — wait for clarity" : `${confidence}% model confidence`}
+          </span>
+        </div>
 
-        <MetricStrip label="Signal">
-          <p className={`text-xl font-bold leading-none ${getSignalColor(signal)}`}>{signal}</p>
-          <div className="w-full h-1 bg-zinc-800 rounded-full mt-2 max-w-[140px]">
-            <div
-              className="h-full bg-zinc-500 rounded-full transition-all duration-300"
-              style={{ width: `${Math.max(4, displayConf)}%` }}
-            />
+        <div className="grading-cell grading-cell--risk">
+          <span className="grading-label">Risk grade</span>
+          <p className={`grading-grade-letter ${riskLetterClass}`}>{riskGrade}</p>
+          <span className="grading-sublabel tabular-nums">
+            {riskScore != null ? `Score ${riskScore}/100` : "—"}
+          </span>
+        </div>
+
+        <div className="grading-cell grading-cell--edge">
+          <span className="grading-label">{TERMS.edgeShort}</span>
+          <p className="grading-edge-main">
+            <span className={`grading-edge-num ${edgeTierColor(edge.tier)}`}>{edge.edgeScore}</span>
+            <span className={`grading-edge-tier ${edgeTierColor(edge.tier)}`}>{edge.tier}</span>
+          </p>
+          <div className="grading-edge-mini">
+            <span className="grading-edge-mini-item">Conv {edge.conviction}</span>
+            <span className="grading-edge-mini-item">Integrity {edge.dataIntegrity}</span>
           </div>
-          <p className="text-[10px] text-zinc-500 mt-1.5">
-            {lowConviction ? "Low conviction" : `${confidence}% confidence`}
-          </p>
-        </MetricStrip>
-
-        <MetricStrip label="Risk">
-          <p className={`text-2xl font-bold leading-none tabular-nums ${riskColor}`}>{riskGrade}</p>
-          <p className="text-[10px] text-zinc-500 mt-1 tabular-nums">
-            {riskScore != null ? `${riskScore}/100` : "—"}
-          </p>
-        </MetricStrip>
-
-        <MetricStrip label={TERMS.edgeShort}>
-          <p className={`text-xl font-bold tabular-nums leading-none ${edgeTierColor(edge.tier)}`}>
-            {edge.edgeScore}
-            <span className="text-[12px] font-medium ml-1 opacity-80">{edge.tier}</span>
-          </p>
-        </MetricStrip>
+        </div>
       </div>
 
       {(quote.marketCap > 0 || quote.peRatio > 0) && (
-        <div className="flex flex-wrap gap-4 px-4 py-2 border-t border-zinc-800/60 text-[11px] text-zinc-500">
+        <div className="grading-footer">
           {quote.marketCap > 0 && (
             <span>
-              Mkt cap <span className="text-zinc-300">{formatLargeNumber(quote.marketCap)}</span>
+              Mkt cap <strong>{formatLargeNumber(quote.marketCap)}</strong>
             </span>
           )}
           {quote.peRatio > 0 && (
             <span>
-              P/E <span className="text-zinc-300 tabular-nums">{quote.peRatio.toFixed(1)}</span>
+              P/E <strong className="tabular-nums">{quote.peRatio.toFixed(1)}</strong>
             </span>
           )}
         </div>
@@ -93,19 +89,16 @@ export function StockGradingDeck({
   );
 }
 
-function MetricStrip({
-  label,
-  children,
-}: {
-  label: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="snap-start shrink-0 w-[72%] sm:w-auto sm:shrink p-4 min-w-0 first:pl-4 last:pr-4 sm:px-4">
-      <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 mb-2">
-        {label}
-      </div>
-      {children}
-    </div>
-  );
+function toneFromSignal(signal: string): "bull" | "bear" | "hold" {
+  const s = signal.toLowerCase();
+  if (s.includes("sell")) return "bear";
+  if (s.includes("buy")) return "bull";
+  return "hold";
+}
+
+function letterClassForRisk(grade: string): string {
+  const g = grade.toUpperCase();
+  if (g === "A" || g === "B") return "grading-grade-letter--a";
+  if (g === "C") return "grading-grade-letter--c";
+  return "grading-grade-letter--d";
 }

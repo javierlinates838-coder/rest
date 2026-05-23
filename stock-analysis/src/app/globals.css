@@ -1113,49 +1113,82 @@ h1, h2, h3, h4, h5, h6 {
 .grading-deck {
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 0.75rem;
-  background: rgba(12, 14, 18, 0.6);
+  background: linear-gradient(180deg, rgba(14, 16, 22, 0.92) 0%, rgba(9, 11, 15, 0.98) 100%);
   overflow: hidden;
+}
+
+.grading-deck--hero {
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
 }
 
 .grading-deck-row {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1px;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.05);
 }
 
-@media (min-width: 768px) {
+@media (min-width: 640px) {
   .grading-deck-row {
-    grid-template-columns: 7.5rem 1.35fr 6rem 7.5rem;
+    grid-template-columns: 6.5rem 1fr 5.5rem 6.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .grading-deck-row {
+    grid-template-columns: 7.5rem 1.4fr 6.25rem 7.5rem;
   }
 }
 
 .grading-cell {
-  padding: 1rem 0.85rem;
-  background: rgba(9, 11, 15, 0.95);
+  padding: 1rem 0.75rem;
+  background: rgba(9, 11, 15, 0.97);
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  min-height: 7.5rem;
+  min-height: 8.25rem;
   justify-content: center;
+  gap: 0.15rem;
 }
 
-@media (min-width: 768px) {
+@media (max-width: 639px) {
+  .grading-cell--signal {
+    grid-column: 1 / -1;
+    min-height: 6.5rem;
+    padding: 0.85rem 1rem 1rem;
+  }
+}
+
+@media (min-width: 640px) {
   .grading-cell--signal {
     align-items: flex-start;
     text-align: left;
-    padding: 1rem 1.15rem;
+    padding: 1rem 1.1rem;
   }
+}
+
+.grading-cell--score .smart-gauge {
+  margin-top: 0.15rem;
+}
+
+.grading-score-label {
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: 0.35rem;
+  line-height: 1.2;
 }
 
 .grading-label {
   font-size: 9px;
   font-weight: 600;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: #71717a;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.35rem;
 }
 
 .grading-sublabel {
@@ -1166,7 +1199,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .grading-signal {
-  font-size: 1.65rem;
+  font-size: clamp(1.35rem, 4vw, 1.65rem);
   font-weight: 700;
   letter-spacing: -0.02em;
   margin: 0;
@@ -1174,7 +1207,14 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .grading-cell--signal {
-  border-left: 2px solid rgba(113, 113, 122, 0.35);
+  border-top: 2px solid rgba(113, 113, 122, 0.35);
+}
+
+@media (min-width: 640px) {
+  .grading-cell--signal {
+    border-top: none;
+    border-left: 2px solid rgba(113, 113, 122, 0.35);
+  }
 }
 
 .grading-cell--bull {
@@ -1214,10 +1254,11 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .grading-grade-letter {
-  font-size: 2.25rem;
+  font-size: clamp(2rem, 6vw, 2.35rem);
   font-weight: 700;
   line-height: 1;
   margin: 0;
+  font-variant-numeric: tabular-nums;
 }
 
 .grading-grade-letter--a,
