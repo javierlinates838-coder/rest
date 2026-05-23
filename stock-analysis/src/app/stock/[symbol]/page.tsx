@@ -1625,7 +1625,7 @@ export default function StockPage() {
                         const inner = (
                             <div className="flex gap-4">
                               {item.image ? (
-                                <img src={item.image} alt="" className="w-24 h-24 rounded-xl object-cover flex-shrink-0 bg-zinc-800" />
+                                <img src={item.image} alt="" loading="lazy" decoding="async" width={96} height={96} className="w-24 h-24 rounded-xl object-cover flex-shrink-0 bg-zinc-800" />
                               ) : (
                                 <div className={`w-24 h-24 rounded-xl flex-shrink-0 flex items-center justify-center relative overflow-hidden ${
                                   item.sentiment === "positive" ? "bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 text-emerald-400" :
