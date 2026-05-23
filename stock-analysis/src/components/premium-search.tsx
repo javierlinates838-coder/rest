@@ -68,27 +68,25 @@ export function PremiumSearch({
       {/* ——— Desktop (unchanged feel) ——— */}
       <div className="hidden sm:block max-w-2xl mx-auto relative">
         <form onSubmit={onSubmit}>
-          <div className="relative">
-            <svg
-              className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500 pointer-events-none"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+          <div className="command-search relative flex items-center gap-2 px-2 py-2">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-teal-500/15 border border-teal-500/25 ml-1">
+              <svg className="w-5 h-5 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
             <input
               ref={desktopInputRef}
               type="search"
               value={searchQuery}
               onChange={(e) => onQueryChange(e.target.value)}
               onFocus={onOpenResults}
-              placeholder="Search any stock symbol or company name..."
-              className="w-full pl-14 pr-32 py-4 bg-zinc-900/60 border border-zinc-800/60 rounded-2xl text-white placeholder:text-zinc-600 focus:outline-none focus:border-teal-500/50 focus:ring-2 focus:ring-teal-500/15 transition-all duration-300 text-[15px] font-light tracking-tight"
+              placeholder="Command: ticker or company…"
+              className="flex-1 min-w-0 bg-transparent py-3 text-white placeholder:text-zinc-600 focus:outline-none text-[15px] font-medium tracking-tight font-mono"
             />
+            <span className="command-search-kbd hidden md:inline shrink-0">↵</span>
             <button
               type="submit"
-              className="btn-primary pressable absolute right-2.5 top-1/2 -translate-y-1/2 px-6 py-2 rounded-xl text-[13px] font-semibold tracking-wide"
+              className="btn-primary pressable shrink-0 px-5 py-2.5 rounded-xl text-[12px] font-bold tracking-wide mr-1"
             >
               Analyze
             </button>
@@ -215,7 +213,7 @@ function DesktopResults({
   onSelect: (symbol: string) => void;
 }) {
   return (
-    <div className="absolute top-full mt-2 w-full glass-card rounded-xl overflow-hidden z-50 border border-zinc-800/50 animate-fadeIn">
+    <div className="absolute top-full mt-2 w-full ultra-card rounded-xl overflow-hidden z-50 animate-fadeIn">
       {results.map((r) => (
         <button
           key={r.symbol}

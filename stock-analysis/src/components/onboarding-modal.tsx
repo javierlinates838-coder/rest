@@ -25,7 +25,7 @@ export function OnboardingModal() {
   return (
     <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 sm:p-6 bg-black/70 backdrop-blur-sm">
       <div
-        className="glass-card rounded-2xl w-full max-w-md p-6 sm:p-8 border border-teal-500/20 animate-fadeIn shadow-2xl"
+        className="ultra-card rounded-2xl w-full max-w-md p-6 sm:p-8 animate-fadeIn shadow-2xl ultra-card-inner"
         role="dialog"
         aria-labelledby="onboard-title"
       >

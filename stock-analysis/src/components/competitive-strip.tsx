@@ -1,57 +1,57 @@
 "use client";
 
 import Link from "next/link";
+import { ProSectionHeader } from "@/components/pro-section-header";
 
 const COMPARISONS = [
-  { us: "Smart Score + AI brief", them: "TipRanks analyst scores" },
-  { us: "Free screener + risk grades", them: "Finviz screeners (paid filters)" },
-  { us: "8 free deep dives / day", them: "Seeking Alpha paywall" },
-  { us: "Compare 4 tickers", them: "TradingView multi-chart (Pro)" },
+  { us: "Smart Score + institutional brief", them: "TipRanks analyst scores", win: "Unified AI + TA" },
+  { us: "Live screener with risk grades", them: "Finviz (paid filters)", win: "Included" },
+  { us: "8 free deep dives → Pro unlimited", them: "Seeking Alpha paywall", win: "Lower entry" },
+  { us: "4-symbol compare workspace", them: "TradingView multi-chart Pro", win: "Research-first" },
 ];
 
 export function CompetitiveStrip() {
   return (
-    <section className="mb-10">
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-4">
-        <div>
-          <h2 className="section-heading mb-0">
-            Why StockPulse vs. the rest
-          </h2>
-          <p className="text-[13px] text-zinc-500 mt-1 max-w-xl">
-            One workspace for signals, screener, and AI research — without juggling five subscriptions.
-          </p>
-        </div>
-        <Link
-          href="/pricing"
-          className="shrink-0 inline-flex items-center justify-center px-4 py-2 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-200 text-sm font-semibold hover:bg-amber-500/25 transition-colors"
-        >
-          Upgrade to Pro — $12/mo
-        </Link>
-      </div>
+    <section className="mb-12">
+      <ProSectionHeader
+        title="Platform advantage"
+        subtitle="One terminal replaces fragmented subscriptions"
+        badge="vs market"
+        icon={
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+          </svg>
+        }
+        action={
+          <Link
+            href="/pricing"
+            className="command-status-cta pressable"
+          >
+            Pro $12/mo
+          </Link>
+        }
+      />
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {COMPARISONS.map((row) => (
-          <div
-            key={row.us}
-            className="glass-card rounded-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4"
-          >
-            <div className="flex-1">
-              <span className="text-[11px] text-teal-400 font-semibold uppercase tracking-wide">StockPulse</span>
-              <p className="text-[13px] text-white font-medium mt-0.5">{row.us}</p>
-            </div>
-            <div className="hidden sm:block text-zinc-600">vs</div>
-            <div className="flex-1 sm:text-right">
-              <span className="text-[11px] text-zinc-500 font-semibold uppercase tracking-wide">Typical alt</span>
-              <p className="text-[12px] text-zinc-500 mt-0.5">{row.them}</p>
+          <div key={row.us} className="vs-card">
+            <div className="vs-card-us">{row.us}</div>
+            <div className="flex items-center justify-between gap-2 mt-2">
+              <span className="text-[11px] text-zinc-600">vs {row.them}</span>
+              <span className="text-[9px] font-bold uppercase tracking-wider text-teal-400/90 px-2 py-0.5 rounded bg-teal-500/10 border border-teal-500/20">
+                {row.win}
+              </span>
             </div>
           </div>
         ))}
       </div>
-      <div className="flex flex-wrap gap-3 mt-4">
-        <Link href="/screener" className="text-sm text-teal-400 hover:text-teal-300 font-medium">
-          Open screener →
+      <div className="flex flex-wrap gap-4 mt-5">
+        <Link href="/screener" className="text-sm font-semibold text-teal-400 hover:text-teal-300 flex items-center gap-1.5">
+          <span className="font-mono text-[10px] text-zinc-600">01</span>
+          Launch screener →
         </Link>
-        <Link href="/compare" className="text-sm text-teal-400 hover:text-teal-300 font-medium">
-          Compare symbols →
+        <Link href="/compare" className="text-sm font-semibold text-teal-400 hover:text-teal-300 flex items-center gap-1.5">
+          <span className="font-mono text-[10px] text-zinc-600">02</span>
+          Compare workspace →
         </Link>
       </div>
     </section>

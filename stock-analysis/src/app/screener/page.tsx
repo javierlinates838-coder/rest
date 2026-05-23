@@ -6,6 +6,7 @@ import Link from "next/link";
 import { formatCurrency, formatPercent, getSignalColor } from "@/lib/utils";
 import { smartScoreColor } from "@/lib/smart-score";
 import type { ScreenerRow } from "@/lib/screener";
+import { ProSectionHeader } from "@/components/pro-section-header";
 
 type BiasFilter = "any" | "bullish" | "bearish";
 
@@ -67,22 +68,18 @@ export default function ScreenerPage() {
 
   return (
     <div className="page-shell page-shell-wide">
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-[32px] font-semibold text-white tracking-tight mb-2">Stock screener</h1>
-          <p className="text-[14px] text-zinc-400 max-w-xl">
-            Ranked by Smart Score — technical signal, risk grade, and momentum. Updates from live movers + core universe.
-          </p>
-        </div>
-        <Link
-          href="/pricing"
-          className="text-sm text-amber-300/90 hover:text-amber-200 font-medium shrink-0"
-        >
-          Pro: advanced filters →
-        </Link>
-      </div>
+      <ProSectionHeader
+        title="Quant screener"
+        subtitle="Universe ranked by Smart Score — signal, risk, momentum fusion"
+        badge="ALPHA"
+        action={
+          <Link href="/pricing" className="command-status-cta pressable">
+            Pro filters
+          </Link>
+        }
+      />
 
-      <div className="flex flex-wrap gap-3 mb-6">
+      <div className="flex flex-wrap gap-3 mb-6 ultra-card p-4">
         <div className="flex rounded-xl border border-zinc-800 overflow-hidden">
           {(["any", "bullish", "bearish"] as const).map((b) => (
             <button
@@ -142,7 +139,7 @@ export default function ScreenerPage() {
           No symbols match filters. Lower min score or check API keys on the server.
         </div>
       ) : (
-        <div className="glass-card rounded-2xl overflow-hidden table-scroll">
+        <div className="pro-table-wrap table-scroll">
           <table className="w-full min-w-[640px]">
             <thead>
               <tr className="border-b border-zinc-800 text-[10px] text-zinc-500 uppercase tracking-wider">
@@ -172,10 +169,10 @@ export default function ScreenerPage() {
                     {formatPercent(row.changePercent)}
                   </td>
                   <td className="text-center px-4 py-3.5">
-                    <span className={`font-bold tabular-nums ${smartScoreColor(row.smartScore)}`}>
+                    <span className={`score-pill ${smartScoreColor(row.smartScore)}`}>
                       {row.smartScore}
                     </span>
-                    <div className="text-[10px] text-zinc-500">{row.smartLabel}</div>
+                    <div className="text-[10px] text-zinc-500 mt-1">{row.smartLabel}</div>
                   </td>
                   <td className={`text-center px-4 py-3.5 text-[12px] font-medium ${getSignalColor(row.signal)}`}>
                     {row.signal}

@@ -10,6 +10,7 @@ import {
   clearPortfolio,
   type PortfolioEntry,
 } from "@/lib/portfolio-storage";
+import { ProSectionHeader } from "@/components/pro-section-header";
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -146,10 +147,11 @@ export default function PortfolioPage() {
 
   return (
     <div className="page-shell page-shell-wide">
-      <h1 className="text-[32px] font-semibold text-white tracking-tight mb-2">Portfolio</h1>
-      <p className="text-[14px] text-zinc-400 font-light tracking-tight mb-4">
-        Holdings overview with live quotes — tap a row for full AI analysis
-      </p>
+      <ProSectionHeader
+        title="Portfolio analytics"
+        subtitle="Live marks · P&L · tap any row for deep analysis"
+        badge="BOOK"
+      />
 
       <div className="flex flex-wrap gap-2 mb-6">
         {!editing ? (
@@ -277,19 +279,19 @@ export default function PortfolioPage() {
       ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <div className="glass-card rounded-xl p-6">
-              <div className="text-xs text-zinc-500 mb-1">TOTAL VALUE</div>
-              <div className="text-2xl font-bold text-white">{formatCurrency(totalValue)}</div>
+            <div className="pro-metric">
+              <div className="pro-metric-label">Total value</div>
+              <div className="pro-metric-value">{formatCurrency(totalValue)}</div>
             </div>
-            <div className="glass-card rounded-xl p-6">
-              <div className="text-xs text-zinc-500 mb-1">TOTAL GAIN/LOSS</div>
-              <div className={`text-2xl font-bold ${totalGain >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+            <div className="pro-metric">
+              <div className="pro-metric-label">Total gain/loss</div>
+              <div className={`pro-metric-value ${totalGain >= 0 ? "text-emerald-400" : "text-red-400"}`}>
                 {totalGain >= 0 ? "+" : ""}{formatCurrency(totalGain)}
               </div>
             </div>
-            <div className="glass-card rounded-xl p-6">
-              <div className="text-xs text-zinc-500 mb-1">RETURN</div>
-              <div className={`text-2xl font-bold ${totalGainPercent >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+            <div className="pro-metric">
+              <div className="pro-metric-label">Return</div>
+              <div className={`pro-metric-value ${totalGainPercent >= 0 ? "text-emerald-400" : "text-red-400"}`}>
                 {formatPercent(totalGainPercent)}
               </div>
             </div>

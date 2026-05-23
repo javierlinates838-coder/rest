@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { OnboardingModal } from "@/components/onboarding-modal";
 import { SiteNavLinks } from "@/components/site-nav-links";
@@ -9,6 +9,12 @@ import "./globals.css";
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
   variable: "--font-sans",
+  display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
   display: "swap",
 });
 
@@ -31,7 +37,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark w-full">
-      <body className={`${jakarta.variable} font-sans antialiased min-h-screen w-full max-w-[100vw] overflow-x-hidden has-mobile-nav`}>
+      <body className={`${jakarta.variable} ${jetbrainsMono.variable} font-sans antialiased min-h-screen w-full max-w-[100vw] overflow-x-hidden has-mobile-nav`}>
         <div className="app-canvas flex flex-col min-h-screen w-full min-w-0">
           <nav className="sticky top-0 z-50 nav-premium safe-top">
             <div className="nav-accent-line" aria-hidden />
@@ -44,14 +50,17 @@ export default function RootLayout({
                     </svg>
                   </div>
                   <div className="min-w-0 leading-tight">
-                    <span className="block text-[15px] sm:text-[17px] font-bold tracking-tight text-white truncate">StockPulse</span>
-                    <span className="block text-[10px] font-semibold tracking-[0.14em] uppercase text-teal-400/80">Research</span>
+                    <span className="block text-[15px] sm:text-[17px] font-bold tracking-tight text-white truncate">
+                      StockPulse
+                      <span className="nav-pro-pill">PRO</span>
+                    </span>
+                    <span className="block text-[10px] font-semibold tracking-[0.14em] uppercase text-teal-400/80 font-mono">Research Terminal</span>
                   </div>
                 </Link>
 
                 <div className="flex items-center gap-2 sm:gap-6 shrink-0">
                   <SiteNavLinks />
-                  <span className="live-badge text-zinc-500 text-[9px] sm:text-[10px]">Live</span>
+                  <span className="live-badge-pro hidden sm:inline-flex">Live</span>
                 </div>
               </div>
             </div>

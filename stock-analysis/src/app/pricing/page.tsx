@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-
 const PLANS = [
   {
     id: "free",
@@ -42,14 +41,13 @@ const PLANS = [
 export default function PricingPage() {
   return (
     <div className="page-shell page-shell-wide max-w-4xl mx-auto">
-      <div className="text-center mb-10">
-        <span className="hero-eyebrow">Monetization</span>
-        <h1 className="text-[32px] sm:text-[40px] font-bold text-white tracking-tight mb-3">
-          Simple pricing that scales with you
+      <div className="command-hero text-center mb-10 py-12">
+        <span className="hero-eyebrow">Subscription</span>
+        <h1 className="command-hero-title text-white mb-3">
+          Pro terminal access
         </h1>
         <p className="text-[15px] text-zinc-400 max-w-lg mx-auto leading-relaxed">
-          Competitors charge $30–$240/yr for screeners and research. StockPulse Pro keeps unlimited
-          AI research under one subscription — Stripe checkout ships next.
+          One subscription replaces $30–$240/yr across screeners and research tools.
         </p>
       </div>
 
@@ -57,8 +55,8 @@ export default function PricingPage() {
         {PLANS.map((plan) => (
           <div
             key={plan.id}
-            className={`glass-card rounded-2xl p-7 ${
-              plan.highlight ? "border border-amber-500/30 glow-border" : ""
+            className={`ultra-card rounded-2xl p-7 ultra-card-inner ${
+              plan.highlight ? "glow-border" : ""
             }`}
           >
             {plan.highlight && (

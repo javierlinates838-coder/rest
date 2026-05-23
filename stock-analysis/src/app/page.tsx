@@ -8,6 +8,8 @@ import { MobileTrendingList } from "@/components/mobile-trending-list";
 import { StockPicks } from "@/components/stock-picks";
 import { StockLogo } from "@/components/stock-logo";
 import { CompetitiveStrip } from "@/components/competitive-strip";
+import { CommandStatusBar } from "@/components/command-status-bar";
+import { ProSectionHeader } from "@/components/pro-section-header";
 
 interface MarketIndex {
   symbol: string;
@@ -140,16 +142,22 @@ export default function DashboardPage() {
 
   return (
     <div className="page-shell page-shell-wide">
-      <div className="hero-panel text-center animate-fadeIn relative z-[1]">
-        <span className="hero-eyebrow">Live market research</span>
-        <h1 className="mobile-hero-title sm:text-[40px] lg:text-[48px] font-bold tracking-tight leading-[1.08] mb-3 sm:mb-4 px-1 text-white">
-          <span className="gradient-text">Intelligent</span> stock analysis
+      <CommandStatusBar
+        loading={loading}
+        indicesCount={indices.length}
+        trendingCount={trending.length}
+      />
+
+      <div className="command-hero text-center animate-fadeIn relative z-[1]">
+        <span className="hero-eyebrow">Institutional research terminal</span>
+        <h1 className="command-hero-title text-white mb-3 sm:mb-4 px-1">
+          <span className="gradient-text">Pro-grade</span> stock intelligence
         </h1>
-        <p className="hidden sm:block text-[16px] text-slate-400 max-w-lg mx-auto mb-8 leading-relaxed px-2">
-          Technicals, AI narrative, risk scoring, and trade ideas — built on live quotes and real OHLCV when your data keys are connected.
+        <p className="hidden sm:block text-[15px] text-slate-400 max-w-xl mx-auto mb-8 leading-relaxed px-2">
+          Multi-factor signals, AI narrative, Smart Score ranking, and execution briefs — powered by live market data.
         </p>
-        <p className="sm:hidden text-[14px] text-slate-500 mb-5 leading-relaxed px-1">
-          Quotes, signals, and AI research in one place.
+        <p className="sm:hidden text-[14px] text-slate-500 mb-5 leading-relaxed px-1 font-mono">
+          Signals · Screener · Compare · AI
         </p>
 
         <div ref={searchRef} className="w-full max-w-2xl mx-auto relative z-[2]">
@@ -233,34 +241,28 @@ export default function DashboardPage() {
 
           <CompetitiveStrip />
 
-          <h2 className="section-heading sm:mb-4">
-            <svg className="w-5 h-5 text-teal-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
-            </svg>
-            Market indices
-          </h2>
+          <ProSectionHeader
+            title="Market indices"
+            subtitle="Real-time benchmark tape"
+            badge="LIVE"
+          />
           <div className="indices-scroll mb-10">
             {indices.map((index, i) => (
               <div
                 key={index.symbol}
                 role="button"
                 tabIndex={0}
-                className={`index-tile interactive-card rounded-2xl p-4 sm:p-5 group animate-fadeInUp stagger-${i + 1} cursor-pointer`}
+                className={`index-tile-pro interactive-card group animate-fadeInUp stagger-${i + 1} cursor-pointer`}
                 onClick={() => router.push(`/stock/${index.symbol}`)}
                 onKeyDown={(e) => e.key === "Enter" && router.push(`/stock/${index.symbol}`)}
               >
-                <div className="flex items-center justify-between mb-1">
-                  <div className="text-[11px] text-zinc-500 font-semibold tracking-wider uppercase">{index.symbol}</div>
-                  <div className={`w-1.5 h-1.5 rounded-full ${index.changePercent >= 0 ? "bg-emerald-500" : "bg-red-500"}`} />
+                <div className="flex items-center justify-between mb-2">
+                  <div className="index-tile-symbol">{index.symbol}</div>
+                  <div className={`w-1.5 h-1.5 rounded-full ${index.changePercent >= 0 ? "bg-emerald-500 shadow-[0_0_8px_rgba(52,211,153,0.6)]" : "bg-red-500"}`} />
                 </div>
-                <div className="text-[18px] font-semibold text-white tracking-tight">{formatCurrency(index.price)}</div>
-                <div className="flex items-center gap-1.5">
-                  <svg className={`w-3 h-3 ${index.changePercent >= 0 ? "text-emerald-400" : "text-red-400 rotate-180"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                  </svg>
-                  <span className={`text-[13px] font-medium tracking-tight ${index.changePercent >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                    {formatPercent(index.changePercent)}
-                  </span>
+                <div className="index-tile-price">{formatCurrency(index.price)}</div>
+                <div className={`pro-metric-delta mt-1 ${index.changePercent >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                  {formatPercent(index.changePercent)}
                 </div>
               </div>
             ))}
@@ -268,17 +270,16 @@ export default function DashboardPage() {
 
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 lg:gap-10">
             <div className="xl:col-span-8">
-              <h2 className="section-heading">
-                <svg className="w-5 h-5 text-teal-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                </svg>
-                Trending Stocks
-              </h2>
+              <ProSectionHeader
+                title="Trending universe"
+                subtitle="High-activity names · click for full analysis"
+                badge="TAPE"
+              />
               <MobileTrendingList
                 stocks={trending}
                 onSelect={(symbol) => router.push(`/stock/${symbol}`)}
               />
-              <div className="hidden lg:block glass-card rounded-2xl overflow-hidden table-scroll">
+              <div className="hidden lg:block pro-table-wrap table-scroll">
                 <table className="w-full min-w-[520px]">
                   <thead>
                     <tr className="border-b border-white/[0.04]">

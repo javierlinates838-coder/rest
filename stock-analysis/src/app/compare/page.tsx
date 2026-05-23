@@ -12,6 +12,8 @@ import {
 } from "@/lib/compare-symbols";
 import { fetchQuoteSummary } from "@/lib/fetch-json";
 import { computeSmartScore, smartScoreColor } from "@/lib/smart-score";
+import { ProSectionHeader } from "@/components/pro-section-header";
+import { SmartScoreGauge } from "@/components/smart-score-gauge";
 
 interface CompareRow {
   symbol: string;
@@ -71,7 +73,7 @@ export default function ComparePage() {
               signal,
               confidence,
               smartScore: smart.score,
-              smartLabel: smart.label,
+              smartLabel: smart.label as string,
             };
           } catch {
             return {
@@ -108,12 +110,13 @@ export default function ComparePage() {
 
   return (
     <div className="page-shell page-shell-wide">
-      <h1 className="text-[32px] font-semibold text-white tracking-tight mb-2">Compare</h1>
-      <p className="text-[14px] text-zinc-400 mb-6 max-w-xl">
-        Side-by-side quotes and Smart Scores for up to 4 symbols. Add tickers from any stock page or below.
-      </p>
+      <ProSectionHeader
+        title="Compare workspace"
+        subtitle="Up to 4 symbols · side-by-side Smart Score & signals"
+        badge="MULTI"
+      />
 
-      <form onSubmit={handleAdd} className="flex gap-2 mb-6 max-w-md">
+      <form onSubmit={handleAdd} className="flex gap-2 mb-6 max-w-md ultra-card p-3">
         <input
           value={addInput}
           onChange={(e) => setAddInput(e.target.value.toUpperCase())}
@@ -162,7 +165,7 @@ export default function ComparePage() {
           {rows.map((row) => (
             <div
               key={row.symbol}
-              className="glass-card rounded-2xl p-5 cursor-pointer hover:border-teal-500/20 transition-colors relative"
+              className="ultra-card rounded-2xl p-5 cursor-pointer relative"
               onClick={() => router.push(`/stock/${row.symbol}`)}
               onKeyDown={(e) => e.key === "Enter" && router.push(`/stock/${row.symbol}`)}
               role="button"
@@ -190,10 +193,13 @@ export default function ComparePage() {
                   <div className={`text-sm mt-1 ${row.changePercent >= 0 ? "text-emerald-400" : "text-red-400"}`}>
                     {formatPercent(row.changePercent)}
                   </div>
-                  <div className="mt-4 pt-4 border-t border-zinc-800/80 space-y-2 text-[12px]">
+                  <div className="flex justify-center my-4">
+                    <SmartScoreGauge score={row.smartScore} size="sm" />
+                  </div>
+                  <div className="pt-4 border-t border-zinc-800/80 space-y-2 text-[12px]">
                     <div className="flex justify-between">
-                      <span className="text-zinc-500">Smart score</span>
-                      <span className={`font-bold ${smartScoreColor(row.smartScore)}`}>{row.smartScore}</span>
+                      <span className="text-zinc-500 font-mono text-[10px] uppercase">Label</span>
+                      <span className={`font-semibold ${smartScoreColor(row.smartScore)}`}>{row.smartLabel}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-zinc-500">Signal</span>

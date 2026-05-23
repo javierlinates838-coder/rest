@@ -12,8 +12,9 @@ import {
 } from "recharts";
 import Link from "next/link";
 import { formatCurrency, formatLargeNumber, formatPercent, getSignalColor, getSignalBg } from "@/lib/utils";
-import { computeSmartScore, smartScoreColor } from "@/lib/smart-score";
+import { computeSmartScore } from "@/lib/smart-score";
 import { ActionBrief } from "@/components/action-brief";
+import { SmartScoreGauge } from "@/components/smart-score-gauge";
 import { ApiError, fetchJson, fetchJsonWithTimeout } from "@/lib/fetch-json";
 import { aiEngineLabel, formatDataSourceLabel, userFacingFetchError } from "@/lib/display-labels";
 import { ErrorBoundary } from "@/components/error-boundary";
@@ -631,15 +632,13 @@ export default function StockPage() {
 
         {/* Signal + Risk Badges — stacked on mobile */}
         <div className="grid grid-cols-1 gap-3 w-full sm:grid-cols-2 lg:grid-cols-4">
-          <div className="px-5 py-4 sm:px-7 sm:py-5 rounded-2xl border border-teal-500/20 bg-teal-500/5 text-center mobile-card-full animate-scaleIn">
-            <div className="text-[10px] text-zinc-400 font-semibold tracking-widest uppercase mb-1.5">Smart score</div>
-            <div className={`text-[28px] sm:text-[32px] font-bold tabular-nums ${smartScoreColor(smartScore.score)}`}>
-              {smartScore.score}
-            </div>
-            <div className="text-[12px] text-zinc-400 mt-1">{smartScore.label}</div>
+          <div className="ultra-card signal-card-pro px-5 py-4 sm:px-7 sm:py-5 text-center mobile-card-full animate-scaleIn flex flex-col items-center justify-center">
+            <div className="text-[10px] text-zinc-400 font-semibold tracking-widest uppercase mb-2">Smart score</div>
+            <SmartScoreGauge score={smartScore.score} size="md" />
+            <div className="text-[12px] text-zinc-400 mt-2 font-mono">{smartScore.label}</div>
           </div>
 
-          <div className={`signal-card-glow px-5 py-4 sm:px-7 sm:py-5 rounded-2xl border mobile-card-full ${getSignalBg(signal.signal)} text-center animate-scaleIn`}>
+          <div className={`signal-card-glow signal-card-pro px-5 py-4 sm:px-7 sm:py-5 rounded-2xl border mobile-card-full ${getSignalBg(signal.signal)} text-center animate-scaleIn`}>
             <div className="text-[10px] text-zinc-400 font-semibold tracking-widest uppercase mb-1.5">Signal</div>
             <div className={`text-[22px] sm:text-[26px] font-semibold tracking-tight ${getSignalColor(signal.signal)}`}>{signal.signal.toUpperCase()}</div>
             <div className="text-[12px] text-zinc-400 mt-1 font-light">Confidence: {signal.confidence}%</div>
@@ -655,7 +654,7 @@ export default function StockPage() {
           </div>
 
           {riskScore && (
-            <div className={`px-5 py-4 sm:px-7 sm:py-5 rounded-2xl border text-center mobile-card-full animate-scaleIn stagger-2 ${
+            <div className={`signal-card-pro px-5 py-4 sm:px-7 sm:py-5 rounded-2xl border text-center mobile-card-full animate-scaleIn stagger-2 ${
               riskScore.grade === "A" ? "bg-emerald-500/5 border-emerald-500/20" :
               riskScore.grade === "B" ? "bg-green-500/5 border-green-500/20" :
               riskScore.grade === "C" ? "bg-yellow-500/5 border-yellow-500/20" :

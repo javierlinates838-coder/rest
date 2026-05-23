@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { StockLogo } from "@/components/stock-logo";
 import { formatCurrency, formatPercent, getSignalBg, getSignalColor } from "@/lib/utils";
+import { ProSectionHeader } from "@/components/pro-section-header";
 
 interface StockPick {
   symbol: string;
@@ -67,7 +68,7 @@ function PickSection({
 }) {
   if (picks.length === 0) return null;
   return (
-    <div className="glass-card rounded-2xl p-4 sm:p-5">
+    <div className="ultra-card rounded-2xl p-4 sm:p-5">
       <h3 className="text-[15px] font-semibold text-white tracking-tight">{title}</h3>
       <p className="text-[11px] text-zinc-500 mb-3">{subtitle}</p>
       <div className="divide-y divide-white/[0.04]">
@@ -146,17 +147,16 @@ export function StockPicks() {
 
   return (
     <section className="mb-10">
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 mb-5">
-        <div>
-          <h2 className="text-[20px] font-semibold text-white tracking-tight flex items-center gap-2">
-            <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-500 to-amber-500 flex items-center justify-center text-sm">★</span>
-            AI Stock Picks
-          </h2>
-          <p className="text-[12px] text-zinc-500 mt-1">
-            Ranked from live quotes, technical signals, and risk grades — not financial advice.
-          </p>
-        </div>
-      </div>
+      <ProSectionHeader
+        title="AI-ranked picks"
+        subtitle="Live quotes · technical fusion · risk-adjusted"
+        badge="MODEL"
+        icon={
+          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+          </svg>
+        }
+      />
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <PickSection
           title="Top Buys"
