@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { PAID_FEATURES, LIFETIME } from "@/lib/subscription";
+import { BETA_MODE } from "@/lib/product-phase";
 import { TERMS } from "@/lib/brand";
 
 interface UpgradeGateProps {
@@ -46,7 +47,9 @@ export function UpgradeGate({ open, onClose, feature, title }: UpgradeGateProps)
               onClick={onClose}
               className="btn-primary pressable w-full text-center py-3 rounded-xl text-sm font-bold"
             >
-              Lifetime ${LIFETIME.price} — pay once
+              {BETA_MODE
+                ? `Unlock with code ${LIFETIME.publicCode}`
+                : `Lifetime $${LIFETIME.price} — pay once`}
             </Link>
             <button
               type="button"

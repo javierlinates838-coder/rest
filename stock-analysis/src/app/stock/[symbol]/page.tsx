@@ -20,6 +20,7 @@ import { EdgeIndexPanel } from "@/components/edge-index-panel";
 import { ResearchExportButton } from "@/components/research-export-button";
 import { UpgradeGate } from "@/components/upgrade-gate";
 import { LIFETIME } from "@/lib/subscription";
+import { BETA_MODE } from "@/lib/product-phase";
 import { ApiError, fetchJson, fetchJsonWithTimeout } from "@/lib/fetch-json";
 import { aiEngineLabel, formatDataSourceLabel, userFacingFetchError } from "@/lib/display-labels";
 import { ErrorBoundary } from "@/components/error-boundary";
@@ -404,7 +405,7 @@ export default function StockPage() {
               href="/pricing"
               className="inline-block mb-4 px-5 py-2 rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-100 text-sm font-semibold hover:bg-amber-500/30"
             >
-              Get Lifetime access
+              {BETA_MODE ? "Unlock with beta code" : "Get Lifetime access"}
             </Link>
           )}
           <div className="flex flex-col sm:flex-row gap-3 justify-center">

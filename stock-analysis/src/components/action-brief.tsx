@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { LIFETIME } from "@/lib/subscription";
+import { BETA_MODE } from "@/lib/product-phase";
 import { formatCurrency } from "@/lib/utils";
 import { computeSmartScore } from "@/lib/smart-score";
 import { TERMS } from "@/lib/brand";
@@ -101,7 +102,9 @@ export function ActionBrief({
         <p className="text-[10px] text-zinc-600 mt-4 font-mono leading-relaxed">
           MODEL_OUTPUT · Not investment advice ·{" "}
           <Link href="/pricing" className="text-teal-400/90 hover:text-teal-300">
-            Lifetime ${LIFETIME.price} → unlimited deep dives
+            {BETA_MODE
+              ? `Code ${LIFETIME.publicCode} → unlimited deep dives`
+              : `Lifetime $${LIFETIME.price} → unlimited deep dives`}
           </Link>
         </p>
       </div>

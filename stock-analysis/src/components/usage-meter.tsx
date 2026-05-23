@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { LIFETIME } from "@/lib/subscription";
+import { BETA_MODE } from "@/lib/product-phase";
 
 interface UsageState {
   allowed: boolean;
@@ -59,7 +60,11 @@ export function UsageMeter({ compact = false }: { compact?: boolean }) {
       <Link
         href="/pricing"
         className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-amber-500/10 border border-amber-500/25 hover:bg-amber-500/15 transition-colors"
-        title={`${usage.remaining} scans left · Lifetime $${LIFETIME.price}`}
+        title={
+          BETA_MODE
+            ? `${usage.remaining} scans left · code ${LIFETIME.publicCode}`
+            : `${usage.remaining} scans left · Lifetime $${LIFETIME.price}`
+        }
       >
         <span className="text-[9px] font-mono font-bold text-amber-200">{usage.remaining}</span>
         <span className="text-[8px] text-amber-200/70 uppercase">left</span>
@@ -87,7 +92,9 @@ export function UsageMeter({ compact = false }: { compact?: boolean }) {
         href="/pricing"
         className="block mt-2 text-[11px] font-semibold text-teal-300 hover:text-teal-200"
       >
-        Lifetime ${LIFETIME.price} — pay once →
+        {BETA_MODE
+          ? `Full access · code ${LIFETIME.publicCode} →`
+          : `Lifetime $${LIFETIME.price} — pay once →`}
       </Link>
     </div>
   );
