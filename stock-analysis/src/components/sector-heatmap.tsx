@@ -9,97 +9,213 @@ export function SectorHeatmap({
   sectors,
   estimated,
   source,
+  layout = "full",
 }: {
   sectors: SectorPerformanceRow[];
   estimated?: boolean;
   source?: string;
+  layout?: "full" | "sidebar";
 }) {
   const router = useRouter();
 
   if (sectors.length === 0) {
     return (
-      <p className="text-sm text-zinc-500 py-4">Sector performance unavailable — check API keys and refresh.</p>
+      <div className="sector-rotation-board ultra-card rounded-2xl p-6">
+        <p className="text-sm text-zinc-500">Sector rotation unavailable — add FMP_API_KEY on Vercel and refresh.</p>
+      </div>
+    );
+  }
+
+  const leader = sectors.find((s) => s.isLeader) ?? sectors[0];
+  const laggard = sectors.find((s) => s.isLaggard) ?? sectors[sectors.length - 1];
+  const maxAbs = Math.max(...sectors.map((s) => Math.abs(s.change)), 0.01);
+
+  const sourceLabel = estimated
+    ? "Sector ETFs (XLK, XLF, …)"
+    : source === "mixed"
+      ? "FMP sectors + ETF fill"
+      : "FMP sector snapshot";
+
+  if (layout === "sidebar") {
+    return (
+      <div>
+        <p className="text-[11px] text-zinc-500 mb-3">{sourceLabel}</p>
+        <div className="space-y-2">
+          {sectors.slice(0, 6).map((s) => (
+            <SidebarSectorRow key={s.id} sector={s} onSelect={() => goForge(router, s.label)} />
+          ))}
+        </div>
+        <Link href="/screener" className="text-[11px] text-teal-400 mt-3 inline-block">
+          Full rotation board →
+        </Link>
+      </div>
     );
   }
 
   return (
-    <div>
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+    <section className="sector-rotation-board ultra-card rounded-2xl p-4 sm:p-6 mb-10">
+      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-5">
         <div>
-          <h2 className="section-heading mb-0">
-            <svg className="w-5 h-5 text-teal-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-            </svg>
-            Sector rotation
-          </h2>
-          <p className="text-[11px] text-zinc-500 mt-1">
-            {estimated ? "ETF proxies" : source === "mixed" ? "FMP + ETF fill" : "Live sector tape"}
+          <div className="flex items-center gap-2 flex-wrap">
+            <h2 className="text-lg sm:text-xl font-bold text-white font-display tracking-tight">
+              Sector rotation
+            </h2>
+            <span className="pro-badge">11 SECTORS</span>
             {estimated && (
-              <span className="text-amber-400/90 ml-1">· estimated</span>
+              <span className="text-[10px] px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-300 border border-amber-500/25">
+                ETF proxy
+              </span>
             )}
-          </p>
+          </div>
+          <p className="text-[12px] text-zinc-500 mt-1">{sourceLabel} · tap a row to screen in Alpha Forge</p>
         </div>
-        <Link
-          href="/screener"
-          className="text-[11px] font-medium text-teal-400/90 hover:text-teal-300"
-        >
-          Open Alpha Forge
-        </Link>
+        <div className="flex gap-3 shrink-0">
+          <LeaderLaggardChip
+            tone="up"
+            label="Leader"
+            name={leader.label}
+            etf={leader.etf}
+            change={leader.change}
+          />
+          <LeaderLaggardChip
+            tone="down"
+            label="Laggard"
+            name={laggard.label}
+            etf={laggard.etf}
+            change={laggard.change}
+          />
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+      <div className="sector-rotation-grid rounded-xl border border-white/[0.06] overflow-hidden divide-y divide-white/[0.04]">
         {sectors.map((sector) => (
           <button
             key={sector.id}
             type="button"
-            onClick={() => router.push(`/screener?sector=${encodeURIComponent(sector.label)}`)}
-            className="sector-heatmap-card glass-card rounded-xl px-3 py-3 text-left pressable w-full"
+            onClick={() => goForge(router, sector.label)}
+            className="sector-rotation-row w-full text-left pressable px-3 sm:px-4 py-3 sm:py-3.5 hover:bg-white/[0.03] transition-colors"
+            style={{
+              backgroundImage: `linear-gradient(90deg, ${sector.change >= 0 ? "rgba(52,211,153,0.06)" : "rgba(248,113,113,0.06)"} ${Math.min(85, sector.barWidth * 0.85)}%, transparent ${Math.min(85, sector.barWidth * 0.85)}%)`,
+            }}
           >
-            <div className="flex items-start justify-between gap-2 mb-2">
-              <div className="flex items-center gap-2 min-w-0">
-                <span
-                  className="sector-rank shrink-0 tabular-nums"
-                  style={{ color: sector.isLeader ? "#34d399" : sector.isLaggard ? "#f87171" : undefined }}
-                >
-                  #{sector.rank}
-                </span>
-                <span
-                  className="w-2 h-2 rounded-full shrink-0"
-                  style={{ backgroundColor: sector.color }}
-                  aria-hidden
-                />
-                <span className="text-[13px] font-semibold text-white truncate">{sector.label}</span>
-              </div>
+            <div className="grid grid-cols-[2.5rem_minmax(0,1fr)_auto] sm:grid-cols-[2.5rem_minmax(0,1fr)_3rem_4.5rem_5.5rem] items-center gap-2 sm:gap-3">
               <span
-                className={`text-[13px] font-bold tabular-nums shrink-0 ${
+                className="sector-rank-lg tabular-nums"
+                style={{
+                  color: sector.isLeader ? "#34d399" : sector.isLaggard ? "#f87171" : "#94a3b8",
+                }}
+              >
+                {sector.rank}
+              </span>
+
+              <div className="min-w-0 flex items-center gap-2">
+                <span
+                  className="w-2.5 h-2.5 rounded-sm shrink-0"
+                  style={{ backgroundColor: sector.color }}
+                />
+                <div className="min-w-0">
+                  <div className="text-[14px] font-semibold text-white truncate">{sector.label}</div>
+                  <div className="text-[10px] text-zinc-600 font-mono hidden sm:block">
+                    {sector.etf} · {sector.isLeader ? "Leading" : sector.isLaggard ? "Lagging" : "Mid-pack"}
+                  </div>
+                </div>
+              </div>
+
+              <span className="hidden sm:block text-[10px] font-mono text-zinc-500 text-center">
+                {sector.etf}
+              </span>
+
+              <div className="hidden sm:block col-span-1">
+                <div className="h-2 rounded-full bg-zinc-800/90 overflow-hidden">
+                  <div
+                    className="h-full rounded-full"
+                    style={{
+                      width: `${Math.round((Math.abs(sector.change) / maxAbs) * 100)}%`,
+                      backgroundColor: sector.change >= 0 ? sector.color : "#f87171",
+                    }}
+                  />
+                </div>
+              </div>
+
+              <span
+                className={`text-[14px] sm:text-[15px] font-bold tabular-nums text-right ${
                   sector.change >= 0 ? "text-emerald-400" : "text-red-400"
                 }`}
               >
                 {formatPercent(sector.change)}
               </span>
             </div>
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex-1 h-2 rounded-full bg-zinc-800/80 overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all duration-500"
-                  style={{
-                    width: `${sector.barWidth}%`,
-                    backgroundColor: sector.change >= 0 ? sector.color : "#f87171",
-                    opacity: 0.85,
-                  }}
-                />
-              </div>
-              <span className="text-[10px] text-zinc-600 font-mono shrink-0">{sector.etf}</span>
-            </div>
-            {(sector.isLeader || sector.isLaggard) && (
-              <p className="text-[10px] mt-1.5 text-zinc-500">
-                {sector.isLeader ? "Leading the tape" : "Lagging the tape"}
-              </p>
-            )}
           </button>
         ))}
       </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 mt-4 pt-4 border-t border-white/[0.05]">
+        <p className="text-[11px] text-zinc-600">
+          Ranked by today&apos;s sector performance · not individual stock picks
+        </p>
+        <Link
+          href="/screener"
+          className="text-[12px] font-semibold text-teal-400 hover:text-teal-300"
+        >
+          Screen all sectors in Alpha Forge
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+function goForge(router: ReturnType<typeof useRouter>, label: string) {
+  router.push(`/screener?sector=${encodeURIComponent(label)}`);
+}
+
+function LeaderLaggardChip({
+  tone,
+  label,
+  name,
+  etf,
+  change,
+}: {
+  tone: "up" | "down";
+  label: string;
+  name: string;
+  etf: string;
+  change: number;
+}) {
+  const up = tone === "up";
+  return (
+    <div
+      className={`rounded-xl px-3 py-2 min-w-[120px] border ${
+        up ? "border-emerald-500/25 bg-emerald-500/8" : "border-red-500/25 bg-red-500/8"
+      }`}
+    >
+      <div className={`text-[9px] font-bold uppercase tracking-widest ${up ? "text-emerald-500/80" : "text-red-400/80"}`}>
+        {label}
+      </div>
+      <div className="text-[13px] font-semibold text-white truncate">{name}</div>
+      <div className={`text-[12px] font-bold tabular-nums ${up ? "text-emerald-400" : "text-red-400"}`}>
+        {formatPercent(change)}
+        <span className="text-[10px] text-zinc-600 font-mono font-normal ml-1">{etf}</span>
+      </div>
     </div>
+  );
+}
+
+function SidebarSectorRow({
+  sector,
+  onSelect,
+}: {
+  sector: SectorPerformanceRow;
+  onSelect: () => void;
+}) {
+  return (
+    <button type="button" onClick={onSelect} className="w-full text-left glass-card rounded-lg px-3 py-2 pressable">
+      <div className="flex justify-between items-center">
+        <span className="text-[12px] text-zinc-300">{sector.label}</span>
+        <span className={sector.change >= 0 ? "text-emerald-400 text-[12px]" : "text-red-400 text-[12px]"}>
+          {formatPercent(sector.change)}
+        </span>
+      </div>
+    </button>
   );
 }
 

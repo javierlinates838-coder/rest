@@ -119,6 +119,31 @@ async function fmpFetch<T>(path: string, options?: { revalidate?: number }): Pro
   }
 }
 
+/** Batch quote % change for sector ETFs (one FMP round-trip). */
+export async function fmpFetchQuoteChangeBatch(
+  symbols: string[]
+): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  if (symbols.length === 0) return out;
+
+  const data = await fmpFetch<FMPStableQuoteRaw[]>(
+    `/quote?symbol=${symbols.map((s) => s.toUpperCase()).join(",")}`,
+    { revalidate: 60 }
+  );
+  if (!Array.isArray(data)) return out;
+
+  for (const row of data) {
+    const sym = row.symbol?.toUpperCase();
+    if (!sym) continue;
+    const pct =
+      typeof row.changePercentage === "number"
+        ? row.changePercentage
+        : parseFloat(String(row.changePercentage ?? "").replace("%", ""));
+    if (Number.isFinite(pct)) out.set(sym, pct);
+  }
+  return out;
+}
+
 export async function fmpFetchQuote(symbol: string): Promise<FMPQuote | null> {
   const [quoteData, profileData, ratiosData] = await Promise.all([
     fmpFetch<FMPStableQuoteRaw[]>(`/quote?symbol=${symbol}`, { revalidate: 30 }),

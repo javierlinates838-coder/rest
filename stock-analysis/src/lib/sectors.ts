@@ -160,6 +160,45 @@ export function matchFmpSectorKey(fmpSector: string): SectorId | null {
   return resolveSectorId(key);
 }
 
+/** Accept full board rows or legacy `{ name, change }` from cached market payloads */
+export function normalizeMarketSectors(raw: unknown): SectorPerformanceRow[] {
+  if (!Array.isArray(raw) || raw.length === 0) return [];
+
+  const first = raw[0] as Record<string, unknown>;
+  if (first && typeof first.id === "string" && typeof first.label === "string") {
+    return rankSectorRows(
+      raw.map((row) => {
+        const r = row as SectorPerformanceRow;
+        return {
+          id: r.id,
+          label: r.label,
+          etf: r.etf,
+          color: r.color,
+          change: Number(r.change) || 0,
+          source: r.source ?? "fmp",
+        };
+      })
+    );
+  }
+
+  const legacy = raw as { name?: string; change?: number }[];
+  const rows = SECTOR_DEFINITIONS.map((def) => {
+    const match = legacy.find((l) => {
+      const id = l.name ? resolveSectorId(l.name) : null;
+      return id === def.id;
+    });
+    return {
+      id: def.id,
+      label: def.label,
+      etf: def.etf,
+      color: def.color,
+      change: Number(match?.change) || 0,
+      source: "etf" as const,
+    };
+  });
+  return rankSectorRows(rows);
+}
+
 export function sectorColor(label: string): string {
   const id = resolveSectorId(label);
   return (id && getSectorById(id)?.color) || "#64748b";

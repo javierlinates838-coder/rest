@@ -15,6 +15,7 @@ import { HERO, TERMS } from "@/lib/brand";
 import { HUB_QUICK_PICKS } from "@/lib/hub-symbols";
 import { dedupeBySymbol, excludeSymbols } from "@/lib/dedupe-by-symbol";
 import type { SectorPerformanceRow } from "@/lib/sectors";
+import { normalizeMarketSectors } from "@/lib/sectors";
 import { SectorHeatmap } from "@/components/sector-heatmap";
 
 interface MarketIndex {
@@ -79,18 +80,27 @@ export default function DashboardPage() {
     async function fetchMarketData() {
       try {
         setMarketError(null);
-        const res = await fetch("/api/market");
-        const data = await res.json();
+        const [marketRes, sectorsRes] = await Promise.all([
+          fetch("/api/market"),
+          fetch("/api/sectors"),
+        ]);
+        const data = await marketRes.json();
+        const sectorPayload = sectorsRes.ok ? await sectorsRes.json() : null;
         if (cancelled) return;
-        if (!res.ok) {
+        if (!marketRes.ok) {
           setMarketError(data.error || "Market data unavailable");
           return;
         }
         setIndices(data.indices || []);
         setTrending(data.trending || []);
-        setSectors(data.sectors || []);
-        setSectorsEstimated(Boolean(data.sectorsEstimated));
-        setSectorSource(data.sectorSource);
+        const sectorRows = sectorPayload?.sectors
+          ? normalizeMarketSectors(sectorPayload.sectors)
+          : normalizeMarketSectors(data.sectors || []);
+        setSectors(sectorRows);
+        setSectorsEstimated(
+          Boolean(sectorPayload?.estimated ?? data.sectorsEstimated)
+        );
+        setSectorSource(sectorPayload?.source ?? data.sectorSource);
         setGainers(data.topGainers || []);
         setLosers(data.topLosers || []);
         setDataSources(data.dataSources || {});
@@ -253,17 +263,24 @@ export default function DashboardPage() {
             type="button"
             onClick={() => {
               setLoading(true);
-              fetch("/api/market")
-                .then((r) => r.json())
-                .then((data) => {
+              Promise.all([fetch("/api/market"), fetch("/api/sectors")])
+                .then(async ([mRes, sRes]) => {
+                  const data = await mRes.json();
+                  const sectorPayload = sRes.ok ? await sRes.json() : null;
                   if (data.error) setMarketError(data.error);
                   else {
                     setMarketError(null);
                     setIndices(data.indices || []);
                     setTrending(data.trending || []);
-                    setSectors(data.sectors || []);
-                    setSectorsEstimated(Boolean(data.sectorsEstimated));
-                    setSectorSource(data.sectorSource);
+                    setSectors(
+                      sectorPayload?.sectors
+                        ? normalizeMarketSectors(sectorPayload.sectors)
+                        : normalizeMarketSectors(data.sectors || [])
+                    );
+                    setSectorsEstimated(
+                      Boolean(sectorPayload?.estimated ?? data.sectorsEstimated)
+                    );
+                    setSectorSource(sectorPayload?.source ?? data.sectorSource);
                     setGainers(data.topGainers || []);
                     setLosers(data.topLosers || []);
                     setDataSources(data.dataSources || {});
@@ -280,15 +297,18 @@ export default function DashboardPage() {
       )}
 
       {loading ? (
-        <div className="indices-scroll mb-10">
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="glass-card rounded-2xl p-5 skeleton-shine min-h-[108px]">
-              <div className="h-3 bg-zinc-800 rounded w-12 mb-3" />
-              <div className="h-5 bg-zinc-800 rounded w-20 mb-2" />
-              <div className="h-3 bg-zinc-800 rounded w-16" />
-            </div>
-          ))}
-        </div>
+        <>
+          <div className="indices-scroll mb-10">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="glass-card rounded-2xl p-5 skeleton-shine min-h-[108px]">
+                <div className="h-3 bg-zinc-800 rounded w-12 mb-3" />
+                <div className="h-5 bg-zinc-800 rounded w-20 mb-2" />
+                <div className="h-3 bg-zinc-800 rounded w-16" />
+              </div>
+            ))}
+          </div>
+          <div className="ultra-card rounded-2xl p-6 mb-10 skeleton-shine min-h-[280px]" aria-hidden />
+        </>
       ) : (
         <>
           <StockPicks onSymbolsChange={handleMeridianSymbols} />
@@ -324,6 +344,13 @@ export default function DashboardPage() {
               </div>
             ))}
           </div>
+
+          <SectorHeatmap
+            sectors={sectors}
+            estimated={sectorsEstimated}
+            source={sectorSource}
+            layout="full"
+          />
 
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 lg:gap-10">
             <div className="xl:col-span-8">
@@ -385,12 +412,6 @@ export default function DashboardPage() {
             </div>
 
             <div className="xl:col-span-4 space-y-6">
-              <SectorHeatmap
-                sectors={sectors}
-                estimated={sectorsEstimated}
-                source={sectorSource}
-              />
-
               {/* Top Gainers */}
               {gainersDisplay.length > 0 && (
                 <div>

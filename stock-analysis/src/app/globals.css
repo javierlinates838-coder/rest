@@ -1806,17 +1806,21 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: 0 0 4px 0;
 }
 
-.sector-heatmap-card:hover {
-  border-color: rgba(45, 212, 191, 0.2);
-  background: linear-gradient(155deg, rgba(18, 22, 30, 0.98), rgba(10, 12, 16, 0.95));
+.sector-rotation-board {
+  border: 1px solid rgba(45, 212, 191, 0.12);
+  background: linear-gradient(165deg, rgba(12, 18, 26, 0.98) 0%, rgba(6, 8, 12, 0.95) 100%);
 }
 
-.sector-rank {
+.sector-rank-lg {
   font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 800;
-  color: rgba(148, 163, 184, 0.9);
-  min-width: 1.5rem;
+  line-height: 1;
+}
+
+.sector-rotation-row:focus-visible {
+  outline: 2px solid rgba(45, 212, 191, 0.45);
+  outline-offset: -2px;
 }
 
 .pulse-feed-tag {

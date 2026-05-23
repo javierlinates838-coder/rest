@@ -5,15 +5,22 @@ import {
   rankSectorRows,
   type SectorPerformanceRow,
 } from "@/lib/sectors";
-import { fmpFetchSectorPerformance } from "@/services/fmp-api";
+import { fmpFetchQuoteChangeBatch, fmpFetchSectorPerformance } from "@/services/fmp-api";
 import { fetchStockQuote } from "@/services/stock-data";
 
 type RawSectorChange = { id: SectorId; change: number; source: "fmp" | "etf" };
 
 async function fetchEtfSectorChanges(missingIds: SectorId[]): Promise<RawSectorChange[]> {
   const defs = SECTOR_DEFINITIONS.filter((d) => missingIds.includes(d.id));
-  const results = await Promise.all(
+  const etfSymbols = defs.map((d) => d.etf);
+  const batch = await fmpFetchQuoteChangeBatch(etfSymbols);
+
+  return Promise.all(
     defs.map(async (def) => {
+      const fromBatch = batch.get(def.etf.toUpperCase());
+      if (fromBatch != null && Number.isFinite(fromBatch)) {
+        return { id: def.id, change: fromBatch, source: "etf" as const };
+      }
       try {
         const q = await fetchStockQuote(def.etf);
         return { id: def.id, change: q.changePercent, source: "etf" as const };
@@ -22,7 +29,6 @@ async function fetchEtfSectorChanges(missingIds: SectorId[]): Promise<RawSectorC
       }
     })
   );
-  return results;
 }
 
 /**
