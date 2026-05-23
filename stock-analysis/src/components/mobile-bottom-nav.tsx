@@ -54,7 +54,7 @@ export function MobileBottomNav() {
   const pathname = usePathname() || "/";
 
   return (
-    <nav className="mobile-bottom-nav sm:hidden" aria-label="Pulse Terminal navigation">
+    <nav className="mobile-bottom-nav lg:hidden" aria-label="Pulse Terminal navigation">
       <div className="mobile-bottom-nav-inner">
         {MOBILE_NAV.map((tab, i) => {
           const active = tab.match(pathname);

@@ -33,6 +33,7 @@ export default function WatchlistPage() {
     rows: { symbol: string; edgeScore: number; edgeTier: string; signal: string }[];
   } | null>(null);
   const [digestLoading, setDigestLoading] = useState(false);
+  const [digestError, setDigestError] = useState<string | null>(null);
   const loadGen = useRef(0);
 
   const loadWatchlist = useCallback(async (showLoader = false) => {
@@ -125,15 +126,19 @@ export default function WatchlistPage() {
   };
 
   const runDigest = async () => {
+    if (watchlist.length === 0) return;
     setDigestLoading(true);
+    setDigestError(null);
     const symbols = watchlist.map((w) => w.symbol).join(",");
     try {
       const res = await fetch(`/api/watchlist-digest?symbols=${encodeURIComponent(symbols)}`);
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) throw new Error(data.error || "Digest failed");
+      if (!data.rows?.length) throw new Error("No quotes scored — check API keys or symbols.");
       setDigest(data);
-    } catch {
+    } catch (e) {
       setDigest(null);
+      setDigestError(e instanceof Error ? e.message : "Morning digest failed");
     } finally {
       setDigestLoading(false);
     }
@@ -156,6 +161,12 @@ export default function WatchlistPage() {
           </button>
         }
       />
+
+      {digestError && (
+        <div className="glass-card rounded-xl px-4 py-3 mb-6 border border-amber-500/20 text-amber-200/90 text-sm">
+          {digestError}
+        </div>
+      )}
 
       {digest && (
         <div className="ultra-card rounded-2xl p-5 mb-6 ultra-card-inner">
@@ -212,6 +223,10 @@ export default function WatchlistPage() {
               <div className="h-4 bg-zinc-800 rounded w-24" />
             </div>
           ))}
+        </div>
+      ) : watchlist.length === 0 ? (
+        <div className="glass-card rounded-xl p-8 text-center text-zinc-500 text-sm">
+          Watchlist is empty. Add a symbol above to start tracking.
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

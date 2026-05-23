@@ -49,14 +49,19 @@ export async function GET() {
           { name: "Industrials", change: 0.2 },
         ];
 
+    const parsePct = (v: number | string | undefined) => {
+      const n = typeof v === "number" ? v : parseFloat(String(v ?? ""));
+      return Number.isFinite(n) ? n : 0;
+    };
+
     const topGainers = gainers.map((g) => ({
       symbol: g.symbol, name: g.name, price: g.price,
-      change: g.change, changePercent: g.changesPercentage,
+      change: g.change, changePercent: parsePct(g.changesPercentage),
     }));
 
     const topLosers = losers.map((l) => ({
       symbol: l.symbol, name: l.name, price: l.price,
-      change: l.change, changePercent: l.changesPercentage,
+      change: l.change, changePercent: parsePct(l.changesPercentage),
     }));
 
     return NextResponse.json({

@@ -15,6 +15,16 @@ export function readCompareList(): string[] {
   }
 }
 
+export function addCompareSymbol(symbol: string): { list: string[]; added: boolean } {
+  const sym = symbol.toUpperCase().replace(/[^A-Z0-9.-]/g, "");
+  const list = readCompareList();
+  if (list.includes(sym)) return { list, added: true };
+  if (list.length >= MAX_COMPARE_SYMBOLS) return { list, added: false };
+  const next = [...list, sym];
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  return { list: next, added: true };
+}
+
 export function toggleCompareSymbol(symbol: string): { list: string[]; added: boolean } {
   const sym = symbol.toUpperCase().replace(/[^A-Z0-9.-]/g, "");
   const list = readCompareList();

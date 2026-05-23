@@ -10,7 +10,13 @@ export const maxDuration = 45;
 
 export async function GET(request: NextRequest) {
   const symbolsParam = request.nextUrl.searchParams.get("symbols");
-  const symbols = (symbolsParam || "AAPL,MSFT,NVDA")
+  if (symbolsParam !== null && symbolsParam.trim() === "") {
+    return NextResponse.json(
+      { error: "No symbols to digest. Add tickers to your watchlist first." },
+      { status: 400 }
+    );
+  }
+  const symbols = (symbolsParam ?? "AAPL,MSFT,NVDA")
     .split(",")
     .map((s) => s.trim().toUpperCase())
     .filter(Boolean)

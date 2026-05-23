@@ -6,7 +6,7 @@ import Link from "next/link";
 import { formatCurrency, formatPercent, getSignalColor } from "@/lib/utils";
 import {
   readCompareList,
-  toggleCompareSymbol,
+  addCompareSymbol,
   removeCompareSymbol,
   clearCompareList,
   MAX_COMPARE_SYMBOLS,
@@ -114,8 +114,12 @@ export default function ComparePage() {
     e.preventDefault();
     const sym = addInput.trim().toUpperCase();
     if (!sym) return;
-    const { added } = toggleCompareSymbol(sym);
-    if (!added && !symbols.includes(sym)) {
+    if (symbols.includes(sym)) {
+      setAddError(`${sym} is already in the list.`);
+      return;
+    }
+    const { added } = addCompareSymbol(sym);
+    if (!added) {
       setAddError(`Maximum ${MAX_COMPARE_SYMBOLS} symbols — remove one first.`);
       return;
     }

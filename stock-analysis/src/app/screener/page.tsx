@@ -5,12 +5,11 @@ import { useRouter } from "next/navigation";
 import { formatCurrency, formatPercent, getSignalColor } from "@/lib/utils";
 import { smartScoreColor } from "@/lib/smart-score";
 import type { ScreenerRow } from "@/lib/screener";
+import { SCREENER_SECTOR_OPTIONS } from "@/lib/screener-constants";
 import { ProSectionHeader } from "@/components/pro-section-header";
 import { TERMS } from "@/lib/brand";
 
 type BiasFilter = "any" | "bullish" | "bearish";
-
-const SECTORS = ["all", "Technology", "Healthcare", "Financial Services", "Energy", "Consumer Cyclical"];
 
 export default function ScreenerPage() {
   const router = useRouter();
@@ -18,7 +17,9 @@ export default function ScreenerPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [bias, setBias] = useState<BiasFilter>("any");
-  const [minScore, setMinScore] = useState(55);
+  const [minScore, setMinScore] = useState(40);
+  const [universeSize, setUniverseSize] = useState(0);
+  const [maxSmartScore, setMaxSmartScore] = useState(0);
   const [maxRisk, setMaxRisk] = useState("");
   const [sector, setSector] = useState("all");
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
@@ -32,7 +33,12 @@ export default function ScreenerPage() {
     const res = await fetch(`/api/screener?${params}`);
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Screener failed");
-    return data as { rows?: ScreenerRow[]; updatedAt?: string };
+    return data as {
+      rows?: ScreenerRow[];
+      updatedAt?: string;
+      universeSize?: number;
+      maxSmartScore?: number;
+    };
   }, [bias, minScore, maxRisk, sector]);
 
   const load = async () => {
@@ -42,6 +48,8 @@ export default function ScreenerPage() {
       const data = await fetchScreener();
       setRows(data.rows || []);
       setUpdatedAt(data.updatedAt || null);
+      setUniverseSize(data.universeSize ?? 0);
+      setMaxSmartScore(data.maxSmartScore ?? 0);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not load screener");
       setRows([]);
@@ -60,6 +68,8 @@ export default function ScreenerPage() {
         if (cancelled) return;
         setRows(data.rows || []);
         setUpdatedAt(data.updatedAt || null);
+        setUniverseSize(data.universeSize ?? 0);
+        setMaxSmartScore(data.maxSmartScore ?? 0);
       } catch (e) {
         if (!cancelled) {
           setError(e instanceof Error ? e.message : "Could not load screener");
@@ -129,7 +139,7 @@ export default function ScreenerPage() {
             onChange={(e) => setSector(e.target.value)}
             className="bg-transparent text-white text-[12px] outline-none max-w-[120px]"
           >
-            {SECTORS.map((s) => (
+            {SCREENER_SECTOR_OPTIONS.map((s) => (
               <option key={s} value={s}>
                 {s}
               </option>
@@ -155,6 +165,13 @@ export default function ScreenerPage() {
       {updatedAt && !loading && (
         <p className="text-[11px] text-zinc-600 mb-3">
           Updated {new Date(updatedAt).toLocaleString()}
+          {universeSize > 0 && (
+            <>
+              {" "}
+              · {rows.length} of {universeSize} symbols
+              {maxSmartScore > 0 && ` · top ${TERMS.smartScore} ${maxSmartScore}`}
+            </>
+          )}
         </p>
       )}
 
@@ -165,8 +182,16 @@ export default function ScreenerPage() {
           ))}
         </div>
       ) : rows.length === 0 ? (
-        <div className="glass-card rounded-xl p-8 text-center text-zinc-500 text-sm">
-          No symbols match filters. Lower min score or check API keys on the server.
+        <div className="glass-card rounded-xl p-8 text-center text-zinc-500 text-sm space-y-2">
+          <p>No symbols match these filters.</p>
+          {universeSize > 0 && maxSmartScore > 0 && minScore > maxSmartScore && (
+            <p className="text-amber-300/90">
+              Min score is {minScore} but the universe tops out at {maxSmartScore} — lower the slider.
+            </p>
+          )}
+          {universeSize === 0 && (
+            <p className="text-red-300/80">Could not score the universe — check FMP/Finnhub keys on the server.</p>
+          )}
         </div>
       ) : (
         <div className="pro-table-wrap table-scroll">

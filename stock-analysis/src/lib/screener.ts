@@ -98,6 +98,25 @@ export async function scoreForScreener(symbol: string): Promise<ScreenerRow | nu
 
 const GRADE_ORDER = ["A", "B", "C", "D", "F"];
 
+/** Map filter label → row sector strings from FMP/profile data */
+const SECTOR_FILTER_ALIASES: Record<string, string[]> = {
+  Technology: ["technology", "communication"],
+  Communication: ["communication", "media"],
+  Financial: ["financial", "financial services", "financials"],
+  "Consumer Cyclical": ["consumer cyclical", "consumer discretionary"],
+  Automotive: ["automotive", "consumer cyclical"],
+  Healthcare: ["healthcare", "health care"],
+  Energy: ["energy"],
+};
+
+function sectorMatchesRow(filterSector: string, rowSector: string): boolean {
+  const row = rowSector.trim().toLowerCase();
+  if (!row) return false;
+  const aliases = SECTOR_FILTER_ALIASES[filterSector];
+  if (!aliases) return row === filterSector.toLowerCase();
+  return aliases.some((a) => row === a || row.includes(a) || a.includes(row));
+}
+
 export function filterScreenerRows(rows: ScreenerRow[], filter: ScreenerFilter): ScreenerRow[] {
   return rows.filter((r) => {
     if (filter.bias === "bullish" && !r.signal.includes("Buy")) return false;
@@ -108,21 +127,58 @@ export function filterScreenerRows(rows: ScreenerRow[], filter: ScreenerFilter):
       const rowIdx = GRADE_ORDER.indexOf(r.riskGrade);
       if (maxIdx >= 0 && rowIdx > maxIdx) return false;
     }
-    if (filter.sector && filter.sector !== "all" && r.sector !== filter.sector) return false;
+    if (filter.sector && filter.sector !== "all" && !sectorMatchesRow(filter.sector, r.sector)) {
+      return false;
+    }
     return true;
   });
 }
 
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  fn: (item: T) => Promise<R>,
+  concurrency = 5
+): Promise<R[]> {
+  const out: R[] = [];
+  for (let i = 0; i < items.length; i += concurrency) {
+    const chunk = items.slice(i, i + concurrency);
+    out.push(...(await Promise.all(chunk.map(fn))));
+  }
+  return out;
+}
+
+type ScreenerCache = { rows: ScreenerRow[]; updatedAt: string; scoredAt: number };
+let scoredUniverseCache: ScreenerCache | null = null;
+const SCORE_CACHE_MS = 90_000;
+
 export async function runScreener(filter: ScreenerFilter = {}): Promise<{
   rows: ScreenerRow[];
   updatedAt: string;
+  universeSize: number;
+  maxSmartScore: number;
 }> {
-  const symbols = await buildScreenerUniverse();
-  const rows = (await Promise.all(symbols.map(scoreForScreener))).filter(
-    (r): r is ScreenerRow => r !== null
-  );
+  const now = Date.now();
+  let baseRows: ScreenerRow[];
+  let updatedAt: string;
 
-  const filtered = filterScreenerRows(rows, filter).sort((a, b) => b.smartScore - a.smartScore);
+  if (scoredUniverseCache && now - scoredUniverseCache.scoredAt < SCORE_CACHE_MS) {
+    baseRows = scoredUniverseCache.rows;
+    updatedAt = scoredUniverseCache.updatedAt;
+  } else {
+    const symbols = await buildScreenerUniverse();
+    const scored = await mapWithConcurrency(symbols, scoreForScreener, 5);
+    baseRows = scored.filter((r): r is ScreenerRow => r !== null);
+    updatedAt = new Date().toISOString();
+    scoredUniverseCache = { rows: baseRows, updatedAt, scoredAt: now };
+  }
 
-  return { rows: filtered, updatedAt: new Date().toISOString() };
+  const filtered = filterScreenerRows(baseRows, filter).sort((a, b) => b.smartScore - a.smartScore);
+  const maxSmartScore = baseRows.reduce((m, r) => Math.max(m, r.smartScore), 0);
+
+  return {
+    rows: filtered,
+    updatedAt,
+    universeSize: baseRows.length,
+    maxSmartScore,
+  };
 }

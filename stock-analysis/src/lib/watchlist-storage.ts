@@ -2,18 +2,24 @@ const STORAGE_KEY = "watchlist";
 
 export const DEFAULT_WATCHLIST = ["AAPL", "TSLA", "NVDA", "GOOGL", "AMD", "MSFT"] as const;
 
-/** Symbols shown when nothing saved yet (always a new array). */
-export function getWatchlistSymbols(): string[] {
-  if (typeof window === "undefined") return [...DEFAULT_WATCHLIST];
+function readStoredWatchlist(): string[] | null {
+  if (typeof window === "undefined") return null;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [...DEFAULT_WATCHLIST];
+    if (!raw) return null;
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed) || parsed.length === 0) return [...DEFAULT_WATCHLIST];
+    if (!Array.isArray(parsed)) return null;
     return parsed.map((s) => String(s).toUpperCase());
   } catch {
-    return [...DEFAULT_WATCHLIST];
+    return null;
   }
+}
+
+/** Demo list on first visit; empty array when user cleared the list. */
+export function getWatchlistSymbols(): string[] {
+  const stored = readStoredWatchlist();
+  if (stored === null) return [...DEFAULT_WATCHLIST];
+  return stored;
 }
 
 export function saveWatchlistSymbols(symbols: string[]): void {
@@ -26,9 +32,11 @@ export function saveWatchlistSymbols(symbols: string[]): void {
 
 export function addWatchlistSymbol(symbol: string): string[] {
   const sym = symbol.trim().toUpperCase();
-  const list = getWatchlistSymbols();
-  if (list.includes(sym)) return list;
-  const next = [...list, sym];
+  const stored = readStoredWatchlist();
+  const visible = stored === null ? [...DEFAULT_WATCHLIST] : stored;
+  if (visible.includes(sym)) return visible;
+  const base = stored === null ? [...DEFAULT_WATCHLIST] : stored;
+  const next = [...base, sym];
   saveWatchlistSymbols(next);
   return next;
 }

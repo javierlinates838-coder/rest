@@ -8,7 +8,7 @@ export function SiteNavLinks() {
   const pathname = usePathname() || "/";
 
   return (
-    <div className="hidden lg:flex items-center gap-5">
+    <div className="hidden md:flex lg:items-center gap-3 lg:gap-5 flex-wrap justify-end max-w-[min(100%,520px)]">
       {NAV.map((link) => {
         const active = link.match(pathname);
         return (

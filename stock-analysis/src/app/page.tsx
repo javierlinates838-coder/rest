@@ -64,6 +64,7 @@ export default function DashboardPage() {
   const [dataSources, setDataSources] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [marketError, setMarketError] = useState<string | null>(null);
+  const [sectorsEstimated, setSectorsEstimated] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const searchTimeout = useRef<NodeJS.Timeout | null>(null);
   const searchRequestId = useRef(0);
@@ -84,6 +85,7 @@ export default function DashboardPage() {
         setIndices(data.indices || []);
         setTrending(data.trending || []);
         setSectors(data.sectors || []);
+        setSectorsEstimated(Boolean(data.sectorsEstimated));
         setGainers(data.topGainers || []);
         setLosers(data.topLosers || []);
         setDataSources(data.dataSources || {});
@@ -229,6 +231,7 @@ export default function DashboardPage() {
                     setIndices(data.indices || []);
                     setTrending(data.trending || []);
                     setSectors(data.sectors || []);
+                    setSectorsEstimated(Boolean(data.sectorsEstimated));
                     setGainers(data.topGainers || []);
                     setLosers(data.topLosers || []);
                     setDataSources(data.dataSources || {});
@@ -356,6 +359,11 @@ export default function DashboardPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                   </svg>
                   Sectors
+                  {sectorsEstimated && (
+                    <span className="text-[10px] font-normal text-amber-400/90 normal-case tracking-normal ml-1">
+                      (estimated)
+                    </span>
+                  )}
                 </h2>
                 <div className="space-y-2.5">
                   {sectors.map((sector) => (
