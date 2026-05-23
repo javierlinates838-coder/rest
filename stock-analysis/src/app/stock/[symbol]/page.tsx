@@ -548,8 +548,8 @@ export default function StockPage() {
       )}
 
       {/* Header */}
-      <div ref={heroRef} className="w-full min-w-0 space-y-5 mb-6 sm:mb-8">
-        <div className="stock-hero-card glass-card rounded-2xl p-4 sm:p-0 sm:bg-transparent sm:border-0 sm:rounded-none sm:shadow-none">
+      <div ref={heroRef} className="w-full min-w-0 mb-6 sm:mb-8">
+        <div className="glass-card rounded-2xl p-4 sm:p-6 space-y-5 min-w-0 overflow-hidden">
           <div className="flex items-start gap-3 mb-3">
             <button
               type="button"
@@ -641,17 +641,17 @@ export default function StockPage() {
               </div>
             )}
           </div>
-        </div>
 
-        <StockGradingDeck
-          smart={smartScore}
-          signal={signal.signal}
-          confidence={signal.confidence}
-          riskGrade={riskScore?.grade ?? "C"}
-          riskScore={riskScore?.overall}
-          edge={edgeIndex}
-          quote={{ marketCap: quote.marketCap, peRatio: quote.peRatio }}
-        />
+          <StockGradingDeck
+            smart={smartScore}
+            signal={signal.signal}
+            confidence={signal.confidence}
+            riskGrade={riskScore?.grade ?? "C"}
+            riskScore={riskScore?.overall}
+            edge={edgeIndex}
+            quote={{ marketCap: quote.marketCap, peRatio: quote.peRatio }}
+          />
+        </div>
       </div>
 
       {/* Tab Navigation */}

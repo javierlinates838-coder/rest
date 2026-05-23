@@ -20,34 +20,32 @@ export function AnalystConsensusBar({
 
   const bullPct = Math.round(((strongBuy + buy) / total) * 100);
   const rows = [
-    { label: "Strong Buy", count: strongBuy, pct: "bull" as const },
-    { label: "Buy", count: buy, pct: "bull" as const },
-    { label: "Hold", count: hold, pct: "hold" as const },
-    { label: "Sell", count: sell, pct: "bear" as const },
-    { label: "Strong Sell", count: strongSell, pct: "bear" as const },
+    { label: "Strong Buy", count: strongBuy },
+    { label: "Buy", count: buy },
+    { label: "Hold", count: hold },
+    { label: "Sell", count: sell },
+    { label: "Strong Sell", count: strongSell },
   ];
 
   return (
-    <div className="analyst-consensus glass-card rounded-xl p-4 sm:p-5 mb-6">
-      <div className="analyst-consensus-head">
-        <div>
+    <div className="w-full min-w-0 rounded-xl border border-zinc-800 bg-zinc-900/30 p-4 sm:p-5 mb-6">
+      <div className="flex items-end justify-between gap-3 mb-3">
+        <div className="min-w-0">
           <h3 className="text-[14px] font-semibold text-white">Analyst consensus</h3>
-          <p className="text-[11px] text-zinc-500 mt-0.5">
-            {total} ratings{period ? ` · ${period}` : ""}
+          <p className="text-[11px] text-zinc-500 mt-0.5 truncate">
+            {total} ratings{bullPct > 0 ? ` · ${bullPct}% buy-side` : ""}
+            {period ? ` · ${period}` : ""}
           </p>
         </div>
-        <div className="analyst-consensus-pct">
-          <span className="text-[22px] font-semibold text-zinc-200 tabular-nums">{bullPct}%</span>
-          <span className="text-[10px] text-zinc-500 block">bullish</span>
-        </div>
+        <span className="text-xl font-semibold text-zinc-300 tabular-nums shrink-0">{bullPct}%</span>
       </div>
 
-      <div className="analyst-consensus-bar">
+      <div className="flex h-2 rounded-full overflow-hidden bg-zinc-800 mb-3">
         {rows.map((r) =>
           r.count > 0 ? (
             <div
               key={r.label}
-              className={`analyst-consensus-seg analyst-consensus-seg--${r.pct}`}
+              className="bg-zinc-600 min-w-[2px]"
               style={{ flexGrow: r.count }}
               title={`${r.label}: ${r.count}`}
             />
@@ -55,11 +53,13 @@ export function AnalystConsensusBar({
         )}
       </div>
 
-      <div className="analyst-consensus-grid">
+      <div className="grid grid-cols-5 gap-1 sm:gap-2">
         {rows.map((r) => (
-          <div key={r.label} className="analyst-consensus-cell">
-            <span className="analyst-consensus-count">{r.count}</span>
-            <span className="analyst-consensus-label">{r.label}</span>
+          <div key={r.label} className="text-center min-w-0 py-1">
+            <div className="text-sm font-semibold text-zinc-200 tabular-nums">{r.count}</div>
+            <div className="text-[8px] sm:text-[9px] text-zinc-600 uppercase leading-tight mt-0.5">
+              {r.label.replace("Strong ", "Str. ")}
+            </div>
           </div>
         ))}
       </div>
