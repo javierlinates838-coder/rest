@@ -404,8 +404,10 @@ export async function fmpFetchSectorPerformance(): Promise<{ sector: string; cha
     entry.count += 1;
   }
 
-  return Array.from(aggregated.entries()).map(([sector, { sum, count }]) => ({
-    sector,
-    changesPercentage: (sum / count).toFixed(2),
-  }));
+  return Array.from(aggregated.entries())
+    .map(([sector, { sum, count }]) => ({
+      sector: sector.replace(/\bsector\b/gi, "").trim(),
+      changesPercentage: (sum / count).toFixed(2),
+    }))
+    .filter((r) => r.sector.length > 0);
 }

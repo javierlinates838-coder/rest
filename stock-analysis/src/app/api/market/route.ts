@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { fetchStockQuote } from "@/services/stock-data";
-import { fmpFetchGainers, fmpFetchLosers, fmpFetchSectorPerformance } from "@/services/fmp-api";
+import { fmpFetchGainers, fmpFetchLosers } from "@/services/fmp-api";
+import { buildSectorPerformanceBoard } from "@/lib/sector-performance";
 import { dedupeBySymbol } from "@/lib/dedupe-by-symbol";
 import { TAPE_BENCH } from "@/lib/hub-symbols";
 
@@ -8,7 +9,7 @@ const MARKET_INDICES = ["SPY", "QQQ", "DIA", "IWM", "VTI"];
 
 export async function GET() {
   try {
-    const [indexResults, gainersRaw, losersRaw, sectorPerf] = await Promise.all([
+    const [indexResults, gainersRaw, losersRaw, sectorBoard] = await Promise.all([
       Promise.all(MARKET_INDICES.map(async (symbol) => {
         try {
           const quote = await fetchStockQuote(symbol);
@@ -19,24 +20,11 @@ export async function GET() {
       })),
       fmpFetchGainers(),
       fmpFetchLosers(),
-      fmpFetchSectorPerformance(),
+      buildSectorPerformanceBoard(),
     ]);
 
-    // Use FMP sector data if available, otherwise fallback
-    const sectorsEstimated = sectorPerf.length === 0;
-    const sectors = sectorPerf.length > 0
-      ? sectorPerf.map((s) => ({
-          name: s.sector.replace("sector", "").trim(),
-          change: parseFloat(s.changesPercentage) || 0,
-        }))
-      : [
-          { name: "Technology", change: 1.2 },
-          { name: "Healthcare", change: -0.5 },
-          { name: "Financial Services", change: 0.8 },
-          { name: "Consumer Cyclical", change: -0.3 },
-          { name: "Energy", change: 1.5 },
-          { name: "Industrials", change: 0.2 },
-        ];
+    const sectorsEstimated = sectorBoard.estimated;
+    const sectors = sectorBoard.sectors;
 
     const parsePct = (v: number | string | undefined) => {
       const n = typeof v === "number" ? v : parseFloat(String(v ?? ""));
@@ -93,6 +81,7 @@ export async function GET() {
       trending: dedupeBySymbol(trendingResults.filter(Boolean) as { symbol: string }[]).slice(0, 10),
       sectors,
       sectorsEstimated,
+      sectorSource: sectorBoard.source,
       topGainers,
       topLosers,
       dataSources: {

@@ -7,6 +7,7 @@ import { computeSmartScore } from "@/lib/smart-score";
 import { fmpFetchGainers, fmpFetchLosers } from "@/services/fmp-api";
 import { LIQUID_UNIVERSE } from "@/lib/hub-symbols";
 import { cleanDisplayLabel } from "@/lib/display-labels";
+import { normalizeSectorLabel, sectorMatchesRow } from "@/lib/sectors";
 
 export interface ScreenerRow {
   symbol: string;
@@ -37,26 +38,7 @@ const FORGE_UNIVERSE_CAP = 18;
 const SCORE_TIMEOUT_MS = 14_000;
 const SCORE_CACHE_MS = 90_000;
 
-/** Map filter label → row sector strings from FMP/profile data */
-const SECTOR_FILTER_ALIASES: Record<string, string[]> = {
-  Technology: ["technology", "communication"],
-  Communication: ["communication", "media"],
-  Financial: ["financial", "financial services", "financials"],
-  "Consumer Cyclical": ["consumer cyclical", "consumer discretionary"],
-  Automotive: ["automotive", "consumer cyclical"],
-  Healthcare: ["healthcare", "health care"],
-  Energy: ["energy"],
-};
-
 const GRADE_ORDER = ["A", "B", "C", "D", "F"];
-
-function sectorMatchesRow(filterSector: string, rowSector: string): boolean {
-  const row = rowSector.trim().toLowerCase();
-  if (!row) return false;
-  const aliases = SECTOR_FILTER_ALIASES[filterSector];
-  if (!aliases) return row === filterSector.toLowerCase();
-  return aliases.some((a) => row === a || row.includes(a) || a.includes(row));
-}
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
   return Promise.race([
@@ -131,7 +113,7 @@ function rowFromQuote(quote: StockQuote, partial?: Partial<ScreenerRow>): Screen
     tone,
     forgeBias,
     rsi: 50,
-    sector: cleanDisplayLabel(quote.sector) || "",
+    sector: normalizeSectorLabel(quote.sector) || cleanDisplayLabel(quote.sector) || "",
     peRatio: quote.peRatio,
     ...partial,
   };
@@ -201,7 +183,7 @@ async function scoreForScreenerFull(symbol: string): Promise<ScreenerRow | null>
     tone: smart.tone,
     forgeBias,
     rsi: Math.round(indicators.rsi),
-    sector: quote.sector,
+    sector: normalizeSectorLabel(quote.sector) || quote.sector,
     peRatio: quote.peRatio,
   };
 }

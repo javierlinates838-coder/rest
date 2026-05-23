@@ -14,6 +14,8 @@ import { PulseFrame } from "@/components/pulse-frame";
 import { HERO, TERMS } from "@/lib/brand";
 import { HUB_QUICK_PICKS } from "@/lib/hub-symbols";
 import { dedupeBySymbol, excludeSymbols } from "@/lib/dedupe-by-symbol";
+import type { SectorPerformanceRow } from "@/lib/sectors";
+import { SectorHeatmap } from "@/components/sector-heatmap";
 
 interface MarketIndex {
   symbol: string;
@@ -32,11 +34,6 @@ interface TrendingStock {
   volume: number;
   marketCap: number;
   sector: string;
-}
-
-interface SectorData {
-  name: string;
-  change: number;
 }
 
 interface SearchResult {
@@ -60,13 +57,14 @@ export default function DashboardPage() {
   const [showResults, setShowResults] = useState(false);
   const [indices, setIndices] = useState<MarketIndex[]>([]);
   const [trending, setTrending] = useState<TrendingStock[]>([]);
-  const [sectors, setSectors] = useState<SectorData[]>([]);
+  const [sectors, setSectors] = useState<SectorPerformanceRow[]>([]);
   const [gainers, setGainers] = useState<MoverStock[]>([]);
   const [losers, setLosers] = useState<MoverStock[]>([]);
   const [dataSources, setDataSources] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [marketError, setMarketError] = useState<string | null>(null);
   const [sectorsEstimated, setSectorsEstimated] = useState(false);
+  const [sectorSource, setSectorSource] = useState<string | undefined>();
   const [meridianSymbols, setMeridianSymbols] = useState<string[]>([]);
   const handleMeridianSymbols = useCallback((symbols: string[]) => {
     setMeridianSymbols(symbols);
@@ -92,6 +90,7 @@ export default function DashboardPage() {
         setTrending(data.trending || []);
         setSectors(data.sectors || []);
         setSectorsEstimated(Boolean(data.sectorsEstimated));
+        setSectorSource(data.sectorSource);
         setGainers(data.topGainers || []);
         setLosers(data.topLosers || []);
         setDataSources(data.dataSources || {});
@@ -264,6 +263,7 @@ export default function DashboardPage() {
                     setTrending(data.trending || []);
                     setSectors(data.sectors || []);
                     setSectorsEstimated(Boolean(data.sectorsEstimated));
+                    setSectorSource(data.sectorSource);
                     setGainers(data.topGainers || []);
                     setLosers(data.topLosers || []);
                     setDataSources(data.dataSources || {});
@@ -385,37 +385,11 @@ export default function DashboardPage() {
             </div>
 
             <div className="xl:col-span-4 space-y-6">
-              <div>
-                <h2 className="section-heading">
-                  <svg className="w-5 h-5 text-teal-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                  Sectors
-                  {sectorsEstimated && (
-                    <span className="text-[10px] font-normal text-amber-400/90 normal-case tracking-normal ml-1">
-                      (estimated)
-                    </span>
-                  )}
-                </h2>
-                <div className="space-y-2.5">
-                  {sectors.map((sector) => (
-                    <div key={sector.name} className="glass-card rounded-xl px-4 py-3">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-[13px] text-zinc-300 font-medium tracking-tight">{sector.name}</span>
-                        <span className={`text-[13px] font-semibold tracking-tight ${sector.change >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                          {formatPercent(sector.change)}
-                        </span>
-                      </div>
-                      <div className="w-full bg-zinc-800/50 rounded-full h-1.5">
-                        <div
-                          className={`h-1.5 rounded-full transition-all ${sector.change >= 0 ? "bg-emerald-500/70" : "bg-red-500/70"}`}
-                          style={{ width: `${Math.min(Math.abs(sector.change) * 20, 100)}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <SectorHeatmap
+                sectors={sectors}
+                estimated={sectorsEstimated}
+                source={sectorSource}
+              />
 
               {/* Top Gainers */}
               {gainersDisplay.length > 0 && (
