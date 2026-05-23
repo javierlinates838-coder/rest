@@ -10,6 +10,7 @@ import {
   clearPortfolio,
   type PortfolioEntry,
 } from "@/lib/portfolio-storage";
+import { ClientOnly } from "@/components/client-only";
 import { ProSectionHeader } from "@/components/pro-section-header";
 import { TERMS } from "@/lib/brand";
 import {
@@ -306,34 +307,42 @@ export default function PortfolioPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
             <div className="glass-card rounded-xl p-6">
               <h3 className="text-lg font-bold text-white mb-4">Allocation</h3>
-              <ResponsiveContainer width="100%" height={250}>
-                <PieChart>
-                  <Pie data={pieData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} dataKey="value" paddingAngle={2}>
-                    {pieData.map((_, i) => (
-                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(v) => formatCurrency(Number(v))} />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
+              <ClientOnly fallback={<div className="min-h-[250px] skeleton-shine rounded-lg" />}>
+                <div className="min-h-[250px]">
+                <ResponsiveContainer width="100%" height={250}>
+                  <PieChart>
+                    <Pie data={pieData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} dataKey="value" paddingAngle={2}>
+                      {pieData.map((_, i) => (
+                        <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(v) => formatCurrency(Number(v))} />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+                </div>
+              </ClientOnly>
             </div>
             <div className="glass-card rounded-xl p-6">
               <h3 className="text-lg font-bold text-white mb-4">Position Values</h3>
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={holdings}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-                  <XAxis dataKey="symbol" stroke="#71717a" fontSize={12} />
-                  <YAxis stroke="#71717a" fontSize={12} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
-                  <Tooltip formatter={(v) => formatCurrency(Number(v))} />
-                  <Bar dataKey="totalValue" fill="#6366f1" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              <ClientOnly fallback={<div className="min-h-[250px] skeleton-shine rounded-lg" />}>
+                <div className="min-h-[250px]">
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={holdings}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                    <XAxis dataKey="symbol" stroke="#71717a" fontSize={12} />
+                    <YAxis stroke="#71717a" fontSize={12} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
+                    <Tooltip formatter={(v) => formatCurrency(Number(v))} />
+                    <Bar dataKey="totalValue" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+                </div>
+              </ClientOnly>
             </div>
           </div>
 
-          <div className="glass-card rounded-xl overflow-hidden">
-            <table className="w-full">
+          <div className="glass-card rounded-xl overflow-hidden pro-table-wrap table-scroll">
+            <table className="w-full min-w-[640px]">
               <thead>
                 <tr className="border-b border-zinc-800 text-xs text-zinc-500 uppercase">
                   <th className="text-left px-6 py-3">Symbol</th>

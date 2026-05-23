@@ -10,7 +10,7 @@ export const BRAND = {
   shortTag: "Pulse · Edge · Truth",
   metaTitle: "StockPulse — Pulse Terminal for Stock Research",
   metaDescription:
-    "Pulse Edge Index, Meridian Briefs, and Alpha Forge screeners. Honest data grades and AI fused with Wilder technicals — not another generic chart app.",
+    "Institutional-grade stock research terminal — Pulse Edge Index, Meridian AI briefs, Alpha Forge screeners, and honest data integrity grades on every chart.",
 } as const;
 
 /** User-facing nav labels (routes unchanged) */

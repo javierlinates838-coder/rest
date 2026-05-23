@@ -33,7 +33,7 @@ export function BrandLogo({ size = 36, className = "" }: { size?: number; classN
   );
 }
 
-export function BrandWordmark({ showPrime = true }: { showPrime?: boolean }) {
+export function BrandWordmark({ showPrime = false }: { showPrime?: boolean }) {
   return (
     <div className="min-w-0 leading-tight">
       <span className="block text-[15px] sm:text-[17px] font-bold tracking-tight text-white truncate font-[family-name:var(--font-display)]">

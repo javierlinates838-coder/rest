@@ -31,6 +31,24 @@ const syne = Syne({
 export const metadata: Metadata = {
   title: BRAND.metaTitle,
   description: BRAND.metaDescription,
+  applicationName: BRAND.name,
+  metadataBase: process.env.VERCEL_URL
+    ? new URL(`https://${process.env.VERCEL_URL}`)
+    : undefined,
+  openGraph: {
+    title: BRAND.metaTitle,
+    description: BRAND.metaDescription,
+    siteName: BRAND.name,
+    type: "website",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: BRAND.metaTitle,
+    description: BRAND.metaDescription,
+  },
+  themeColor: "#030508",
+  robots: { index: true, follow: true },
 };
 
 export const viewport = {

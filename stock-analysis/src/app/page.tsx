@@ -159,11 +159,9 @@ export default function DashboardPage() {
     }
   };
 
-  const quickPicks = [...HUB_QUICK_PICKS];
-
   const trendingDisplay = useMemo(
-    () => excludeSymbols(dedupeBySymbol(trending), meridianSymbols, quickPicks),
-    [trending, meridianSymbols, quickPicks]
+    () => excludeSymbols(dedupeBySymbol(trending), meridianSymbols, HUB_QUICK_PICKS),
+    [trending, meridianSymbols]
   );
 
   const gainersDisplay = useMemo(
@@ -171,10 +169,10 @@ export default function DashboardPage() {
       excludeSymbols(
         dedupeBySymbol(gainers),
         meridianSymbols,
-        quickPicks,
+        HUB_QUICK_PICKS,
         trendingDisplay.map((s) => s.symbol)
       ),
-    [gainers, meridianSymbols, quickPicks, trendingDisplay]
+    [gainers, meridianSymbols, trendingDisplay]
   );
 
   const losersDisplay = useMemo(
@@ -182,11 +180,11 @@ export default function DashboardPage() {
       excludeSymbols(
         dedupeBySymbol(losers),
         meridianSymbols,
-        quickPicks,
+        HUB_QUICK_PICKS,
         trendingDisplay.map((s) => s.symbol),
         gainersDisplay.map((s) => s.symbol)
       ),
-    [losers, meridianSymbols, quickPicks, trendingDisplay, gainersDisplay]
+    [losers, meridianSymbols, trendingDisplay, gainersDisplay]
   );
 
   return (
@@ -223,12 +221,12 @@ export default function DashboardPage() {
             onSubmit={handleSearch}
             onCloseResults={() => setShowResults(false)}
             onOpenResults={() => searchQuery.length > 0 && searchResults.length > 0 && setShowResults(true)}
-            quickPicks={quickPicks}
+            quickPicks={[...HUB_QUICK_PICKS]}
           />
         </div>
 
         <div className="hidden sm:flex flex-wrap justify-center gap-2 mt-5">
-          {quickPicks.map((symbol) => (
+          {HUB_QUICK_PICKS.map((symbol) => (
             <button
               key={symbol}
               onClick={() => router.push(`/stock/${symbol}`)}

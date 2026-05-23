@@ -199,7 +199,7 @@ export function detectRedFlags(
       title: "Company Is Losing Money",
       description: `EPS of $${quote.eps.toFixed(2)} means the company is unprofitable. While growth stocks sometimes operate at a loss, this increases bankruptcy risk and dilution potential.`,
       detectedAt: now,
-      dataPoints: [`EPS: $${quote.eps.toFixed(2)}`, `P/E: N/A (negative earnings)`],
+      dataPoints: [`EPS: $${quote.eps.toFixed(2)}`, `P/E: — (negative earnings)`],
     });
   }
 
