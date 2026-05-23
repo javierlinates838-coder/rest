@@ -7,7 +7,7 @@ import { PremiumSearch } from "@/components/premium-search";
 import { MobileTrendingList } from "@/components/mobile-trending-list";
 import { StockPicks } from "@/components/stock-picks";
 import { StockLogo } from "@/components/stock-logo";
-import { CompetitiveStrip } from "@/components/competitive-strip";
+import { OnlyHereStrip } from "@/components/only-here-strip";
 import { CommandStatusBar } from "@/components/command-status-bar";
 import { ProSectionHeader } from "@/components/pro-section-header";
 
@@ -239,7 +239,7 @@ export default function DashboardPage() {
         <>
           <StockPicks />
 
-          <CompetitiveStrip />
+          <OnlyHereStrip />
 
           <ProSectionHeader
             title="Market indices"

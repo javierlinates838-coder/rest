@@ -1,114 +1,185 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-const PLANS = [
-  {
-    id: "free",
-    name: "Free",
-    price: "$0",
-    period: "forever",
-    highlight: false,
-    features: [
-      "8 full AI analyses per day",
-      "Live quotes when API keys connected",
-      "Basic screener (top ideas)",
-      "Watchlist & local portfolio",
-      "Compare up to 4 symbols",
-    ],
-    cta: "Current plan",
-    ctaHref: "/",
-    disabled: true,
-  },
-  {
-    id: "pro",
-    name: "Pro",
-    price: "$12",
-    period: "/ month",
-    highlight: true,
-    features: [
-      "Unlimited deep AI analyses",
-      "Advanced screener filters",
-      "Priority data refresh",
-      "Export-ready research briefs",
-      "Early access: alerts & email digests",
-    ],
-    cta: "Start Pro — coming soon",
-    ctaHref: "mailto:support@stockpulse.app?subject=StockPulse%20Pro",
-    disabled: false,
-  },
-];
+import { useRouter } from "next/navigation";
+import {
+  PLANS,
+  PRO_FEATURES,
+  COMPETITOR_STACK,
+  competitorStackTotal,
+  stockPulseAnnualSavings,
+} from "@/lib/subscription";
+import { UsageMeter } from "@/components/usage-meter";
 
 export default function PricingPage() {
+  const router = useRouter();
+  const [annual, setAnnual] = useState(true);
+  const [code, setCode] = useState("");
+  const [activating, setActivating] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const proPrice = annual ? `$${PLANS.pro.priceAnnual}` : `$${PLANS.pro.priceMonthly}`;
+  const proPeriod = annual ? "/ year" : "/ month";
+  const stackTotal = competitorStackTotal();
+  const savings = stockPulseAnnualSavings();
+
+  const handleActivate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setActivating(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const res = await fetch("/api/activate-pro", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Activation failed");
+      setMessage(data.message);
+      setTimeout(() => router.push("/"), 1500);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Activation failed");
+    } finally {
+      setActivating(false);
+    }
+  };
+
   return (
-    <div className="page-shell page-shell-wide max-w-4xl mx-auto">
-      <div className="command-hero text-center mb-10 py-12">
-        <span className="hero-eyebrow">Subscription</span>
+    <div className="page-shell page-shell-wide max-w-5xl mx-auto">
+      <div className="command-hero text-center mb-8 py-10">
+        <span className="hero-eyebrow">Stop paying for 4 apps</span>
         <h1 className="command-hero-title text-white mb-3">
-          Pro terminal access
+          One terminal. <span className="gradient-text">Real edge.</span>
         </h1>
-        <p className="text-[15px] text-zinc-400 max-w-lg mx-auto leading-relaxed">
-          One subscription replaces $30–$240/yr across screeners and research tools.
+        <p className="text-[15px] text-zinc-400 max-w-2xl mx-auto leading-relaxed">
+          Everyone ships charts and generic ratings. StockPulse Pro gives you unlimited AI research,
+          the Edge Index, exports, and digests — for less than a single competitor subscription.
         </p>
+      </div>
+
+      <div className="max-w-xs mx-auto mb-10">
+        <UsageMeter />
+      </div>
+
+      {/* ROI calculator */}
+      <div className="ultra-card rounded-2xl p-6 mb-10 ultra-card-inner">
+        <h2 className="text-lg font-bold text-white mb-4">What you&apos;re replacing</h2>
+        <div className="space-y-2 mb-4">
+          {COMPETITOR_STACK.map((c) => (
+            <div key={c.name} className="flex justify-between text-[13px]">
+              <span className="text-zinc-400">{c.name}</span>
+              <span className="font-mono text-zinc-300">${c.cost}/yr</span>
+            </div>
+          ))}
+        </div>
+        <div className="flex justify-between border-t border-zinc-800 pt-3 text-sm font-semibold">
+          <span className="text-zinc-400">Stacked total</span>
+          <span className="font-mono text-red-400/90 line-through">${stackTotal}/yr</span>
+        </div>
+        <div className="flex justify-between mt-2 text-sm font-bold">
+          <span className="text-teal-400">StockPulse Pro (annual)</span>
+          <span className="font-mono text-emerald-400">${PLANS.pro.priceAnnual}/yr</span>
+        </div>
+        <p className="text-[12px] text-amber-200/90 mt-3 font-mono">
+          You save ${savings}+/yr vs buying the same capabilities separately
+        </p>
+      </div>
+
+      <div className="flex justify-center gap-2 mb-8">
+        <button
+          type="button"
+          onClick={() => setAnnual(false)}
+          className={`px-4 py-2 rounded-lg text-sm font-medium ${!annual ? "bg-teal-600/30 text-teal-200" : "text-zinc-500"}`}
+        >
+          Monthly
+        </button>
+        <button
+          type="button"
+          onClick={() => setAnnual(true)}
+          className={`px-4 py-2 rounded-lg text-sm font-medium ${annual ? "bg-teal-600/30 text-teal-200" : "text-zinc-500"}`}
+        >
+          Annual (save 31%)
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-        {PLANS.map((plan) => (
-          <div
-            key={plan.id}
-            className={`ultra-card rounded-2xl p-7 ultra-card-inner ${
-              plan.highlight ? "glow-border" : ""
-            }`}
-          >
-            {plan.highlight && (
-              <span className="inline-block text-[10px] font-bold uppercase tracking-widest text-amber-400 mb-3">
-                Best value
-              </span>
-            )}
-            <h2 className="text-xl font-bold text-white">{plan.name}</h2>
-            <div className="mt-2 mb-5">
-              <span className="text-4xl font-bold text-white">{plan.price}</span>
-              <span className="text-zinc-500 text-sm ml-1">{plan.period}</span>
-            </div>
-            <ul className="space-y-2.5 mb-6">
-              {plan.features.map((f) => (
-                <li key={f} className="flex gap-2 text-[13px] text-zinc-400">
-                  <svg className="w-4 h-4 text-teal-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                  </svg>
-                  {f}
-                </li>
-              ))}
-            </ul>
-            {plan.disabled ? (
-              <span className="block w-full text-center py-2.5 rounded-xl bg-zinc-800/80 text-zinc-500 text-sm font-medium">
-                {plan.cta}
-              </span>
-            ) : (
-              <a
-                href={plan.ctaHref}
-                className="block w-full text-center py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-sm font-semibold transition-colors"
-              >
-                {plan.cta}
-              </a>
-            )}
+        <div className="ultra-card rounded-2xl p-7 ultra-card-inner">
+          <h2 className="text-xl font-bold text-white">Free</h2>
+          <div className="mt-2 mb-5">
+            <span className="text-4xl font-bold text-white">$0</span>
           </div>
-        ))}
+          <ul className="space-y-2.5 mb-6 text-[13px] text-zinc-400">
+            <li>✓ 8 full AI analyses / day</li>
+            <li>✓ Smart Score + basic Edge preview</li>
+            <li>✓ Screener (bias + min score)</li>
+            <li>✓ Compare 4 symbols</li>
+          </ul>
+          <span className="block w-full text-center py-2.5 rounded-xl bg-zinc-800/80 text-zinc-500 text-sm">
+            Start free on dashboard
+          </span>
+        </div>
+
+        <div className="ultra-card rounded-2xl p-7 ultra-card-inner glow-border">
+          <span className="pro-badge mb-3 inline-block">RECOMMENDED</span>
+          <h2 className="text-xl font-bold text-white">Pro</h2>
+          <div className="mt-2 mb-5">
+            <span className="text-4xl font-bold text-white font-mono">{proPrice}</span>
+            <span className="text-zinc-500 text-sm ml-1">{proPeriod}</span>
+          </div>
+          <ul className="space-y-2.5 mb-6">
+            {Object.values(PRO_FEATURES).map((f) => (
+              <li key={f.title} className="flex gap-2 text-[13px] text-zinc-300">
+                <span className="text-teal-400 shrink-0">✓</span>
+                <span>
+                  <strong className="text-white font-medium">{f.title}</strong>
+                  <span className="text-zinc-500"> — {f.description}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+          <a
+            href="mailto:support@stockpulse.app?subject=StockPulse%20Pro%20Checkout"
+            className="btn-primary pressable block w-full text-center py-3 rounded-xl text-sm font-bold mb-3"
+          >
+            Join waitlist — Stripe soon
+          </a>
+        </div>
       </div>
 
-      <div className="glass-card rounded-xl p-5 text-[12px] text-zinc-500 leading-relaxed space-y-2">
-        <p>
-          <strong className="text-zinc-400">For developers / demos:</strong> set{" "}
-          <code className="text-teal-400/90">SP_DISABLE_LIMITS=true</code> on Vercel to bypass daily caps,
-          or cookie <code className="text-teal-400/90">sp_pro=1</code> for Pro simulation.
+      {/* Beta activation */}
+      <div className="ultra-card rounded-2xl p-6 mb-8 ultra-card-inner">
+        <h3 className="text-lg font-bold text-white mb-2">Have a beta code?</h3>
+        <p className="text-[13px] text-zinc-500 mb-4">
+          Unlock Pro instantly for 30 days. Try code <span className="font-mono text-teal-400">PULSE14</span> during launch.
         </p>
-        <p>
-          Revenue model: freemium drives signups; Pro converts power users who hit the 8-analysis cap.
-          Affiliate broker links and premium data feeds are planned for v2.
-        </p>
-        <Link href="/" className="text-teal-400 hover:text-teal-300 text-sm font-medium inline-block mt-2">
-          ← Back to dashboard
-        </Link>
+        <form onSubmit={handleActivate} className="flex flex-wrap gap-2">
+          <input
+            value={code}
+            onChange={(e) => setCode(e.target.value.toUpperCase())}
+            placeholder="ACCESS CODE"
+            className="flex-1 min-w-[140px] px-4 py-2.5 rounded-xl bg-zinc-900 border border-zinc-700 text-white font-mono text-sm focus:border-teal-500/50 outline-none"
+          />
+          <button
+            type="submit"
+            disabled={activating}
+            className="btn-primary pressable px-6 py-2.5 rounded-xl text-sm font-bold disabled:opacity-50"
+          >
+            {activating ? "Activating…" : "Activate Pro"}
+          </button>
+        </form>
+        {message && <p className="text-emerald-400 text-sm mt-3">{message}</p>}
+        {error && <p className="text-red-400 text-sm mt-3">{error}</p>}
       </div>
+
+      <p className="text-[11px] text-zinc-600 text-center">
+        Not financial advice. Cancel anytime when billing launches.
+      </p>
+      <Link href="/" className="block text-center text-teal-400 text-sm font-medium mt-6 hover:text-teal-300">
+        ← Back to terminal
+      </Link>
     </div>
   );
 }

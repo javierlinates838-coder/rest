@@ -7,8 +7,11 @@ import { formatCurrency, formatPercent, getSignalColor } from "@/lib/utils";
 import { smartScoreColor } from "@/lib/smart-score";
 import type { ScreenerRow } from "@/lib/screener";
 import { ProSectionHeader } from "@/components/pro-section-header";
+import { UpgradeGate } from "@/components/upgrade-gate";
 
 type BiasFilter = "any" | "bullish" | "bearish";
+
+const SECTORS = ["all", "Technology", "Healthcare", "Financial Services", "Energy", "Consumer Cyclical"];
 
 export default function ScreenerPage() {
   const router = useRouter();
@@ -17,7 +20,18 @@ export default function ScreenerPage() {
   const [error, setError] = useState<string | null>(null);
   const [bias, setBias] = useState<BiasFilter>("any");
   const [minScore, setMinScore] = useState(55);
+  const [maxRisk, setMaxRisk] = useState("");
+  const [sector, setSector] = useState("all");
+  const [isPro, setIsPro] = useState(false);
+  const [gateOpen, setGateOpen] = useState(false);
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/usage")
+      .then((r) => r.json())
+      .then((u) => setIsPro(Boolean(u.isPro)))
+      .catch(() => null);
+  }, []);
 
   const load = async () => {
     setLoading(true);
@@ -48,9 +62,15 @@ export default function ScreenerPage() {
         const params = new URLSearchParams();
         if (bias !== "any") params.set("bias", bias);
         params.set("minSmartScore", String(minScore));
+        if (maxRisk) params.set("maxRiskGrade", maxRisk);
+        if (sector && sector !== "all") params.set("sector", sector);
         const res = await fetch(`/api/screener?${params}`);
         const data = await res.json();
         if (cancelled) return;
+        if (res.status === 403 && data.code === "PRO_REQUIRED") {
+          setGateOpen(true);
+          throw new Error(data.error);
+        }
         if (!res.ok) throw new Error(data.error || "Screener failed");
         setRows(data.rows || []);
         setUpdatedAt(data.updatedAt || null);
@@ -64,7 +84,7 @@ export default function ScreenerPage() {
       }
     })();
     return () => { cancelled = true; };
-  }, [bias, minScore]);
+  }, [bias, minScore, maxRisk, sector]);
 
   return (
     <div className="page-shell page-shell-wide">
@@ -106,6 +126,49 @@ export default function ScreenerPage() {
           />
           <span className="text-white font-medium tabular-nums">{minScore}</span>
         </label>
+        <label className="flex items-center gap-2 text-[12px] text-zinc-400 rounded-xl px-3 py-2 border border-zinc-800">
+          Max risk
+          <select
+            value={maxRisk}
+            onChange={(e) => {
+              if (!isPro && e.target.value) {
+                setGateOpen(true);
+                return;
+              }
+              setMaxRisk(e.target.value);
+            }}
+            className="bg-transparent text-white text-[12px] outline-none"
+          >
+            <option value="">Any</option>
+            {["A", "B", "C", "D"].map((g) => (
+              <option key={g} value={g}>
+                ≤ {g}
+              </option>
+            ))}
+          </select>
+          {!isPro && <span className="pro-badge text-[8px]">PRO</span>}
+        </label>
+        <label className="flex items-center gap-2 text-[12px] text-zinc-400 rounded-xl px-3 py-2 border border-zinc-800">
+          Sector
+          <select
+            value={sector}
+            onChange={(e) => {
+              if (!isPro && e.target.value !== "all") {
+                setGateOpen(true);
+                return;
+              }
+              setSector(e.target.value);
+            }}
+            className="bg-transparent text-white text-[12px] outline-none max-w-[120px]"
+          >
+            {SECTORS.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+          {!isPro && <span className="pro-badge text-[8px]">PRO</span>}
+        </label>
         <button
           type="button"
           onClick={() => void load()}
@@ -115,6 +178,12 @@ export default function ScreenerPage() {
           Refresh
         </button>
       </div>
+
+      <UpgradeGate
+        open={gateOpen}
+        onClose={() => setGateOpen(false)}
+        feature="screener_advanced"
+      />
 
       {error && (
         <div className="glass-card rounded-xl px-4 py-3 mb-6 border border-red-500/20 text-red-200/90 text-sm">

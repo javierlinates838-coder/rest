@@ -4,6 +4,9 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { formatCurrency, formatPercent, getSignalColor, getSignalBg } from "@/lib/utils";
 import { fetchQuoteSummary } from "@/lib/fetch-json";
+import { ProSectionHeader } from "@/components/pro-section-header";
+import { UpgradeGate } from "@/components/upgrade-gate";
+import Link from "next/link";
 
 interface WatchlistItem {
   symbol: string;
@@ -22,6 +25,20 @@ export default function WatchlistPage() {
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [newSymbol, setNewSymbol] = useState("");
+  const [isPro, setIsPro] = useState(false);
+  const [digest, setDigest] = useState<{
+    summary: { tracked: number; bullish: number; bearish: number; topPick: string | null; avgEdge: number };
+    rows: { symbol: string; edgeScore: number; edgeTier: string; signal: string }[];
+  } | null>(null);
+  const [digestLoading, setDigestLoading] = useState(false);
+  const [gateOpen, setGateOpen] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/usage")
+      .then((r) => r.json())
+      .then((u) => setIsPro(Boolean(u.isPro)))
+      .catch(() => null);
+  }, []);
 
   const loadWatchlist = useCallback(async (showLoader = false) => {
     if (showLoader) setLoading(true);
@@ -126,13 +143,70 @@ export default function WatchlistPage() {
     setWatchlist(watchlist.filter((w) => w.symbol !== symbol));
   };
 
+  const runDigest = async () => {
+    if (!isPro) {
+      setGateOpen(true);
+      return;
+    }
+    setDigestLoading(true);
+    const symbols = watchlist.map((w) => w.symbol).join(",");
+    try {
+      const res = await fetch(`/api/watchlist-digest?symbols=${encodeURIComponent(symbols)}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setDigest(data);
+    } catch {
+      setDigest(null);
+    } finally {
+      setDigestLoading(false);
+    }
+  };
+
   return (
     <div className="page-shell page-shell-wide">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-[32px] font-semibold text-white tracking-tight">Watchlist</h1>
-          <p className="text-zinc-400 mt-1 text-[14px] font-light tracking-tight">Track stocks and get AI-powered signals in real time</p>
+      <ProSectionHeader
+        title="Watchlist"
+        subtitle="Live signals — Pro morning digest ranks your names by Edge Index"
+        badge="TRACK"
+        action={
+          <button
+            type="button"
+            onClick={() => void runDigest()}
+            disabled={digestLoading || watchlist.length === 0}
+            className="command-status-cta pressable disabled:opacity-50"
+          >
+            {digestLoading ? "Scanning…" : "Morning digest"}
+            {!isPro && " 🔒"}
+          </button>
+        }
+      />
+
+      {digest && (
+        <div className="ultra-card rounded-2xl p-5 mb-6 ultra-card-inner">
+          <div className="flex flex-wrap gap-4 mb-4 font-mono text-[12px]">
+            <span className="text-zinc-400">Tracked <strong className="text-white">{digest.summary.tracked}</strong></span>
+            <span className="text-emerald-400">Bullish {digest.summary.bullish}</span>
+            <span className="text-red-400">Bearish {digest.summary.bearish}</span>
+            <span className="text-teal-400">Avg Edge {digest.summary.avgEdge}</span>
+            {digest.summary.topPick && (
+              <span className="text-amber-300">Top: {digest.summary.topPick}</span>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {digest.rows.slice(0, 6).map((r) => (
+              <Link
+                key={r.symbol}
+                href={`/stock/${r.symbol}`}
+                className="px-3 py-1.5 rounded-lg bg-zinc-900/80 border border-white/[0.06] text-[11px] font-mono hover:border-teal-500/30"
+              >
+                {r.symbol} · {r.edgeScore} · {r.signal}
+              </Link>
+            ))}
+          </div>
         </div>
+      )}
+
+      <div className="flex justify-end mb-6">
         <form
           onSubmit={(e) => { e.preventDefault(); addToWatchlist(); }}
           className="flex gap-2"
@@ -152,6 +226,8 @@ export default function WatchlistPage() {
           </button>
         </form>
       </div>
+
+      <UpgradeGate open={gateOpen} onClose={() => setGateOpen(false)} feature="watchlist_digest" />
 
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

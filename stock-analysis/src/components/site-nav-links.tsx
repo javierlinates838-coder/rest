@@ -9,6 +9,7 @@ const links = [
   { href: "/watchlist", label: "Watchlist", match: (p: string) => p.startsWith("/watchlist") },
   { href: "/portfolio", label: "Portfolio", match: (p: string) => p.startsWith("/portfolio") },
   { href: "/compare", label: "Compare", match: (p: string) => p.startsWith("/compare") },
+  { href: "/alerts", label: "Alerts", match: (p: string) => p.startsWith("/alerts") },
   { href: "/pricing", label: "Pricing", match: (p: string) => p.startsWith("/pricing") },
 ];
 

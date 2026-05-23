@@ -13,8 +13,12 @@ import {
 import Link from "next/link";
 import { formatCurrency, formatLargeNumber, formatPercent, getSignalColor, getSignalBg } from "@/lib/utils";
 import { computeSmartScore } from "@/lib/smart-score";
+import { computeEdgeIndex } from "@/lib/edge-index";
 import { ActionBrief } from "@/components/action-brief";
 import { SmartScoreGauge } from "@/components/smart-score-gauge";
+import { EdgeIndexPanel } from "@/components/edge-index-panel";
+import { ResearchExportButton } from "@/components/research-export-button";
+import { UpgradeGate } from "@/components/upgrade-gate";
 import { ApiError, fetchJson, fetchJsonWithTimeout } from "@/lib/fetch-json";
 import { aiEngineLabel, formatDataSourceLabel, userFacingFetchError } from "@/lib/display-labels";
 import { ErrorBoundary } from "@/components/error-boundary";
@@ -164,7 +168,18 @@ export default function StockPage() {
   const skipPeriodFetchRef = useRef(true);
   const [refreshKey, setRefreshKey] = useState(0);
   const [usageRemaining, setUsageRemaining] = useState<number | null>(null);
+  const [isPro, setIsPro] = useState(false);
+  const [edgeGateOpen, setEdgeGateOpen] = useState(false);
   const clientNow = useClientNow();
+
+  useEffect(() => {
+    fetch("/api/usage")
+      .then((r) => r.json())
+      .then((u) => {
+        if (u.isPro) setIsPro(true);
+      })
+      .catch(() => null);
+  }, []);
 
   const goBack = () => {
     if (typeof window !== "undefined" && window.history.length > 1) {
@@ -218,10 +233,11 @@ export default function StockPage() {
           throw new Error("We couldn't build a complete analysis for this symbol. Try again or pick another ticker.");
         }
         setData(parsed);
-        const usage = (analysisData as { usage?: { remaining: number } }).usage;
+        const usage = (analysisData as { usage?: { remaining: number; isPro?: boolean } }).usage;
         if (usage && typeof usage.remaining === "number") {
           setUsageRemaining(usage.remaining);
         }
+        if (usage?.isPro) setIsPro(true);
 
         const stockHistory = stockData.history?.length ? stockData.history : [];
         const analysisHistory =
@@ -443,6 +459,34 @@ export default function StockPage() {
     researchQualityScore: researchQuality?.score,
   });
 
+  const criticalFlags = redFlags?.filter((f) => f.severity === "critical").length ?? 0;
+  const analystBuyRatio =
+    analystRecommendations?.[0]
+      ? (analystRecommendations[0].strongBuy + analystRecommendations[0].buy) /
+        Math.max(
+          1,
+          analystRecommendations[0].strongBuy +
+            analystRecommendations[0].buy +
+            analystRecommendations[0].hold +
+            analystRecommendations[0].sell +
+            analystRecommendations[0].strongSell
+        )
+      : undefined;
+
+  const edgeIndex = computeEdgeIndex({
+    signal: signal.signal,
+    confidence: signal.confidence,
+    riskGrade: riskScore?.grade ?? "C",
+    changePercent: quote.changePercent,
+    rsi: indicators.rsi,
+    researchQualityScore: researchQuality?.score,
+    aiAlignsWithSignal: aiAnalysis.recommendation === signal.signal,
+    redFlagCount: redFlags?.length ?? 0,
+    criticalFlagCount: criticalFlags,
+    analystBuyRatio,
+    sentimentScore: aiAnalysis.sentimentScore,
+  });
+
   const tabs = [
     { id: "overview", label: "Overview" },
     { id: "technical", label: "Technical" },
@@ -499,7 +543,7 @@ export default function StockPage() {
       {/* Quick Actions */}
       <QuickActions symbol={quote.symbol} onRefresh={() => setRefreshKey((k) => k + 1)} />
 
-      {usageRemaining !== null && usageRemaining <= 3 && (
+      {usageRemaining !== null && !isPro && usageRemaining <= 3 && (
         <div className="glass-card rounded-xl px-4 py-3 mb-5 border border-amber-500/20 bg-amber-500/5 flex flex-wrap items-center justify-between gap-2">
           <span className="text-[12px] text-amber-100/90">
             {usageRemaining} free deep {usageRemaining === 1 ? "analysis" : "analyses"} left today
@@ -509,6 +553,38 @@ export default function StockPage() {
           </Link>
         </div>
       )}
+
+      <div className="flex flex-wrap items-center justify-end gap-2 mb-4">
+        <ResearchExportButton
+          isPro={isPro}
+          data={{
+            symbol: quote.symbol,
+            name: quote.name,
+            price: quote.price,
+            changePercent: quote.changePercent,
+            signal: signal.signal,
+            confidence: signal.confidence,
+            riskGrade: riskScore?.grade ?? "C",
+            edgeScore: edgeIndex.edgeScore,
+            edgeTier: edgeIndex.tier,
+            smartScore: smartScore.score,
+            aiSummary: aiAnalysis.summary,
+            aiRecommendation: aiAnalysis.recommendation,
+            entry: tradingPlan?.entry.primary,
+            stop: tradingPlan?.stopLoss.standard,
+            target: tradingPlan?.targets.base,
+            redFlagCount: redFlags?.length,
+            analyzedAt,
+          }}
+        />
+      </div>
+
+      <EdgeIndexPanel
+        edge={edgeIndex}
+        symbol={quote.symbol}
+        isPro={isPro}
+        onUpgrade={() => setEdgeGateOpen(true)}
+      />
 
       <ActionBrief
         symbol={quote.symbol}
@@ -1687,6 +1763,11 @@ export default function StockPage() {
           </div>
         );
       })()}
+      <UpgradeGate
+        open={edgeGateOpen}
+        onClose={() => setEdgeGateOpen(false)}
+        feature="edge_index_full"
+      />
     </div>
     </ErrorBoundary>
   );

@@ -42,7 +42,7 @@ export function OnboardingModal() {
           </li>
           <li className="flex gap-2">
             <span className="text-teal-400 shrink-0">2.</span>
-            Use the <strong className="text-zinc-300 font-medium">Screener</strong> to find high Smart Score ideas.
+            Check the <strong className="text-zinc-300 font-medium">Edge Index</strong> — our proprietary conviction score.
           </li>
           <li className="flex gap-2">
             <span className="text-teal-400 shrink-0">3.</span>
@@ -50,7 +50,7 @@ export function OnboardingModal() {
           </li>
         </ul>
         <p className="text-[11px] text-zinc-500 mb-5">
-          Free tier: 8 full AI analyses per day. Connect FMP + Gemini on Vercel for live data.
+          Free: 8 AI analyses/day. Pro beta code <span className="font-mono text-teal-400">PULSE14</span> on pricing.
         </p>
         <div className="flex flex-col sm:flex-row gap-2">
           <button

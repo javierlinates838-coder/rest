@@ -4,6 +4,7 @@ import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { OnboardingModal } from "@/components/onboarding-modal";
 import { SiteNavLinks } from "@/components/site-nav-links";
+import { UsageMeter } from "@/components/usage-meter";
 import "./globals.css";
 
 const jakarta = Plus_Jakarta_Sans({
@@ -58,9 +59,10 @@ export default function RootLayout({
                   </div>
                 </Link>
 
-                <div className="flex items-center gap-2 sm:gap-6 shrink-0">
+                <div className="flex items-center gap-2 sm:gap-4 shrink-0">
                   <SiteNavLinks />
-                  <span className="live-badge-pro hidden sm:inline-flex">Live</span>
+                  <UsageMeter compact />
+                  <span className="live-badge-pro hidden md:inline-flex">Live</span>
                 </div>
               </div>
             </div>
