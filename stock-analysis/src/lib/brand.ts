@@ -20,7 +20,6 @@ export const NAV = [
   { href: "/watchlist", label: "Pulse Watch", match: (p: string) => p.startsWith("/watchlist") },
   { href: "/portfolio", label: "The Ledger", match: (p: string) => p.startsWith("/portfolio") },
   { href: "/compare", label: "Twin Lens", match: (p: string) => p.startsWith("/compare") },
-  { href: "/alerts", label: "Signal Wire", match: (p: string) => p.startsWith("/alerts") },
 ] as const;
 
 export const MOBILE_NAV = [
