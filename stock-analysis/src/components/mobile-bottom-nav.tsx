@@ -2,60 +2,61 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { MOBILE_NAV } from "@/lib/brand";
 
-const tabs = [
-  {
-    href: "/",
-    label: "Home",
-    match: (path: string) => path === "/",
-    icon: (active: boolean) => (
-      <svg className="w-[22px] h-[22px]" fill={active ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={active ? 0 : 1.75} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-      </svg>
-    ),
-  },
-  {
-    href: "/watchlist",
-    label: "Watchlist",
-    match: (path: string) => path.startsWith("/watchlist"),
-    icon: (active: boolean) => (
-      <svg className="w-[22px] h-[22px]" fill={active ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.196-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-      </svg>
-    ),
-  },
-  {
-    href: "/screener",
-    label: "Screener",
-    match: (path: string) => path.startsWith("/screener"),
-    icon: (active: boolean) => (
-      <svg className={`w-[22px] h-[22px] ${active ? "text-teal-300" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={active ? 2 : 1.75} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-      </svg>
-    ),
-  },
-  {
-    href: "/?search=1",
-    label: "Search",
-    match: () => false,
-    icon: () => (
-      <svg className="w-[22px] h-[22px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-      </svg>
-    ),
-  },
-];
+function HubIcon({ active }: { active: boolean }) {
+  return (
+    <svg className="w-[22px] h-[22px]" fill={active ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={active ? 0 : 1.75} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+    </svg>
+  );
+}
+
+function WatchIcon({ active }: { active: boolean }) {
+  return (
+    <svg className="w-[22px] h-[22px]" fill={active ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M13 10V3L4 14h7v7l9-11h-7z" />
+    </svg>
+  );
+}
+
+function ForgeIcon({ active }: { active: boolean }) {
+  return (
+    <svg className={`w-[22px] h-[22px] ${active ? "text-teal-300" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={active ? 2 : 1.75} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+    </svg>
+  );
+}
+
+function ScanIcon() {
+  return (
+    <svg className="w-[22px] h-[22px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <circle cx="11" cy="11" r="7" strokeWidth={1.75} />
+      <path strokeLinecap="round" strokeWidth={1.75} d="M21 21l-4.35-4.35M11 8v6M8 11h6" />
+    </svg>
+  );
+}
+
+const renderIcon = (i: number, active: boolean) => {
+  switch (i) {
+    case 0:
+      return <HubIcon active={active} />;
+    case 1:
+      return <WatchIcon active={active} />;
+    case 2:
+      return <ForgeIcon active={active} />;
+    default:
+      return <ScanIcon />;
+  }
+};
 
 export function MobileBottomNav() {
   const pathname = usePathname() || "/";
 
   return (
-    <nav
-      className="mobile-bottom-nav sm:hidden"
-      aria-label="Main navigation"
-    >
+    <nav className="mobile-bottom-nav sm:hidden" aria-label="Pulse Terminal navigation">
       <div className="mobile-bottom-nav-inner">
-        {tabs.map((tab) => {
+        {MOBILE_NAV.map((tab, i) => {
           const active = tab.match(pathname);
           return (
             <Link
@@ -64,8 +65,8 @@ export function MobileBottomNav() {
               className={`mobile-tab ${active ? "mobile-tab-active" : ""}`}
               aria-current={active ? "page" : undefined}
             >
-              <span className="mobile-tab-icon">{tab.icon(active)}</span>
-              <span className="mobile-tab-label">{tab.label}</span>
+              <span className="mobile-tab-icon">{renderIcon(i, active)}</span>
+              <span className="mobile-tab-label font-mono">{tab.label}</span>
             </Link>
           );
         })}

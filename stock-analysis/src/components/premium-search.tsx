@@ -2,6 +2,7 @@
 
 import { useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { TERMS } from "@/lib/brand";
 
 export interface SearchResultItem {
   symbol: string;
@@ -80,7 +81,7 @@ export function PremiumSearch({
               value={searchQuery}
               onChange={(e) => onQueryChange(e.target.value)}
               onFocus={onOpenResults}
-              placeholder="Command: ticker or company…"
+              placeholder="Pulse command: ticker or name…"
               className="flex-1 min-w-0 bg-transparent py-3 text-white placeholder:text-zinc-600 focus:outline-none text-[15px] font-medium tracking-tight font-mono"
             />
             <span className="command-search-kbd hidden md:inline shrink-0">↵</span>
@@ -88,7 +89,7 @@ export function PremiumSearch({
               type="submit"
               className="btn-primary pressable shrink-0 px-5 py-2.5 rounded-xl text-[12px] font-bold tracking-wide mr-1"
             >
-              Analyze
+              {TERMS.pulseScan}
             </button>
           </div>
         </form>
@@ -102,8 +103,8 @@ export function PremiumSearch({
         <form onSubmit={onSubmit} className="search-hero-mobile">
           <div className="search-hero-glow" aria-hidden />
           <div className="relative z-[1] p-4">
-            <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-teal-400/90 mb-3 text-center">
-              Deep analysis · Live data
+            <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-teal-400/90 mb-3 text-center font-mono">
+              {TERMS.pulseScan} · Live integrity
             </p>
             <div className="flex items-center gap-2 rounded-2xl bg-zinc-950/80 border border-white/[0.08] px-3 py-1 focus-within:border-teal-500/50 focus-within:ring-2 focus-within:ring-teal-500/15 transition-all">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-teal-500/15">
@@ -141,7 +142,7 @@ export function PremiumSearch({
               type="submit"
               className="btn-primary pressable mt-3 w-full flex items-center justify-center gap-2 rounded-2xl py-3.5 text-[15px] font-semibold active:scale-[0.98] transition-transform"
             >
-              <span>Analyze stock</span>
+              <span>{TERMS.pulseScanVerb}</span>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>

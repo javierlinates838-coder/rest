@@ -23,7 +23,7 @@ export interface ExportableResearch {
 export function buildResearchMarkdown(r: ExportableResearch): string {
   const date = r.analyzedAt ? new Date(r.analyzedAt).toLocaleString() : new Date().toLocaleString();
   const lines = [
-    `# StockPulse Research Brief — ${r.symbol}`,
+    `# Meridian Brief — ${r.symbol} · StockPulse`,
     ``,
     `**${r.name}** · Generated ${date}`,
     ``,
@@ -37,7 +37,7 @@ export function buildResearchMarkdown(r: ExportableResearch): string {
     `| Signal | **${r.signal}** (${r.confidence}% confidence) |`,
     `| Risk grade | ${r.riskGrade} |`,
     `| Smart Score | ${r.smartScore}/100 |`,
-    `| **Edge Index** | **${r.edgeScore}/100** (${r.edgeTier}) |`,
+    `| **Pulse Edge Index** | **${r.edgeScore}/100** (${r.edgeTier}) |`,
     ``,
   ];
 

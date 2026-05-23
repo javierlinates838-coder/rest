@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { PRO_FEATURES } from "@/lib/subscription";
+import { TERMS } from "@/lib/brand";
 
 interface UpgradeGateProps {
   open: boolean;
@@ -20,7 +21,7 @@ export function UpgradeGate({ open, onClose, feature, title }: UpgradeGateProps)
       <div className="ultra-card max-w-md w-full rounded-2xl ultra-card-inner animate-scaleIn overflow-hidden">
         <div className="brief-terminal-header">
           <span className="brief-terminal-dot" />
-          <span>Pro required</span>
+          <span>{TERMS.pulsePrime} required</span>
         </div>
         <div className="p-6">
           <h2 className="text-xl font-bold text-white mb-2">
@@ -45,7 +46,7 @@ export function UpgradeGate({ open, onClose, feature, title }: UpgradeGateProps)
               onClick={onClose}
               className="btn-primary pressable w-full text-center py-3 rounded-xl text-sm font-bold"
             >
-              Unlock Pro — $12/mo
+              Unlock {TERMS.pulsePrime} — $12/mo
             </Link>
             <button
               type="button"

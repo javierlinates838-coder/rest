@@ -19,7 +19,7 @@ export function ProSectionHeader({ title, subtitle, badge, icon, action }: ProSe
           )}
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="pro-section-title">{title}</h2>
+              <h2 className="pro-section-title font-display">{title}</h2>
               {badge && <span className="pro-badge">{badge}</span>}
             </div>
             {subtitle && <p className="pro-section-subtitle">{subtitle}</p>}

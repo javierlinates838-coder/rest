@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { EdgeIndexResult } from "@/lib/edge-index";
 import { edgeTierColor } from "@/lib/edge-index";
+import { TERMS } from "@/lib/brand";
 
 interface EdgeIndexPanelProps {
   edge: EdgeIndexResult;
@@ -22,8 +23,8 @@ export function EdgeIndexPanel({ edge, symbol, isPro, onUpgrade }: EdgeIndexPane
     <div className="ultra-card rounded-2xl mb-6 overflow-hidden">
       <div className="brief-terminal-header">
         <span className="brief-terminal-dot" />
-        <span>StockPulse Edge Index</span>
-        <span className="ml-auto font-mono text-teal-400/90">EXCLUSIVE</span>
+        <span>{TERMS.edgeIndex}</span>
+        <span className="ml-auto font-mono text-teal-400/90">ONLY HERE</span>
       </div>
       <div className="p-5 sm:p-6 ultra-card-inner">
         <div className="flex flex-wrap items-start justify-between gap-4 mb-5">
@@ -38,8 +39,7 @@ export function EdgeIndexPanel({ edge, symbol, isPro, onUpgrade }: EdgeIndexPane
               </div>
             </div>
             <p className="text-[12px] text-zinc-500 mt-2 max-w-md">
-              Proprietary score — not available on TradingView, Finviz, or Seeking Alpha. Fuses signal,
-              data quality, and risk into one conviction number.
+              Our proprietary fusion — unavailable on chart-only platforms. Signal, {TERMS.dataGrade.toLowerCase()}, and risk asymmetry in one number.
             </p>
           </div>
           {!isPro && (

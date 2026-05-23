@@ -7,6 +7,7 @@ import { fetchQuoteSummary } from "@/lib/fetch-json";
 import { ProSectionHeader } from "@/components/pro-section-header";
 import { UpgradeGate } from "@/components/upgrade-gate";
 import Link from "next/link";
+import { TERMS } from "@/lib/brand";
 
 interface WatchlistItem {
   symbol: string;
@@ -165,9 +166,9 @@ export default function WatchlistPage() {
   return (
     <div className="page-shell page-shell-wide">
       <ProSectionHeader
-        title="Watchlist"
-        subtitle="Live signals — Pro morning digest ranks your names by Edge Index"
-        badge="TRACK"
+        title={TERMS.pulseWatch}
+        subtitle={`Live conviction — ${TERMS.pulsePrime} morning digest ranks by ${TERMS.edgeShort}`}
+        badge="WATCH"
         action={
           <button
             type="button"

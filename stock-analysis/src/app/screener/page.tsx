@@ -7,6 +7,7 @@ import { formatCurrency, formatPercent, getSignalColor } from "@/lib/utils";
 import { smartScoreColor } from "@/lib/smart-score";
 import type { ScreenerRow } from "@/lib/screener";
 import { ProSectionHeader } from "@/components/pro-section-header";
+import { TERMS } from "@/lib/brand";
 import { UpgradeGate } from "@/components/upgrade-gate";
 
 type BiasFilter = "any" | "bullish" | "bearish";
@@ -89,9 +90,9 @@ export default function ScreenerPage() {
   return (
     <div className="page-shell page-shell-wide">
       <ProSectionHeader
-        title="Quant screener"
-        subtitle="Universe ranked by Smart Score — signal, risk, momentum fusion"
-        badge="ALPHA"
+        title={TERMS.alphaForge}
+        subtitle={`Universe ranked by ${TERMS.smartScore} + ${TERMS.edgeShort}`}
+        badge="FORGE"
         action={
           <Link href="/pricing" className="command-status-cta pressable">
             Pro filters

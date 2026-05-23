@@ -10,6 +10,8 @@ import { StockLogo } from "@/components/stock-logo";
 import { OnlyHereStrip } from "@/components/only-here-strip";
 import { CommandStatusBar } from "@/components/command-status-bar";
 import { ProSectionHeader } from "@/components/pro-section-header";
+import { PulseFrame } from "@/components/pulse-frame";
+import { HERO, TERMS } from "@/lib/brand";
 
 interface MarketIndex {
   symbol: string;
@@ -148,16 +150,20 @@ export default function DashboardPage() {
         trendingCount={trending.length}
       />
 
-      <div className="command-hero text-center animate-fadeIn relative z-[1]">
-        <span className="hero-eyebrow">Institutional research terminal</span>
-        <h1 className="command-hero-title text-white mb-3 sm:mb-4 px-1">
-          <span className="gradient-text">Pro-grade</span> stock intelligence
+      <PulseFrame className="command-hero text-center animate-fadeIn relative z-[1] mb-0">
+        <div className="pulse-frame-inner">
+        <span className="hero-eyebrow">{HERO.eyebrow}</span>
+        <h1 className="command-hero-title text-white mb-3 sm:mb-4 px-1 font-display">
+          {HERO.titleLead}{" "}
+          <span className="gradient-text">{HERO.titleAccent}</span>
+          <br className="hidden sm:block" />
+          {HERO.titleTail}
         </h1>
         <p className="hidden sm:block text-[15px] text-slate-400 max-w-xl mx-auto mb-8 leading-relaxed px-2">
-          Multi-factor signals, AI narrative, Smart Score ranking, and execution briefs — powered by live market data.
+          {HERO.subtitleDesktop}
         </p>
         <p className="sm:hidden text-[14px] text-slate-500 mb-5 leading-relaxed px-1 font-mono">
-          Signals · Screener · Compare · AI
+          {HERO.subtitleMobile}
         </p>
 
         <div ref={searchRef} className="w-full max-w-2xl mx-auto relative z-[2]">
@@ -192,7 +198,8 @@ export default function DashboardPage() {
             ))}
           </div>
         )}
-      </div>
+        </div>
+      </PulseFrame>
 
       {marketError && !loading && (
         <div className="glass-card rounded-xl px-4 py-3 mb-6 border border-amber-500/20 bg-amber-500/5 text-sm text-amber-200/90 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -242,8 +249,8 @@ export default function DashboardPage() {
           <OnlyHereStrip />
 
           <ProSectionHeader
-            title="Market indices"
-            subtitle="Real-time benchmark tape"
+            title="Benchmark tape"
+            subtitle={`${TERMS.liveTape} — indices streaming into Pulse Hub`}
             badge="LIVE"
           />
           <div className="indices-scroll mb-10">
@@ -271,8 +278,8 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 lg:gap-10">
             <div className="xl:col-span-8">
               <ProSectionHeader
-                title="Trending universe"
-                subtitle="High-activity names · click for full analysis"
+                title="Active tape"
+                subtitle={`High-velocity names · open any row for ${TERMS.pulseScan}`}
                 badge="TAPE"
               />
               <MobileTrendingList
@@ -316,8 +323,8 @@ export default function DashboardPage() {
                         <td className="text-right px-5 py-3.5 text-[13px] text-zinc-500 hidden sm:table-cell">{stock.volume ? `${(stock.volume / 1e6).toFixed(1)}M` : "—"}</td>
                         <td className="text-right px-5 py-3.5 text-[13px] text-zinc-500 hidden md:table-cell">{stock.marketCap ? formatLargeNumber(stock.marketCap) : "—"}</td>
                         <td className="text-center px-5 py-3.5">
-                          <span className="px-3 py-1 text-[11px] font-semibold bg-teal-500/10 text-teal-400 rounded-full border border-teal-500/20">
-                            Analyze
+                          <span className="px-3 py-1 text-[11px] font-semibold bg-teal-500/10 text-teal-400 rounded-full border border-teal-500/20 font-mono">
+                            {TERMS.pulseScan}
                           </span>
                         </td>
                       </tr>

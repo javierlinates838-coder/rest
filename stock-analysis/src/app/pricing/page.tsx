@@ -11,6 +11,8 @@ import {
   stockPulseAnnualSavings,
 } from "@/lib/subscription";
 import { UsageMeter } from "@/components/usage-meter";
+import { BRAND, TERMS } from "@/lib/brand";
+import { PulseFrame } from "@/components/pulse-frame";
 
 export default function PricingPage() {
   const router = useRouter();
@@ -49,16 +51,17 @@ export default function PricingPage() {
 
   return (
     <div className="page-shell page-shell-wide max-w-5xl mx-auto">
-      <div className="command-hero text-center mb-8 py-10">
-        <span className="hero-eyebrow">Stop paying for 4 apps</span>
-        <h1 className="command-hero-title text-white mb-3">
-          One terminal. <span className="gradient-text">Real edge.</span>
+      <PulseFrame className="command-hero text-center mb-8 py-10">
+        <div className="pulse-frame-inner">
+        <span className="hero-eyebrow">{BRAND.name} Access</span>
+        <h1 className="command-hero-title text-white mb-3 font-display">
+          One terminal. <span className="gradient-text">Pulse Prime.</span>
         </h1>
         <p className="text-[15px] text-zinc-400 max-w-2xl mx-auto leading-relaxed">
-          Everyone ships charts and generic ratings. StockPulse Pro gives you unlimited AI research,
-          the Edge Index, exports, and digests — for less than a single competitor subscription.
+          {BRAND.tagline}. {TERMS.pulsePrime} unlocks unlimited {TERMS.pulseScan}, {TERMS.edgeIndex}, exports, and digests.
         </p>
-      </div>
+        </div>
+      </PulseFrame>
 
       <div className="max-w-xs mx-auto mb-10">
         <UsageMeter />
@@ -113,7 +116,7 @@ export default function PricingPage() {
           </div>
           <ul className="space-y-2.5 mb-6 text-[13px] text-zinc-400">
             <li>✓ 8 full AI analyses / day</li>
-            <li>✓ Smart Score + basic Edge preview</li>
+            <li>✓ {TERMS.smartScore} + basic {TERMS.edgeShort} preview</li>
             <li>✓ Screener (bias + min score)</li>
             <li>✓ Compare 4 symbols</li>
           </ul>
@@ -124,7 +127,7 @@ export default function PricingPage() {
 
         <div className="ultra-card rounded-2xl p-7 ultra-card-inner glow-border">
           <span className="pro-badge mb-3 inline-block">RECOMMENDED</span>
-          <h2 className="text-xl font-bold text-white">Pro</h2>
+          <h2 className="text-xl font-bold text-white font-display">{TERMS.pulsePrime}</h2>
           <div className="mt-2 mb-5">
             <span className="text-4xl font-bold text-white font-mono">{proPrice}</span>
             <span className="text-zinc-500 text-sm ml-1">{proPeriod}</span>

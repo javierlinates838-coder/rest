@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
+import { Plus_Jakarta_Sans, JetBrains_Mono, Syne } from "next/font/google";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { OnboardingModal } from "@/components/onboarding-modal";
 import { SiteNavLinks } from "@/components/site-nav-links";
 import { UsageMeter } from "@/components/usage-meter";
+import { BrandLogo, BrandWordmark } from "@/components/brand-logo";
+import { BRAND, FOOTER } from "@/lib/brand";
 import "./globals.css";
 
 const jakarta = Plus_Jakarta_Sans({
@@ -19,9 +21,16 @@ const jetbrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
+const syne = Syne({
+  subsets: ["latin"],
+  variable: "--font-display",
+  weight: ["600", "700", "800"],
+  display: "swap",
+});
+
 export const metadata: Metadata = {
-  title: "StockPulse AI — Deep Stock Analysis",
-  description: "AI-powered stock analysis with live data from FMP, Finnhub, and Google Gemini. Technical indicators, competitor analysis, and smart buy/sell recommendations.",
+  title: BRAND.metaTitle,
+  description: BRAND.metaDescription,
 };
 
 export const viewport = {
@@ -38,37 +47,34 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark w-full">
-      <body className={`${jakarta.variable} ${jetbrainsMono.variable} font-sans antialiased min-h-screen w-full max-w-[100vw] overflow-x-hidden has-mobile-nav`}>
+      <body
+        className={`${jakarta.variable} ${jetbrainsMono.variable} ${syne.variable} font-sans antialiased min-h-screen w-full max-w-[100vw] overflow-x-hidden has-mobile-nav`}
+      >
+        <div className="pulse-rail" aria-hidden />
         <div className="app-canvas flex flex-col min-h-screen w-full min-w-0">
           <nav className="sticky top-0 z-50 nav-premium safe-top">
             <div className="nav-accent-line" aria-hidden />
             <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10">
               <div className="flex items-center justify-between h-14 sm:h-16 gap-3">
                 <Link href="/" className="flex items-center gap-2.5 sm:gap-3 group min-w-0 pressable">
-                  <div className="logo-mark logo-float shrink-0">
-                    <svg className="w-[18px] h-[18px] text-[#042f2e]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.4} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                    </svg>
+                  <div className="logo-float shrink-0 rounded-xl overflow-hidden shadow-[0_8px_24px_rgba(62,232,211,0.25)]">
+                    <BrandLogo size={40} />
                   </div>
-                  <div className="min-w-0 leading-tight">
-                    <span className="block text-[15px] sm:text-[17px] font-bold tracking-tight text-white truncate">
-                      StockPulse
-                      <span className="nav-pro-pill">PRO</span>
-                    </span>
-                    <span className="block text-[10px] font-semibold tracking-[0.14em] uppercase text-teal-400/80 font-mono">Research Terminal</span>
-                  </div>
+                  <BrandWordmark />
                 </Link>
 
                 <div className="flex items-center gap-2 sm:gap-4 shrink-0">
                   <SiteNavLinks />
                   <UsageMeter compact />
-                  <span className="live-badge-pro hidden md:inline-flex">Live</span>
+                  <span className="live-badge-pro hidden md:inline-flex">{BRAND.shortTag}</span>
                 </div>
               </div>
             </div>
           </nav>
 
-          <main className="flex-1 pb-mobile-nav sm:pb-safe w-full min-w-0 overflow-x-hidden page-enter">{children}</main>
+          <main className="flex-1 pb-mobile-nav sm:pb-safe w-full min-w-0 overflow-x-hidden page-enter">
+            {children}
+          </main>
           <OnboardingModal />
 
           <MobileBottomNav />
@@ -76,11 +82,13 @@ export default function RootLayout({
           <footer className="footer-premium py-6 safe-bottom footer-above-mobile-nav">
             <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10">
               <div className="flex flex-col sm:flex-row justify-between items-center gap-3 text-[10px] sm:text-[11px] text-zinc-500 text-center sm:text-left">
-                <span className="tracking-wide">StockPulse — Not financial advice.</span>
+                <span className="tracking-wide font-mono">{FOOTER.legal}</span>
                 <div className="flex flex-wrap justify-center gap-2">
-                  <span className="data-source-tag">FMP</span>
-                  <span className="data-source-tag">Finnhub</span>
-                  <span className="data-source-tag">Gemini AI</span>
+                  {FOOTER.feeds.map((tag) => (
+                    <span key={tag} className="pulse-feed-tag">
+                      {tag}
+                    </span>
+                  ))}
                 </div>
               </div>
             </div>

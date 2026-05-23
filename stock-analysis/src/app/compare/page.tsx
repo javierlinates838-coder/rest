@@ -14,6 +14,7 @@ import { fetchQuoteSummary } from "@/lib/fetch-json";
 import { computeSmartScore, smartScoreColor } from "@/lib/smart-score";
 import { ProSectionHeader } from "@/components/pro-section-header";
 import { SmartScoreGauge } from "@/components/smart-score-gauge";
+import { TERMS } from "@/lib/brand";
 
 interface CompareRow {
   symbol: string;
@@ -111,9 +112,9 @@ export default function ComparePage() {
   return (
     <div className="page-shell page-shell-wide">
       <ProSectionHeader
-        title="Compare workspace"
-        subtitle="Up to 4 symbols · side-by-side Smart Score & signals"
-        badge="MULTI"
+        title={TERMS.twinLens}
+        subtitle={`Up to 4 symbols · side-by-side ${TERMS.smartScore} & signals`}
+        badge="LENS"
       />
 
       <form onSubmit={handleAdd} className="flex gap-2 mb-6 max-w-md ultra-card p-3">

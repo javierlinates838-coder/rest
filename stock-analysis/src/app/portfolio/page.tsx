@@ -11,6 +11,7 @@ import {
   type PortfolioEntry,
 } from "@/lib/portfolio-storage";
 import { ProSectionHeader } from "@/components/pro-section-header";
+import { TERMS } from "@/lib/brand";
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -148,9 +149,9 @@ export default function PortfolioPage() {
   return (
     <div className="page-shell page-shell-wide">
       <ProSectionHeader
-        title="Portfolio analytics"
-        subtitle="Live marks · P&L · tap any row for deep analysis"
-        badge="BOOK"
+        title={TERMS.theLedger}
+        subtitle={`Live marks · P&L · tap any row for ${TERMS.pulseScan}`}
+        badge="LEDGER"
       />
 
       <div className="flex flex-wrap gap-2 mb-6">

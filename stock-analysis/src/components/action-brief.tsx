@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
 import { computeSmartScore } from "@/lib/smart-score";
+import { TERMS } from "@/lib/brand";
 import { SmartScoreGauge } from "@/components/smart-score-gauge";
 
 interface ActionBriefProps {
@@ -61,7 +62,7 @@ export function ActionBrief({
     <div className="ultra-card brief-terminal mb-6 animate-fadeIn">
       <div className="brief-terminal-header">
         <span className="brief-terminal-dot" aria-hidden />
-        <span>Institutional action brief</span>
+        <span>{TERMS.meridianBrief}</span>
         <span className="ml-auto font-mono text-teal-400/80">{symbol}</span>
       </div>
       <div className="brief-terminal-body ultra-card-inner">
@@ -78,7 +79,7 @@ export function ActionBrief({
               {action}
             </p>
           </div>
-          <SmartScoreGauge score={smart.score} label="Smart score" size="lg" />
+          <SmartScoreGauge score={smart.score} label={TERMS.smartScore} size="lg" />
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">

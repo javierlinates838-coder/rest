@@ -9,7 +9,7 @@ export const PLANS = {
   },
   pro: {
     id: "pro",
-    name: "Pro",
+    name: "Pulse Prime",
     priceMonthly: 12,
     priceAnnual: 99,
     analysesPerDay: Infinity,

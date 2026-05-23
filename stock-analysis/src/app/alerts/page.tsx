@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ProSectionHeader } from "@/components/pro-section-header";
 import { UpgradeGate } from "@/components/upgrade-gate";
+import { TERMS } from "@/lib/brand";
 
 const ALERT_TYPES = [
   { id: "signal", label: "Signal change", desc: "Buy → Hold → Sell transitions", pro: true },
@@ -18,9 +19,9 @@ export default function AlertsPage() {
   return (
     <div className="page-shell page-shell-wide max-w-3xl mx-auto">
       <ProSectionHeader
-        title="Smart alerts"
-        subtitle="Signal, Edge, and plan-level notifications — email delivery in beta"
-        badge="PRO"
+        title={TERMS.signalWire}
+        subtitle={`${TERMS.edgeShort}, signal, and plan-level wires — email delivery in beta`}
+        badge="WIRE"
       />
 
       <div className="ultra-card rounded-2xl p-6 mb-6 ultra-card-inner">
@@ -56,7 +57,7 @@ export default function AlertsPage() {
 
       <div className="text-center">
         <Link href="/pricing" className="btn-primary pressable inline-flex px-8 py-3 rounded-xl text-sm font-bold">
-          Unlock alerts with Pro
+          Wire alerts with {TERMS.pulsePrime}
         </Link>
       </div>
 

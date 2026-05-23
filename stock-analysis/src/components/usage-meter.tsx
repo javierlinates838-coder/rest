@@ -27,9 +27,9 @@ export function UsageMeter({ compact = false }: { compact?: boolean }) {
       <Link
         href="/pricing"
         className={`pro-badge ${compact ? "text-[8px]" : ""} hover:opacity-90`}
-        title="Pro member"
+        title="Pulse Prime member"
       >
-        PRO
+        PRIME
       </Link>
     );
   }
