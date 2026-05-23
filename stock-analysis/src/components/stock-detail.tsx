@@ -638,7 +638,7 @@ export function QuickActions({ symbol, onRefresh }: { symbol: string; onRefresh?
   };
 
   return (
-    <div className="fixed right-3 bottom-20 sm:right-5 sm:bottom-5 flex flex-row sm:flex-col gap-2 z-40">
+    <div className="fixed right-3 bottom-[5.5rem] sm:right-5 sm:bottom-5 flex flex-row sm:flex-col gap-2 z-40">
       <button
         onClick={toggleWatchlist}
         className={`pressable group glass-card rounded-2xl p-3 hover:glow-border ${inWatchlist ? "border-amber-500/30" : ""}`}
@@ -774,7 +774,7 @@ export function StickyMiniHeader({ symbol, name, price, change, changePercent, v
           : "-translate-y-full opacity-0 pointer-events-none"
       }`}
     >
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10 py-2.5 flex flex-wrap items-center gap-3 sm:gap-6">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10 py-2.5 flex flex-wrap items-center gap-3 sm:gap-6">
         <div className="flex items-center gap-3">
           <span className="text-[15px] font-semibold text-white tracking-tight">{symbol}</span>
           <span className="text-[12px] text-zinc-500 font-light tracking-tight hidden md:inline">{name}</span>

@@ -105,7 +105,7 @@ export default function PortfolioPage() {
   }));
 
   return (
-    <div className="page-shell max-w-[1600px]">
+    <div className="page-shell page-shell-wide">
       <h1 className="text-[32px] font-semibold text-white tracking-tight mb-2">Portfolio</h1>
       <p className="text-[14px] text-zinc-400 font-light tracking-tight mb-4">
         Holdings overview with live quotes — tap a row for full AI analysis

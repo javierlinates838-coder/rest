@@ -449,7 +449,7 @@ export default function StockPage() {
         </div>
       )}
     >
-    <div className="page-shell">
+    <div className="page-shell page-shell-wide">
       {/* Sticky Mini Header */}
       <StickyMiniHeader
         symbol={quote.symbol}
@@ -465,31 +465,35 @@ export default function StockPage() {
 
       {/* Header */}
       <div ref={heroRef} className="w-full min-w-0 space-y-5 mb-6 sm:mb-8">
-        <div>
-          <div className="flex items-center gap-3 mb-2 flex-wrap">
+        <div className="stock-hero-card glass-card rounded-2xl p-4 sm:p-0 sm:bg-transparent sm:border-0 sm:rounded-none sm:shadow-none">
+          <div className="flex items-start gap-3 mb-3">
             <button
               type="button"
               onClick={goBack}
               aria-label="Go back"
-              className="relative z-10 flex items-center justify-center w-10 h-10 -ml-1 rounded-lg text-zinc-500 hover:text-white hover:bg-white/5 transition-colors duration-200"
+              className="relative z-10 flex items-center justify-center w-10 h-10 shrink-0 rounded-lg text-zinc-500 hover:text-white hover:bg-white/5 transition-colors duration-200"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
-            <StockLogo symbol={quote.symbol} size={44} />
-            <h1 className="text-2xl sm:text-[32px] font-semibold text-white tracking-tight">{quote.symbol}</h1>
-            <span className="text-zinc-400 text-sm sm:text-[16px] hidden sm:inline font-light tracking-tight max-w-[140px] truncate">{quote.name}</span>
-            <span className="px-2.5 py-0.5 text-[10px] font-semibold bg-zinc-800/60 text-zinc-500 rounded-md tracking-wider uppercase">{quote.exchange}</span>
-            <span className="px-2.5 py-0.5 text-[10px] font-medium bg-indigo-500/10 text-indigo-400 rounded-md tracking-wide">{quote.sector}</span>
+            <StockLogo symbol={quote.symbol} size={48} className="shrink-0" />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-2xl sm:text-[32px] font-semibold text-white tracking-tight">{quote.symbol}</h1>
+                <span className="px-2 py-0.5 text-[10px] font-semibold bg-zinc-800/60 text-zinc-500 rounded-md tracking-wider uppercase">{quote.exchange}</span>
+              </div>
+              <p className="text-[14px] sm:text-[16px] text-zinc-400 font-light tracking-tight truncate mt-0.5">{quote.name}</p>
+              <span className="inline-block mt-1.5 px-2.5 py-0.5 text-[10px] font-medium bg-indigo-500/10 text-indigo-400 rounded-md tracking-wide">{quote.sector}</span>
+            </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-end gap-2 sm:gap-4  flex-wrap">
-            <div className="flex items-baseline gap-3">
-              <span className="text-4xl sm:text-[44px] font-semibold text-white tracking-tight tabular-nums">
+          <div className="flex flex-col sm:flex-row sm:items-end gap-3 sm:gap-4 flex-wrap pl-0 sm:pl-0">
+            <div className="flex items-end justify-between sm:justify-start gap-3 w-full sm:w-auto">
+              <span className="text-[2.5rem] sm:text-[44px] leading-none font-semibold text-white tracking-tight tabular-nums">
                 <AnimatedNumber value={displayPrice} format={formatCurrency} />
               </span>
-              <Sparkline data={recentPrices} color="auto" width={100} height={32} />
+              <Sparkline data={recentPrices} color="auto" width={88} height={36} />
             </div>
             <div className={`flex items-center gap-2 pb-2 ${displayChangePercent >= 0 ? "text-emerald-400" : "text-red-400"}`}>
               <svg className={`w-4 h-4 ${displayChangePercent >= 0 ? "" : "rotate-180"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -612,7 +616,7 @@ export default function StockPage() {
       </div>
 
       {/* Tab Navigation */}
-      <div className="scroll-tabs tab-segment mb-6 sm:mb-8 p-1 rounded-xl">
+      <div className="sticky-tab-bar scroll-tabs tab-segment mb-6 sm:mb-8 p-1 rounded-xl">
         {tabs.map((tab) => (
           <button
             key={tab.id}
