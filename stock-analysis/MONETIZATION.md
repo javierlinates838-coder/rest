@@ -1,8 +1,8 @@
-# Pulse Prime Lifetime — launch checklist
+# Monetization (dormant)
 
-**Price:** $29 one-time (`PULSE29` launch code until Stripe is live)
+Payments and pricing UI are **disabled**. `OPEN_ACCESS` in `src/lib/product-phase.ts` is `true`, so all features are unlimited without cookies or checkout.
 
-## 1. Vercel env (Production)
+## Required Vercel env (always)
 
 | Variable | Purpose |
 |----------|---------|
@@ -10,39 +10,31 @@
 | `FMP_API_KEY` | Quotes & history |
 | `FINNHUB_API_KEY` | Live tape & news |
 | `NEWS_API_KEY` | Headlines |
-| `STRIPE_LIFETIME_PAYMENT_LINK` | One-click $29 checkout |
-| `STRIPE_SECRET_KEY` | Verify sessions on `/pricing/success` |
-| `STRIPE_WEBHOOK_SECRET` | `checkout.session.completed` logging |
 
-## 2. Stripe setup (5 min)
+## When re-enabling payments
 
-1. **Payment Link** — Product: "Pulse Prime Lifetime", **$29 one-time**.
-2. **Success URL:**  
-   `https://YOUR_DOMAIN/pricing/success?session_id={CHECKOUT_SESSION_ID}`
-3. **Webhook** — Endpoint: `https://YOUR_DOMAIN/api/stripe-webhook`  
-   Event: `checkout.session.completed`
-4. Paste link into `STRIPE_LIFETIME_PAYMENT_LINK`.
+1. Set `OPEN_ACCESS` to `false` in `src/lib/product-phase.ts`.
+2. Restore pricing pages and upgrade gates (see git history around `b0890e6`).
+3. Configure Stripe env vars:
 
-## 3. User flows
+| Variable | Purpose |
+|----------|---------|
+| `STRIPE_LIFETIME_PAYMENT_LINK` | One-click lifetime checkout |
+| `STRIPE_SECRET_KEY` | Session verify on success page |
+| `STRIPE_WEBHOOK_SECRET` | `checkout.session.completed` |
 
-| Flow | What happens |
-|------|----------------|
-| **Buy** | `/api/checkout` → Stripe → success page sets `sp_lifetime` |
-| **Code** | `/pricing` enter `PULSE29` or `/pricing?code=PULSE29` |
-| **Link** | `/api/activate-access?code=PULSE29` → cookie + redirect home |
-| **Trial** | `PULSE14` → 30-day `sp_pro` |
+4. **Root Directory** on Vercel: `stock-analysis`.
 
-## 4. Smoke test (after deploy)
+## Smoke test (local)
 
 ```bash
-curl -s -X POST https://YOUR_DOMAIN/api/activate-access \
-  -H 'Content-Type: application/json' \
-  -d '{"code":"PULSE29"}' -c cookies.txt
+npm run build && npm run start
+# In another terminal:
+curl -s http://localhost:3000/api/usage | jq .
+# expect openAccess: true, hasFullAccess via usage (isPro true when OPEN_ACCESS)
 
-curl -s https://YOUR_DOMAIN/api/usage -b cookies.txt
-# expect isPro:true, isLifetime:true
+curl -s "http://localhost:3000/api/search?q=AAPL" | head -c 200
+curl -s "http://localhost:3000/api/market" | head -c 200
 ```
 
-## 5. Root directory on Vercel
-
-Set **Root Directory** to `stock-analysis`.
+Activation API (`/api/activate-access`) still works for beta codes but redirects home, not `/pricing`.

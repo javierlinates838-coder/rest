@@ -37,7 +37,7 @@ function activateWithCode(code: string): ActivateResult {
     return {
       ok: true,
       plan: "trial",
-      message: "30-day full access unlocked. Grab Lifetime on Access before launch ends.",
+      message: "30-day full access unlocked. Welcome to the terminal.",
     };
   }
 
@@ -63,13 +63,13 @@ export async function GET(request: NextRequest) {
   const origin = request.nextUrl.origin;
 
   if (!code) {
-    return NextResponse.redirect(`${origin}/pricing`);
+    return NextResponse.redirect(`${origin}/`);
   }
 
   const result = activateWithCode(code);
   if (!result.ok) {
-    const fail = new URL("/pricing", origin);
-    fail.searchParams.set("error", result.error);
+    const fail = new URL("/", origin);
+    fail.searchParams.set("access_error", result.error);
     return NextResponse.redirect(fail);
   }
 
