@@ -898,12 +898,14 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .gradient-text {
+  display: inline-block;
+  color: #5eead4;
   background: linear-gradient(120deg, #5eead4 0%, #2dd4bf 35%, #fbbf24 70%, #5eead4 100%);
   background-size: 200% 200%;
   animation: gradientShift 8s ease infinite;
   -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
   background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .nav-accent-line {
@@ -1228,7 +1230,8 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: 1.75rem;
   padding: 2.25rem 1.5rem 2.5rem;
   margin-bottom: 1.75rem;
-  overflow: hidden;
+  overflow: visible;
+  isolation: isolate;
   background:
     radial-gradient(ellipse 100% 80% at 50% -30%, rgba(45, 212, 191, 0.14), transparent 55%),
     linear-gradient(168deg, rgba(12, 18, 26, 0.98) 0%, rgba(4, 6, 8, 0.92) 100%);
@@ -1270,7 +1273,31 @@ h1, h2, h3, h4, h5, h6 {
   font-size: clamp(1.75rem, 5vw, 3rem);
   font-weight: 700;
   letter-spacing: -0.04em;
-  line-height: 1.05;
+  line-height: 1.12;
+}
+
+/* Hub hero: "Your conviction" / "command center" — always readable spacing */
+.hero-title-line {
+  display: block;
+}
+
+.hero-title-line-tail {
+  margin-top: 0.15em;
+}
+
+@media (min-width: 640px) {
+  .hero-title-line {
+    display: inline;
+  }
+
+  .hero-title-line-tail {
+    display: block;
+    margin-top: 0.2em;
+  }
+}
+
+.command-hero-hub .pulse-frame-inner {
+  overflow: visible;
 }
 
 .command-status-bar {
@@ -1817,5 +1844,6 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .gradient-text {
+  color: var(--primary);
   background: linear-gradient(120deg, #7af8e8 0%, var(--primary) 30%, var(--accent-warm) 65%, #7af8e8 100%);
 }

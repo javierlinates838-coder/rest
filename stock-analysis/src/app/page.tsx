@@ -66,6 +66,7 @@ export default function DashboardPage() {
   const [marketError, setMarketError] = useState<string | null>(null);
   const searchRef = useRef<HTMLDivElement>(null);
   const searchTimeout = useRef<NodeJS.Timeout | null>(null);
+  const searchRequestId = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -122,17 +123,21 @@ export default function DashboardPage() {
     setSearchQuery(value);
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
     if (value.length >= 1) {
+      const reqId = ++searchRequestId.current;
       searchTimeout.current = setTimeout(async () => {
         try {
           const res = await fetch(`/api/search?q=${encodeURIComponent(value)}`);
           const data = await res.json();
+          if (reqId !== searchRequestId.current) return;
           setSearchResults(data.results || []);
           setShowResults(true);
         } catch {
+          if (reqId !== searchRequestId.current) return;
           setSearchResults([]);
         }
       }, 300);
     } else {
+      searchRequestId.current += 1;
       setSearchResults([]);
       setShowResults(false);
     }
@@ -156,14 +161,15 @@ export default function DashboardPage() {
         trendingCount={trending.length}
       />
 
-      <PulseFrame className="command-hero text-center animate-fadeIn relative z-[1] mb-0">
+      <PulseFrame className="command-hero command-hero-hub text-center animate-fadeIn relative z-[1] mb-0">
         <div className="pulse-frame-inner">
         <span className="hero-eyebrow">{HERO.eyebrow}</span>
         <h1 className="command-hero-title text-white mb-3 sm:mb-4 px-1 font-display">
-          {HERO.titleLead}{" "}
-          <span className="gradient-text">{HERO.titleAccent}</span>
-          <br className="hidden sm:block" />
-          {HERO.titleTail}
+          <span className="hero-title-line">
+            {HERO.titleLead}{" "}
+            <span className="gradient-text">{HERO.titleAccent}</span>
+          </span>
+          <span className="hero-title-line hero-title-line-tail">{HERO.titleTail}</span>
         </h1>
         <p className="hidden sm:block text-[15px] text-slate-400 max-w-xl mx-auto mb-8 leading-relaxed px-2">
           {HERO.subtitleDesktop}
@@ -260,6 +266,9 @@ export default function DashboardPage() {
             badge="LIVE"
           />
           <div className="indices-scroll mb-10">
+            {indices.length === 0 ? (
+              <p className="text-sm text-zinc-500 px-2 py-4">Benchmark tape unavailable — check API keys or retry above.</p>
+            ) : null}
             {indices.map((index, i) => (
               <div
                 key={index.symbol}

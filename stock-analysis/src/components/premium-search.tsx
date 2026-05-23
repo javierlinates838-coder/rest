@@ -67,7 +67,7 @@ export function PremiumSearch({
   return (
     <>
       {/* ——— Desktop (unchanged feel) ——— */}
-      <div className="hidden sm:block max-w-2xl mx-auto relative">
+      <div className="hidden sm:block max-w-2xl mx-auto relative z-[5]">
         <form onSubmit={onSubmit}>
           <div className="command-search relative flex items-center gap-2 px-2 py-2">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-teal-500/15 border border-teal-500/25 ml-1">
@@ -214,7 +214,7 @@ function DesktopResults({
   onSelect: (symbol: string) => void;
 }) {
   return (
-    <div className="absolute top-full mt-2 w-full ultra-card rounded-xl overflow-hidden z-50 animate-fadeIn">
+    <div className="absolute top-full mt-2 w-full ultra-card rounded-xl overflow-hidden z-[80] animate-fadeIn shadow-2xl">
       {results.map((r) => (
         <button
           key={r.symbol}
