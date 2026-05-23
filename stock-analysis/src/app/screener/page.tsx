@@ -8,8 +8,21 @@ import type { ScreenerRow } from "@/lib/screener";
 import { SCREENER_SECTOR_OPTIONS } from "@/lib/screener-constants";
 import { ProSectionHeader } from "@/components/pro-section-header";
 import { TERMS } from "@/lib/brand";
+import { fetchJsonWithTimeout } from "@/lib/fetch-json";
 
 type BiasFilter = "any" | "bullish" | "bearish";
+
+const DEFAULT_MIN_SCORE = 0;
+
+interface ScreenerResponse {
+  rows?: ScreenerRow[];
+  updatedAt?: string;
+  universeSize?: number;
+  maxSmartScore?: number;
+  relaxedFilters?: boolean;
+  partialData?: boolean;
+  error?: string;
+}
 
 export default function ScreenerPage() {
   const router = useRouter();
@@ -17,39 +30,39 @@ export default function ScreenerPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [bias, setBias] = useState<BiasFilter>("any");
-  const [minScore, setMinScore] = useState(40);
+  const [minScore, setMinScore] = useState(DEFAULT_MIN_SCORE);
   const [universeSize, setUniverseSize] = useState(0);
   const [maxSmartScore, setMaxSmartScore] = useState(0);
   const [maxRisk, setMaxRisk] = useState("");
   const [sector, setSector] = useState("all");
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
+  const [relaxedFilters, setRelaxedFilters] = useState(false);
+  const [partialData, setPartialData] = useState(false);
 
   const fetchScreener = useCallback(async () => {
     const params = new URLSearchParams();
     if (bias !== "any") params.set("bias", bias);
-    params.set("minSmartScore", String(minScore));
+    if (minScore > 0) params.set("minSmartScore", String(minScore));
     if (maxRisk) params.set("maxRiskGrade", maxRisk);
     if (sector && sector !== "all") params.set("sector", sector);
-    const res = await fetch(`/api/screener?${params}`);
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Screener failed");
-    return data as {
-      rows?: ScreenerRow[];
-      updatedAt?: string;
-      universeSize?: number;
-      maxSmartScore?: number;
-    };
+    return fetchJsonWithTimeout<ScreenerResponse>(`/api/screener?${params}`, 90000);
   }, [bias, minScore, maxRisk, sector]);
+
+  const applyResponse = (data: ScreenerResponse) => {
+    setRows(data.rows || []);
+    setUpdatedAt(data.updatedAt || null);
+    setUniverseSize(data.universeSize ?? 0);
+    setMaxSmartScore(data.maxSmartScore ?? 0);
+    setRelaxedFilters(Boolean(data.relaxedFilters));
+    setPartialData(Boolean(data.partialData));
+  };
 
   const load = async () => {
     setLoading(true);
     setError(null);
     try {
       const data = await fetchScreener();
-      setRows(data.rows || []);
-      setUpdatedAt(data.updatedAt || null);
-      setUniverseSize(data.universeSize ?? 0);
-      setMaxSmartScore(data.maxSmartScore ?? 0);
+      applyResponse(data);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not load screener");
       setRows([]);
@@ -66,10 +79,7 @@ export default function ScreenerPage() {
       try {
         const data = await fetchScreener();
         if (cancelled) return;
-        setRows(data.rows || []);
-        setUpdatedAt(data.updatedAt || null);
-        setUniverseSize(data.universeSize ?? 0);
-        setMaxSmartScore(data.maxSmartScore ?? 0);
+        applyResponse(data);
       } catch (e) {
         if (!cancelled) {
           setError(e instanceof Error ? e.message : "Could not load screener");
@@ -79,8 +89,20 @@ export default function ScreenerPage() {
         if (!cancelled) setLoading(false);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [fetchScreener]);
+
+  const resetFilters = () => {
+    setBias("any");
+    setMinScore(DEFAULT_MIN_SCORE);
+    setMaxRisk("");
+    setSector("all");
+  };
+
+  const filtersActive =
+    bias !== "any" || minScore > 0 || maxRisk !== "" || sector !== "all";
 
   return (
     <div className="page-shell page-shell-wide">
@@ -109,13 +131,13 @@ export default function ScreenerPage() {
           Min score
           <input
             type="range"
-            min={40}
+            min={0}
             max={80}
             value={minScore}
             onChange={(e) => setMinScore(Number(e.target.value))}
             className="w-24 accent-teal-500"
           />
-          <span className="text-white font-medium tabular-nums">{minScore}</span>
+          <span className="text-white font-medium tabular-nums">{minScore === 0 ? "Any" : minScore}</span>
         </label>
         <label className="flex items-center gap-2 text-[12px] text-zinc-400 rounded-xl px-3 py-2 border border-zinc-800">
           Max risk
@@ -150,15 +172,43 @@ export default function ScreenerPage() {
           type="button"
           onClick={() => void load()}
           disabled={loading}
-          className="px-4 py-2 rounded-xl bg-zinc-800 text-zinc-300 text-[12px] font-medium hover:bg-zinc-700 disabled:opacity-50"
+          className="px-4 py-2 rounded-xl bg-teal-600/80 text-white text-[12px] font-medium hover:bg-teal-500 disabled:opacity-50"
         >
-          Refresh
+          {loading ? "Scanning…" : "Refresh"}
         </button>
+        {filtersActive && (
+          <button
+            type="button"
+            onClick={resetFilters}
+            className="px-4 py-2 rounded-xl border border-zinc-700 text-zinc-400 text-[12px] hover:text-white"
+          >
+            Reset filters
+          </button>
+        )}
       </div>
 
       {error && (
-        <div className="glass-card rounded-xl px-4 py-3 mb-6 border border-red-500/20 text-red-200/90 text-sm">
-          {error}
+        <div className="glass-card rounded-xl px-4 py-3 mb-6 border border-red-500/20 text-red-200/90 text-sm flex flex-wrap items-center justify-between gap-3">
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={() => void load()}
+            className="text-xs px-3 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
+      {relaxedFilters && !loading && rows.length > 0 && (
+        <div className="glass-card rounded-xl px-4 py-3 mb-4 border border-amber-500/20 text-amber-200/90 text-sm">
+          No names matched every filter — showing the full ranked universe. Loosen filters or tap Reset.
+        </div>
+      )}
+
+      {partialData && !loading && (
+        <div className="glass-card rounded-xl px-4 py-3 mb-4 border border-zinc-600/40 text-zinc-400 text-sm">
+          Live quotes loaded; deep technical scan was limited (API timeout). Tap Refresh to rescan.
         </div>
       )}
 
@@ -168,7 +218,7 @@ export default function ScreenerPage() {
           {universeSize > 0 && (
             <>
               {" "}
-              · {rows.length} of {universeSize} symbols
+              · {rows.length} shown · {universeSize} scored
               {maxSmartScore > 0 && ` · top ${TERMS.smartScore} ${maxSmartScore}`}
             </>
           )}
@@ -177,21 +227,24 @@ export default function ScreenerPage() {
 
       {loading ? (
         <div className="space-y-2">
+          <p className="text-sm text-zinc-500 mb-3">Scanning liquid universe… usually 15–45s.</p>
           {[...Array(8)].map((_, i) => (
             <div key={i} className="glass-card h-16 rounded-xl skeleton-shine" />
           ))}
         </div>
       ) : rows.length === 0 ? (
-        <div className="glass-card rounded-xl p-8 text-center text-zinc-500 text-sm space-y-2">
-          <p>No symbols match these filters.</p>
-          {universeSize > 0 && maxSmartScore > 0 && minScore > maxSmartScore && (
-            <p className="text-amber-300/90">
-              Min score is {minScore} but the universe tops out at {maxSmartScore} — lower the slider.
-            </p>
-          )}
-          {universeSize === 0 && (
-            <p className="text-red-300/80">Could not score the universe — check FMP/Finnhub keys on the server.</p>
-          )}
+        <div className="glass-card rounded-xl p-8 text-center text-zinc-500 text-sm space-y-3">
+          <p>Alpha Forge could not load any symbols.</p>
+          <button
+            type="button"
+            onClick={() => void load()}
+            className="btn-primary pressable px-5 py-2.5 rounded-lg text-white text-sm"
+          >
+            Retry scan
+          </button>
+          <p className="text-[11px] text-zinc-600">
+            If this keeps happening, add FMP_API_KEY and FINNHUB_API_KEY on Vercel (stock-analysis root).
+          </p>
         </div>
       ) : (
         <div className="pro-table-wrap table-scroll">
@@ -220,13 +273,13 @@ export default function ScreenerPage() {
                     <div className="text-[11px] text-zinc-500 truncate max-w-[140px]">{row.name}</div>
                   </td>
                   <td className="text-right px-4 py-3.5 text-white tabular-nums">{formatCurrency(row.price)}</td>
-                  <td className={`text-right px-4 py-3.5 tabular-nums ${row.changePercent >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                  <td
+                    className={`text-right px-4 py-3.5 tabular-nums ${row.changePercent >= 0 ? "text-emerald-400" : "text-red-400"}`}
+                  >
                     {formatPercent(row.changePercent)}
                   </td>
                   <td className="text-center px-4 py-3.5">
-                    <span className={`score-pill ${smartScoreColor(row.smartScore)}`}>
-                      {row.smartScore}
-                    </span>
+                    <span className={`score-pill ${smartScoreColor(row.smartScore)}`}>{row.smartScore}</span>
                     <div className="text-[10px] text-zinc-500 mt-1">{row.smartLabel}</div>
                   </td>
                   <td className={`text-center px-4 py-3.5 text-[12px] font-medium ${getSignalColor(row.signal)}`}>

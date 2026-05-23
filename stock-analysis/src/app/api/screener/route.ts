@@ -12,7 +12,10 @@ export async function GET(request: NextRequest) {
   }
 
   const minScore = params.get("minSmartScore");
-  if (minScore) filter.minSmartScore = Number(minScore);
+  if (minScore != null && minScore !== "") {
+    const n = Number(minScore);
+    if (Number.isFinite(n) && n > 0) filter.minSmartScore = n;
+  }
 
   const maxRisk = params.get("maxRiskGrade");
   const sector = params.get("sector");
@@ -21,6 +24,10 @@ export async function GET(request: NextRequest) {
   if (sector) filter.sector = sector;
 
   try {
+    if (params.get("refresh") === "1") {
+      const { clearScreenerCache } = await import("@/lib/screener");
+      clearScreenerCache();
+    }
     const result = await runScreener(filter);
     return NextResponse.json(result);
   } catch (e) {
