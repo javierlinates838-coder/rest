@@ -93,7 +93,7 @@ export async function getStockRecommendations(): Promise<{
       ...LIQUID_UNIVERSE,
       ...gainers.slice(0, 6).map((g) => g.symbol),
     ])
-  ).slice(0, 18);
+  ).slice(0, 28);
 
   const picks = (
     await Promise.all(symbols.map((s) => scoreSymbol(s)))

@@ -34,7 +34,7 @@ export type ScreenerFilter = {
   sector?: string;
 };
 
-const FORGE_UNIVERSE_CAP = 18;
+const FORGE_UNIVERSE_CAP = 32;
 const SCORE_TIMEOUT_MS = 14_000;
 const SCORE_CACHE_MS = 90_000;
 
@@ -126,7 +126,7 @@ export async function buildScreenerUniverse(sectorFilter?: string): Promise<stri
   ]);
   const sectorSyms =
     sectorFilter && sectorFilter !== "all" ? symbolsForSectorFilter(sectorFilter) : [];
-  const cap = sectorSyms.length > 0 ? Math.max(FORGE_UNIVERSE_CAP, 22) : FORGE_UNIVERSE_CAP;
+  const cap = sectorSyms.length > 0 ? Math.max(FORGE_UNIVERSE_CAP, 36) : FORGE_UNIVERSE_CAP;
 
   return Array.from(
     new Set([

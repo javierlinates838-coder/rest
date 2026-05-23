@@ -1,6 +1,17 @@
 const STORAGE_KEY = "watchlist";
 
-export const DEFAULT_WATCHLIST = ["AAPL", "TSLA", "NVDA", "GOOGL", "AMD", "MSFT"] as const;
+export const DEFAULT_WATCHLIST = [
+  "AAPL",
+  "MSFT",
+  "NVDA",
+  "GOOGL",
+  "AMZN",
+  "META",
+  "TSLA",
+  "AMD",
+  "JPM",
+  "UNH",
+] as const;
 
 function readStoredWatchlist(): string[] | null {
   if (typeof window === "undefined") return null;
