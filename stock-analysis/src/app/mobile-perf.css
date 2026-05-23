@@ -1,0 +1,126 @@
+/* Mobile performance: faster paint, smoother scroll, better touch */
+
+@media (max-width: 639px) {
+  .app-canvas::after {
+    display: none;
+  }
+
+  .app-canvas::before {
+    background: var(--background);
+  }
+
+  .glass-card,
+  .ultra-card,
+  .sticky-tab-bar,
+  .nav-premium,
+  .mobile-bottom-nav {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .glass-card {
+    background: rgba(14, 14, 18, 0.98);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04);
+    transition: border-color 0.2s ease;
+  }
+
+  .glass-card:hover,
+  .interactive-card:hover {
+    transform: none;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
+  .animate-fadeIn,
+  .animate-fadeInUp,
+  .animate-slideInLeft,
+  .animate-slideInRight,
+  .animate-scaleIn,
+  .animate-softPop,
+  .animate-countUp,
+  [class*="stagger-"] {
+    animation: none !important;
+  }
+
+  .page-enter {
+    animation: none !important;
+  }
+
+  .shimmer,
+  .skeleton-shine {
+    animation-duration: 1.2s;
+    animation-iteration-count: 6;
+  }
+
+  .scroll-tabs,
+  .command-status-inner,
+  .indices-scroll,
+  .cockpit-kpi-scroll,
+  .cockpit-pillar-scroll {
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+    overscroll-behavior-x: contain;
+  }
+
+  .tab-pill {
+    min-height: 44px;
+    min-width: 44px;
+    padding-top: 0.625rem;
+    padding-bottom: 0.625rem;
+    touch-action: manipulation;
+  }
+
+  .tab-pill:not(.tab-pill-active):active {
+    transform: scale(0.98);
+  }
+
+  .sticky-tab-bar {
+    top: 3.5rem;
+    padding-bottom: 2px;
+  }
+
+  .sticky-tab-bar.sticky-tab-bar--mini {
+    top: 6.75rem;
+  }
+
+  .mobile-touch-target {
+    min-height: 44px;
+    min-width: 44px;
+    touch-action: manipulation;
+  }
+
+  .chart-period-chip {
+    min-height: 36px;
+    min-width: 44px;
+    padding: 0.5rem 0.75rem;
+    touch-action: manipulation;
+  }
+
+  .stock-below-fold {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 480px;
+  }
+
+  .command-status-bar {
+    margin-bottom: 0.75rem;
+  }
+
+  .command-status-inner {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding-bottom: 0.25rem;
+  }
+
+  .command-status-cta {
+    width: 100%;
+    justify-content: center;
+    margin-top: 0.25rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shimmer,
+  .skeleton-shine {
+    animation: none !important;
+    opacity: 0.5;
+  }
+}

@@ -149,7 +149,8 @@ export function MarketSession() {
       setTime(now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
     }
     update();
-    const i = setInterval(update, 1000);
+    const ms = window.matchMedia("(max-width: 639px)").matches ? 30000 : 1000;
+    const i = setInterval(update, ms);
     return () => clearInterval(i);
   }, []);
 

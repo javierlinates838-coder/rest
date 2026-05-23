@@ -62,7 +62,9 @@ export default function DashboardPage() {
   const [sectors, setSectors] = useState<SectorPerformanceRow[]>([]);
   const [gainers, setGainers] = useState<MoverStock[]>([]);
   const [losers, setLosers] = useState<MoverStock[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [marketReady, setMarketReady] = useState(false);
+  const [sectorsReady, setSectorsReady] = useState(false);
+  const loading = !marketReady;
   const [marketError, setMarketError] = useState<string | null>(null);
   const [sectorsEstimated, setSectorsEstimated] = useState(false);
   const [sectorSource, setSectorSource] = useState<string | undefined>();
@@ -78,6 +80,7 @@ export default function DashboardPage() {
     let cancelled = false;
 
     async function fetchMarketData() {
+      if (document.visibilityState !== "visible") return;
       try {
         setMarketError(null);
         const [marketRes, sectorsRes] = await Promise.all([
@@ -98,6 +101,7 @@ export default function DashboardPage() {
           Boolean(sectorPayload?.estimated ?? data.sectorsEstimated)
         );
         setSectorSource(sectorPayload?.source ?? data.sectorSource);
+        setSectorsReady(true);
 
         if (!marketRes.ok) {
           setMarketError(data.error || "Market data unavailable");
@@ -108,19 +112,25 @@ export default function DashboardPage() {
           setGainers(data.topGainers || []);
           setLosers(data.topLosers || []);
         }
+        setMarketReady(true);
       } catch (e) {
         if (!cancelled) setMarketError("Could not load market data. Check your connection and try again.");
         console.error("Failed to fetch market data:", e);
-      } finally {
-        if (!cancelled) setLoading(false);
+        setMarketReady(true);
+        setSectorsReady(true);
       }
     }
 
     void fetchMarketData();
-    const interval = setInterval(fetchMarketData, 60000);
+    const interval = setInterval(fetchMarketData, 90000);
+    const onVis = () => {
+      if (document.visibilityState === "visible") void fetchMarketData();
+    };
+    document.addEventListener("visibilitychange", onVis);
     return () => {
       cancelled = true;
       clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVis);
     };
   }, []);
 
@@ -261,7 +271,7 @@ export default function DashboardPage() {
           <button
             type="button"
             onClick={() => {
-              setLoading(true);
+              setMarketReady(false);
               Promise.all([fetch("/api/market"), fetch("/api/sectors")])
                 .then(async ([mRes, sRes]) => {
                   const data = await mRes.json();
@@ -283,9 +293,10 @@ export default function DashboardPage() {
                     setGainers(data.topGainers || []);
                     setLosers(data.topLosers || []);
                   }
+                  setSectorsReady(true);
                 })
                 .catch(() => setMarketError("Could not load market data."))
-                .finally(() => setLoading(false));
+                .finally(() => setMarketReady(true));
             }}
             className="text-xs font-medium px-3 py-1.5 rounded-lg bg-amber-500/20 text-amber-100 hover:bg-amber-500/30 shrink-0"
           >

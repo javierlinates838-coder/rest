@@ -1,15 +1,10 @@
 "use client";
 
-import { useState, useEffect, useRef, startTransition } from "react";
+import { useState, useEffect, useRef, startTransition, useMemo, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { useParams } from "next/navigation";
 import { ClientOnly } from "@/components/client-only";
-import { useClientNow } from "@/lib/use-client-now";
 import { useRouter } from "next/navigation";
-import {
-  Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, ReferenceLine, RadarChart, PolarGrid,
-  PolarAngleAxis, PolarRadiusAxis, Radar, Legend,
-} from "recharts";
 import { formatCurrency, formatLargeNumber, formatPercent, getSignalColor, getSignalBg } from "@/lib/utils";
 import { computeSmartScore } from "@/lib/smart-score";
 import { computeEdgeIndex } from "@/lib/edge-index";
@@ -35,6 +30,11 @@ import { TERMS } from "@/lib/brand";
 import { normalizeAnalysisPayload } from "@/lib/normalize-analysis";
 import { priceChangePercent } from "@/lib/analysis-coherence";
 import { StockLogo } from "@/components/stock-logo";
+import { buildChartSeries } from "@/lib/chart-series";
+import { useVisiblePoll } from "@/lib/use-visible-poll";
+import { useStickySentinel } from "@/lib/use-sticky-sentinel";
+import { useIsMobile } from "@/lib/use-is-mobile";
+import { AnalysisBlockSkeleton, StockPageSkeleton } from "@/components/stock-page-skeleton";
 import {
   AnimatedNumber, Sparkline, DayRangeSlider, MarketSession, VolumeGauge,
   KeyEventsCard, InstitutionalCard, PriceActionCard,
@@ -45,6 +45,23 @@ import {
   IconInsider, IconVolume, IconPumpDump, IconPriceGap, IconDivergence,
   IconVolatilitySpike, IconShield, IconAlert, IconBullish, IconBearish, IconNews, IconPattern,
 } from "@/components/icons";
+
+const StockPriceChart = dynamic(
+  () => import("@/components/stock-page-charts").then((m) => m.StockPriceChart),
+  { ssr: false, loading: () => <div className="h-[280px] rounded-xl bg-zinc-800/40 skeleton-shine" /> }
+);
+const StockVolumeChart = dynamic(
+  () => import("@/components/stock-page-charts").then((m) => m.StockVolumeChart),
+  { ssr: false, loading: () => <div className="h-[150px] rounded-xl bg-zinc-800/40 skeleton-shine" /> }
+);
+const StockRadarChart = dynamic(
+  () => import("@/components/stock-page-charts").then((m) => m.StockRadarChart),
+  { ssr: false, loading: () => <div className="h-[280px] rounded-xl bg-zinc-800/40 skeleton-shine" /> }
+);
+const CompetitorMetricChart = dynamic(
+  () => import("@/components/stock-page-charts").then((m) => m.CompetitorMetricChart),
+  { ssr: false, loading: () => <div className="h-[300px] rounded-xl bg-zinc-800/40 skeleton-shine" /> }
+);
 
 interface AnalysisData {
   quote: {
@@ -147,13 +164,14 @@ export default function StockPage() {
   const symbol = (Array.isArray(rawSymbol) ? rawSymbol[0] : rawSymbol || "AAPL").toUpperCase().replace(/[^A-Z0-9.-]/g, "");
   const router = useRouter();
   const [data, setData] = useState<AnalysisData | null>(null);
+  const [quoteShell, setQuoteShell] = useState<AnalysisData["quote"] | null>(null);
+  const [analysisLoading, setAnalysisLoading] = useState(true);
   const [history, setHistory] = useState<HistoryPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
   const [period, setPeriod] = useState("1y");
   const [newsItems, setNewsItems] = useState<{ id: string; title: string; source: string; publishedAt: string; sentiment: string; summary: string; image?: string; url?: string }[]>([]);
   const [newsFilter, setNewsFilter] = useState("all");
-  const [showStickyHeader, setShowStickyHeader] = useState(false);
   const [livePrice, setLivePrice] = useState<{ price: number; change: number; changePercent: number } | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -163,7 +181,10 @@ export default function StockPage() {
   const heroRef = useRef<HTMLDivElement>(null);
   const skipPeriodFetchRef = useRef(true);
   const [refreshKey, setRefreshKey] = useState(0);
-  const clientNow = useClientNow();
+  const isMobile = useIsMobile();
+  const showStickyHeader = useStickySentinel(heroRef, -60);
+
+  const chartData = useMemo(() => buildChartSeries(history), [history]);
 
   const goBack = () => {
     if (typeof window !== "undefined" && window.history.length > 1) {
@@ -175,72 +196,130 @@ export default function StockPage() {
 
   const chartSourceLabel = chartDataLabel(chartSource);
 
-  // Full analysis load when symbol changes (not on chart period change)
+  // Fast quote + chart first; full analysis loads in background
   useEffect(() => {
     let cancelled = false;
     startTransition(() => {
       setLoadError(null);
       setData(null);
+      setQuoteShell(null);
       setHistory([]);
       setNewsItems([]);
       setChartSource("unknown");
       setNewsSource(null);
       setLoading(true);
+      setAnalysisLoading(true);
     });
     skipPeriodFetchRef.current = true;
+
+    const applyHistory = (
+      stockHistory: HistoryPoint[],
+      src?: string,
+      stockHistorySource?: string
+    ) => {
+      if (stockHistory.length > 0) setHistory(stockHistory);
+      const label = stockHistorySource || src;
+      if (stockHistorySource === "fmp" || label === "FMP Live") setChartSource("fmp");
+      else if (stockHistorySource === "yahoo" || label === "Yahoo Finance") setChartSource("yahoo");
+      else if (stockHistorySource === "simulated" || label?.includes("Simulated")) setChartSource("simulated");
+      else if (stockHistory.length > 0) setChartSource("unknown");
+    };
 
     (async () => {
       try {
         const encoded = encodeURIComponent(symbol);
 
-        const [analysisData, stockData, newsData] = await Promise.all([
-          fetchJsonWithTimeout<AnalysisData>(`/api/analyze?symbol=${encoded}`, 55000),
-          fetchJson<{ history?: HistoryPoint[]; historySource?: string }>(
-            `/api/stock?symbol=${encoded}&period=${period}`
-          ).catch(() => ({ history: [], historySource: "unknown" })),
-          fetchJson<{ news?: typeof newsItems; source?: string }>(`/api/news?symbol=${encoded}`).catch(() => ({
-            news: [],
-            source: "unknown",
-          })),
-        ]);
+        const stockPromise = fetchJson<{
+          quote?: AnalysisData["quote"];
+          history?: HistoryPoint[];
+          historySource?: string;
+        }>(`/api/stock?symbol=${encoded}&period=${period}`).catch(() => ({
+          history: [] as HistoryPoint[],
+          historySource: "unknown" as const,
+        }));
+
+        const newsPromise = fetchJson<{ news?: typeof newsItems; source?: string }>(
+          `/api/news?symbol=${encoded}`
+        ).catch(() => ({ news: [], source: "unknown" }));
+
+        const analyzePromise = fetchJsonWithTimeout<AnalysisData>(
+          `/api/analyze?symbol=${encoded}`,
+          55000
+        );
+
+        const stockData = await stockPromise;
+        if (cancelled) return;
+
+        if ("quote" in stockData && stockData.quote) {
+          setQuoteShell(stockData.quote);
+          applyHistory(stockData.history || [], undefined, stockData.historySource);
+          setLoading(false);
+        }
+
+        const newsData = await newsPromise;
+        if (!cancelled && newsData.news?.length) {
+          setNewsItems(newsData.news);
+          setNewsSource(newsData.source || null);
+        }
+
+        const analysisData = await analyzePromise;
         if (cancelled) return;
 
         const parsed = parseAnalysis(analysisData);
         if (!parsed) {
-          throw new Error("We couldn't build a complete analysis for this symbol. Try again or pick another ticker.");
+          if (!("quote" in stockData && stockData.quote)) {
+            throw new Error("We couldn't build a complete analysis for this symbol. Try again or pick another ticker.");
+          }
+          setLoadError("Live analysis is still unavailable. Quote and chart are shown from market data.");
+          return;
         }
+
         setData(parsed);
+        setQuoteShell(parsed.quote);
 
         const stockHistory = stockData.history?.length ? stockData.history : [];
         const analysisHistory =
           Array.isArray(analysisData.history) && analysisData.history.length > 0
             ? (analysisData.history as HistoryPoint[])
             : [];
-        setHistory(stockHistory.length > 0 ? stockHistory : analysisHistory);
+        applyHistory(
+          stockHistory.length > 0 ? stockHistory : analysisHistory,
+          analysisData.dataSources?.chart,
+          stockData.historySource
+        );
 
-        const src = stockData.historySource || analysisData.dataSources?.chart;
-        if (stockData.historySource === "fmp" || src === "FMP Live") setChartSource("fmp");
-        else if (stockData.historySource === "yahoo" || src === "Yahoo Finance") setChartSource("yahoo");
-        else if (stockData.historySource === "simulated" || src?.includes("Simulated")) setChartSource("simulated");
-        else if (stockHistory.length > 0 || analysisHistory.length > 0) setChartSource("unknown");
+        if (!newsData.news?.length && parsed.news?.length) {
+          setNewsItems(
+            parsed.news.map((n, i) => ({
+              id: `n-${i}`,
+              title: n.title,
+              source: "Analysis",
+              publishedAt: new Date().toISOString(),
+              sentiment: n.sentiment,
+              summary: n.title,
+            }))
+          );
+        }
 
-        let resolvedNews = newsData;
         const companyName = parsed.quote?.name?.trim();
         if (companyName) {
-          const withName = await fetchJson<{ news?: typeof newsItems; source?: string }>(
+          fetchJson<{ news?: typeof newsItems; source?: string }>(
             `/api/news?symbol=${encoded}&name=${encodeURIComponent(companyName)}`
-          ).catch(() => resolvedNews);
-          if (
-            withName.news?.length &&
-            (withName.source !== "generated" ||
-              resolvedNews.source === "generated" ||
-              withName.news.length > (resolvedNews.news?.length ?? 0))
-          ) {
-            resolvedNews = withName;
-          }
+          )
+            .then((withName) => {
+              if (cancelled) return;
+              if (
+                withName.news?.length &&
+                (withName.source !== "generated" ||
+                  newsData.source === "generated" ||
+                  withName.news.length > (newsData.news?.length ?? 0))
+              ) {
+                setNewsItems(withName.news);
+                setNewsSource(withName.source || null);
+              }
+            })
+            .catch(() => undefined);
         }
-        if (resolvedNews.news?.length) setNewsItems(resolvedNews.news);
-        setNewsSource(resolvedNews.source || null);
       } catch (e) {
         if (!cancelled) {
           let message =
@@ -250,26 +329,27 @@ export default function StockPage() {
                 ? e.message
                 : "Failed to load stock data";
           if (e instanceof ApiError && e.status === 429) {
-            message =
-              "You've used today's analysis limit. Try again tomorrow.";
+            message = "You've used today's analysis limit. Try again tomorrow.";
           }
           setLoadError(message);
-          setData(null);
+          if (!quoteShell) setData(null);
           console.error("Failed to fetch:", e);
         }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+          setAnalysisLoading(false);
+        }
       }
     })();
 
     return () => { cancelled = true; };
-    // period intentionally omitted — chart period has its own effect
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [symbol, refreshKey]);
 
   // Chart period change — only refetch price history (fast), not full AI analysis
   useEffect(() => {
-    if (!symbol || loading || !data) return;
+    if (!symbol || loading || (!data && !quoteShell)) return;
     if (skipPeriodFetchRef.current) {
       skipPeriodFetchRef.current = false;
       return;
@@ -305,61 +385,31 @@ export default function StockPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only refetch on period change
   }, [period]);
 
-  useEffect(() => {
-    function onScroll() {
-      if (!heroRef.current) return;
-      const rect = heroRef.current.getBoundingClientRect();
-      setShowStickyHeader(rect.bottom < 60);
+  const pollLiveQuote = useCallback(async () => {
+    if (!quoteShell && !data) return;
+    try {
+      const fresh = await fetchJson<{ quote?: { price: number; change: number; changePercent: number } }>(
+        `/api/stock?symbol=${encodeURIComponent(symbol)}&period=1m`
+      );
+      if (fresh?.quote) {
+        setLivePrice({
+          price: fresh.quote.price,
+          change: fresh.quote.change,
+          changePercent: fresh.quote.changePercent,
+        });
+      }
+    } catch {
+      /* ignore */
     }
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  }, [data, quoteShell, symbol]);
 
-  useEffect(() => {
-    if (!data) return;
-    let cancelled = false;
-    const tick = async () => {
-      try {
-        const fresh = await fetchJson<{ quote?: { price: number; change: number; changePercent: number } }>(
-          `/api/stock?symbol=${encodeURIComponent(symbol)}&period=1m`
-        );
-        if (!cancelled && fresh?.quote) {
-          setLivePrice({
-            price: fresh.quote.price,
-            change: fresh.quote.change,
-            changePercent: fresh.quote.changePercent,
-          });
-        }
-      } catch { /* ignore */ }
-    };
-    const interval = setInterval(tick, 30000);
-    return () => { cancelled = true; clearInterval(interval); };
-  }, [data, symbol]);
+  useVisiblePoll(pollLiveQuote, isMobile ? 90000 : 45000, Boolean(quoteShell || data));
 
-  if (loading) {
-    return (
-      <div className="page-shell">
-        <div className="space-y-6">
-          <div className="flex justify-between items-end">
-            <div>
-              <div className="h-8 bg-zinc-800/60 rounded-lg w-48 mb-3 shimmer" />
-              <div className="h-12 bg-zinc-800/60 rounded-lg w-64 shimmer" />
-            </div>
-            <div className="h-28 w-52 bg-zinc-800/60 rounded-2xl shimmer" />
-          </div>
-          <div className="flex gap-1 mb-6">
-            {[...Array(6)].map((_, i) => <div key={i} className="h-10 w-24 bg-zinc-800/40 rounded-lg shimmer" style={{ animationDelay: `${i * 100}ms` }} />)}
-          </div>
-          <div className="h-[400px] bg-zinc-800/40 rounded-2xl shimmer" />
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-            {[...Array(12)].map((_, i) => <div key={i} className="h-20 bg-zinc-800/30 rounded-xl shimmer" style={{ animationDelay: `${i * 50}ms` }} />)}
-          </div>
-        </div>
-      </div>
-    );
+  if (loading && !quoteShell) {
+    return <StockPageSkeleton />;
   }
 
-  if (!data) {
+  if (!data && !quoteShell) {
     return (
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
         <div className="glass-card rounded-2xl p-10 max-w-lg mx-auto">
@@ -391,37 +441,46 @@ export default function StockPage() {
     );
   }
 
-  const { quote, indicators, signal, competitors, aiAnalysis, dataSources, analystRecommendations, redFlags, riskScore, analyzedAt, tradingPlan, keyEvents, institutional, priceAction, researchQuality } = data;
-
-  const chartData = history.map((h) => ({
-    date: h.date,
-    price: h.close,
-    volume: h.volume,
-    sma20: 0,
-    sma50: 0,
-  }));
-
-  if (chartData.length > 20) {
-    for (let i = 19; i < chartData.length; i++) {
-      chartData[i].sma20 = chartData.slice(i - 19, i + 1).reduce((s, d) => s + d.price, 0) / 20;
-    }
+  const analysisReady = Boolean(data);
+  const quote = data?.quote ?? quoteShell;
+  if (!quote) {
+    return (
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
+        <div className="glass-card rounded-2xl p-10 max-w-lg mx-auto">
+          <h2 className="text-xl sm:text-2xl font-semibold text-white mb-3">Could not load {symbol}</h2>
+          <p className="text-sm text-zinc-400 mb-6 leading-relaxed">{loadError || "No market data returned for this symbol."}</p>
+        </div>
+      </div>
+    );
   }
-  if (chartData.length > 50) {
-    for (let i = 49; i < chartData.length; i++) {
-      chartData[i].sma50 = chartData.slice(i - 49, i + 1).reduce((s, d) => s + d.price, 0) / 50;
-    }
-  }
+
+  const indicators = data?.indicators;
+  const signal = data?.signal;
+  const competitors = data?.competitors ?? [];
+  const aiAnalysis = data?.aiAnalysis;
+  const dataSources = data?.dataSources;
+  const analystRecommendations = data?.analystRecommendations;
+  const redFlags = data?.redFlags;
+  const riskScore = data?.riskScore;
+  const analyzedAt = data?.analyzedAt;
+  const tradingPlan = data?.tradingPlan;
+  const keyEvents = data?.keyEvents;
+  const institutional = data?.institutional;
+  const priceAction = data?.priceAction;
+  const researchQuality = data?.researchQuality;
 
   const redFlagCount = data?.redFlags?.filter((f) => f.severity === "critical").length || 0;
 
-  const smartScore = computeSmartScore({
-    signal: signal.signal,
-    confidence: signal.confidence,
-    riskGrade: riskScore?.grade ?? "C",
-    changePercent: quote.changePercent,
-    rsi: indicators.rsi,
-    researchQualityScore: researchQuality?.score,
-  });
+  const smartScore = analysisReady && signal
+    ? computeSmartScore({
+        signal: signal.signal,
+        confidence: signal.confidence,
+        riskGrade: riskScore?.grade ?? "C",
+        changePercent: quote.changePercent,
+        rsi: indicators!.rsi,
+        researchQualityScore: researchQuality?.score,
+      })
+    : null;
 
   const criticalFlags = redFlags?.filter((f) => f.severity === "critical").length ?? 0;
   const analystBuyRatio =
@@ -437,34 +496,40 @@ export default function StockPage() {
         )
       : undefined;
 
-  const edgeIndex = computeEdgeIndex({
-    signal: signal.signal,
-    confidence: signal.confidence,
-    riskGrade: riskScore?.grade ?? "C",
-    changePercent: quote.changePercent,
-    rsi: indicators.rsi,
-    researchQualityScore: researchQuality?.score,
-    aiAlignsWithSignal: aiAnalysis.recommendation === signal.signal,
-    redFlagCount: redFlags?.length ?? 0,
-    criticalFlagCount: criticalFlags,
-    analystBuyRatio,
-    sentimentScore: aiAnalysis.sentimentScore,
-  });
+  const edgeIndex =
+    analysisReady && signal && aiAnalysis
+      ? computeEdgeIndex({
+          signal: signal.signal,
+          confidence: signal.confidence,
+          riskGrade: riskScore?.grade ?? "C",
+          changePercent: quote.changePercent,
+          rsi: indicators!.rsi,
+          researchQualityScore: researchQuality?.score,
+          aiAlignsWithSignal: aiAnalysis.recommendation === signal.signal,
+          redFlagCount: redFlags?.length ?? 0,
+          criticalFlagCount: criticalFlags,
+          analystBuyRatio,
+          sentimentScore: aiAnalysis.sentimentScore,
+        })
+      : null;
 
   const historyCloses = history.map((h) => h.close);
-  const advancedConviction = computeAdvancedConviction({
-    price: quote.price,
-    changePercent: quote.changePercent,
-    indicators,
-    signal: signal.signal,
-    confidence: signal.confidence,
-    smart: smartScore,
-    edge: edgeIndex,
-    riskGrade: riskScore?.grade ?? "C",
-    sentimentScore: aiAnalysis.sentimentScore,
-    researchQualityScore: researchQuality?.score,
-    historyCloses,
-  });
+  const advancedConviction =
+    analysisReady && signal && smartScore && edgeIndex && aiAnalysis && indicators
+      ? computeAdvancedConviction({
+          price: quote.price,
+          changePercent: quote.changePercent,
+          indicators,
+          signal: signal.signal,
+          confidence: signal.confidence,
+          smart: smartScore,
+          edge: edgeIndex,
+          riskGrade: riskScore?.grade ?? "C",
+          sentimentScore: aiAnalysis.sentimentScore,
+          researchQualityScore: researchQuality?.score,
+          historyCloses,
+        })
+      : null;
 
   const tabs = [
     { id: "overview", label: "Overview" },
@@ -475,19 +540,21 @@ export default function StockPage() {
     { id: "news", label: "News" },
   ];
 
-  const radarData = [
-    { subject: "Momentum", value: Math.min(indicators.rsi, 100), fullMark: 100 },
-    { subject: "Trend", value: Math.min(indicators.adx * 2, 100), fullMark: 100 },
-    { subject: "Volume", value: quote.avgVolume > 0 ? Math.min((quote.volume / quote.avgVolume) * 50, 100) : 50, fullMark: 100 },
-    { subject: "Volatility", value: quote.price > 0 ? Math.min((indicators.atr / quote.price) * 2000, 100) : 50, fullMark: 100 },
-    { subject: "Value", value: quote.peRatio > 0 ? Math.min(100 - (quote.peRatio / 50) * 100, 100) : 50, fullMark: 100 },
-    { subject: "Sentiment", value: Math.max(Math.min(aiAnalysis.sentimentScore + 50, 100), 0), fullMark: 100 },
-  ];
+  const radarData = analysisReady && indicators && aiAnalysis
+    ? [
+        { subject: "Momentum", value: Math.min(indicators.rsi, 100), fullMark: 100 },
+        { subject: "Trend", value: Math.min(indicators.adx * 2, 100), fullMark: 100 },
+        { subject: "Volume", value: quote.avgVolume > 0 ? Math.min((quote.volume / quote.avgVolume) * 50, 100) : 50, fullMark: 100 },
+        { subject: "Volatility", value: quote.price > 0 ? Math.min((indicators.atr / quote.price) * 2000, 100) : 50, fullMark: 100 },
+        { subject: "Value", value: quote.peRatio > 0 ? Math.min(100 - (quote.peRatio / 50) * 100, 100) : 50, fullMark: 100 },
+        { subject: "Sentiment", value: Math.max(Math.min(aiAnalysis.sentimentScore + 50, 100), 0), fullMark: 100 },
+      ]
+    : [];
 
   const displayPrice = livePrice?.price ?? quote.price;
   const displayChange = livePrice?.change ?? quote.change;
   const displayChangePercent = livePrice?.changePercent ?? quote.changePercent;
-  const recentPrices = (data.history || history.slice(-30)).map((h) => h.close);
+  const recentPrices = history.slice(-30).map((h) => h.close);
 
   return (
     <ErrorBoundary
@@ -522,6 +589,7 @@ export default function StockPage() {
       {/* Quick Actions */}
       <QuickActions symbol={quote.symbol} onRefresh={() => setRefreshKey((k) => k + 1)} />
 
+      {analysisReady && (
       <div className="flex flex-wrap items-center justify-end gap-2 mb-4">
         <ResearchExportButton
           data={{
@@ -529,14 +597,14 @@ export default function StockPage() {
             name: quote.name,
             price: quote.price,
             changePercent: quote.changePercent,
-            signal: signal.signal,
-            confidence: signal.confidence,
+            signal: signal!.signal,
+            confidence: signal!.confidence,
             riskGrade: riskScore?.grade ?? "C",
-            edgeScore: edgeIndex.edgeScore,
-            edgeTier: edgeIndex.tier,
-            smartScore: smartScore.score,
-            aiSummary: aiAnalysis.summary,
-            aiRecommendation: aiAnalysis.recommendation,
+            edgeScore: edgeIndex!.edgeScore,
+            edgeTier: edgeIndex!.tier,
+            smartScore: smartScore!.score,
+            aiSummary: aiAnalysis!.summary,
+            aiRecommendation: aiAnalysis!.recommendation,
             entry: tradingPlan?.entry.primary,
             stop: tradingPlan?.stopLoss.standard,
             target: tradingPlan?.targets.base,
@@ -545,6 +613,15 @@ export default function StockPage() {
           }}
         />
       </div>
+      )}
+
+      {analysisLoading && (
+        <p className="text-[11px] text-zinc-500 mb-3 px-1">Loading scores and levels…</p>
+      )}
+
+      {loadError && quoteShell && !analysisReady && (
+        <p className="text-[11px] text-amber-200/90 mb-3 px-1">{loadError}</p>
+      )}
 
       {researchQuality && researchQuality.score < 70 && (
         <p className="text-[12px] text-zinc-500 mb-4 px-1 leading-relaxed">
@@ -565,7 +642,7 @@ export default function StockPage() {
                 type="button"
                 onClick={goBack}
                 aria-label="Go back"
-                className="flex items-center justify-center w-9 h-9 shrink-0 rounded-lg text-zinc-500 hover:text-white hover:bg-white/5"
+                className="mobile-touch-target flex items-center justify-center w-11 h-11 shrink-0 rounded-lg text-zinc-500 hover:text-white hover:bg-white/5"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
@@ -589,7 +666,11 @@ export default function StockPage() {
             <div className="flex flex-wrap items-end justify-between gap-3 pt-1">
               <div>
                 <p className="text-[3rem] sm:text-[2.75rem] leading-none font-semibold text-white tabular-nums tracking-tight">
-                  <AnimatedNumber value={displayPrice} format={formatCurrency} />
+                  {isMobile ? (
+                    formatCurrency(displayPrice)
+                  ) : (
+                    <AnimatedNumber value={displayPrice} format={formatCurrency} />
+                  )}
                 </p>
                 <p className={`text-[15px] font-medium tabular-nums mt-1.5 ${displayChangePercent >= 0 ? "text-emerald-400" : "text-red-400"}`}>
                   {displayChange >= 0 ? "+" : ""}
@@ -625,6 +706,7 @@ export default function StockPage() {
             )}
           </div>
 
+          {analysisReady && advancedConviction && smartScore && edgeIndex && signal ? (
           <AdvancedConvictionTerminal
             symbol={quote.symbol}
             conviction={advancedConviction}
@@ -635,6 +717,9 @@ export default function StockPage() {
             riskGrade={riskScore?.grade ?? "C"}
             riskScore={riskScore?.overall}
           />
+          ) : (
+            <AnalysisBlockSkeleton />
+          )}
           {(quote.marketCap > 0 || quote.peRatio > 0) && (
             <div className="cockpit-fundamentals">
               {quote.marketCap > 0 && (
@@ -652,14 +737,14 @@ export default function StockPage() {
         </div>
       </div>
 
-      {tradingPlan && (
+      {analysisReady && tradingPlan && signal && (
         <ActionBrief
           symbol={quote.symbol}
           signal={signal.signal}
           confidence={signal.confidence}
           riskGrade={riskScore?.grade ?? "C"}
           changePercent={quote.changePercent}
-          rsi={indicators.rsi}
+          rsi={indicators!.rsi}
           researchQualityScore={researchQuality?.score}
           tradingBias={tradingPlan.bias === "neutral" ? "Wait" : tradingPlan.bias}
           entryPrimary={tradingPlan.entry.primary}
@@ -670,10 +755,10 @@ export default function StockPage() {
         />
       )}
 
-      <StockExplainerPanel quote={quote} aiSummary={aiAnalysis.summary} />
+      <StockExplainerPanel quote={quote} aiSummary={aiAnalysis?.summary} />
 
       {/* Tab Navigation */}
-      <div className="sticky-tab-bar scroll-tabs tab-segment mb-6 sm:mb-8 p-1 rounded-xl">
+      <div className={`sticky-tab-bar scroll-tabs tab-segment mb-6 sm:mb-8 p-1 rounded-xl ${showStickyHeader ? "sticky-tab-bar--mini" : ""}`}>
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -717,7 +802,7 @@ export default function StockPage() {
       {/* Overview Tab */}
       {activeTab === "overview" && (
         <div className="space-y-6">
-          <EdgeIndexPanel edge={edgeIndex} symbol={quote.symbol} />
+          {edgeIndex && <EdgeIndexPanel edge={edgeIndex} symbol={quote.symbol} />}
 
           {/* Trading Plan - the centerpiece */}
           {tradingPlan && (
@@ -761,7 +846,7 @@ export default function StockPage() {
                   <button
                     key={p}
                     onClick={() => setPeriod(p)}
-                    className={`px-3 py-1 text-xs rounded-md transition-all ${
+                    className={`chart-period-chip px-3 py-1 text-xs rounded-md transition-colors ${
                       period === p ? "bg-teal-600 text-white" : "text-zinc-400 hover:text-white"
                     }`}
                   >
@@ -773,34 +858,9 @@ export default function StockPage() {
             {chartData.length < 2 ? (
               <p className="text-sm text-zinc-500 py-12 text-center">Chart data is loading or unavailable for this symbol.</p>
             ) : (
-            <ClientOnly fallback={<div className="h-[280px] rounded-xl bg-zinc-800/40 animate-pulse" />}>
+            <ClientOnly fallback={<div className="h-[280px] rounded-xl bg-zinc-800/40 skeleton-shine" />}>
             <div className="w-full min-h-[280px]" style={{ minWidth: 0 }}>
-            <ResponsiveContainer width="100%" height={280}>
-              <AreaChart key={`${quote.symbol}-${period}`} data={chartData}>
-                <defs>
-                  <linearGradient id={`priceGradient-${quote.symbol}`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-                <XAxis dataKey="date" stroke="#52525b" tick={{ fontSize: 11 }} tickFormatter={(v) => String(v).slice(5)} />
-                <YAxis stroke="#52525b" tick={{ fontSize: 11 }} domain={["auto", "auto"]} tickFormatter={(v) => `$${v}`} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "8px" }}
-                  labelStyle={{ color: "#a1a1aa" }}
-                  formatter={(value) => [formatCurrency(Number(value)), ""]}
-                />
-                <Area type="monotone" dataKey="price" stroke="#6366f1" fill={`url(#priceGradient-${quote.symbol})`} strokeWidth={2} name="Price" />
-                {chartData.some((d) => d.sma20 > 0) && (
-                  <Line type="monotone" dataKey="sma20" stroke="#22c55e" dot={false} strokeWidth={1} strokeDasharray="4 4" name="SMA 20" />
-                )}
-                {chartData.some((d) => d.sma50 > 0) && (
-                  <Line type="monotone" dataKey="sma50" stroke="#f59e0b" dot={false} strokeWidth={1} strokeDasharray="4 4" name="SMA 50" />
-                )}
-                <Legend />
-              </AreaChart>
-            </ResponsiveContainer>
+              <StockPriceChart symbol={quote.symbol} period={period} data={chartData} />
             </div>
             </ClientOnly>
             )}
@@ -810,17 +870,9 @@ export default function StockPage() {
           {chartData.length >= 2 && (
           <div className="glass-card rounded-xl p-6">
             <h3 className="text-lg font-bold text-white mb-4">Volume</h3>
-            <ClientOnly fallback={<div className="h-[150px] rounded-xl bg-zinc-800/40 animate-pulse" />}>
+            <ClientOnly fallback={<div className="h-[150px] rounded-xl bg-zinc-800/40 skeleton-shine" />}>
               <div className="w-full min-h-[150px]" style={{ minWidth: 0 }}>
-                <ResponsiveContainer width="100%" height={150}>
-                  <BarChart key={`vol-${quote.symbol}-${period}`} data={chartData.slice(-60)}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-                    <XAxis dataKey="date" stroke="#52525b" tick={{ fontSize: 10 }} tickFormatter={(v) => String(v).slice(5)} />
-                    <YAxis stroke="#52525b" tick={{ fontSize: 10 }} tickFormatter={(v) => `${(Number(v) / 1e6).toFixed(0)}M`} />
-                    <Tooltip contentStyle={{ backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "8px" }} />
-                    <Bar dataKey="volume" fill="#6366f1" opacity={0.6} name="Volume" />
-                  </BarChart>
-                </ResponsiveContainer>
+                <StockVolumeChart symbol={quote.symbol} period={period} data={chartData} />
               </div>
             </ClientOnly>
           </div>
@@ -852,27 +904,25 @@ export default function StockPage() {
 
           {/* Company description lives in Company Pulse panel above tabs */}
 
-          {/* Radar Chart */}
-          <div className="glass-card rounded-xl p-6">
+          {analysisReady && radarData.length > 0 && (
+          <div className="glass-card rounded-xl p-6 stock-below-fold">
             <h3 className="text-lg font-bold text-white mb-4">Stock Health Radar</h3>
-            <ClientOnly fallback={<div className="h-[280px] rounded-xl bg-zinc-800/40 animate-pulse" />}>
+            <ClientOnly fallback={<div className="h-[280px] rounded-xl bg-zinc-800/40 skeleton-shine" />}>
               <div className="w-full min-h-[280px]" style={{ minWidth: 0 }}>
-                <ResponsiveContainer width="100%" height={280}>
-                  <RadarChart data={radarData}>
-                    <PolarGrid stroke="#27272a" />
-                    <PolarAngleAxis dataKey="subject" tick={{ fill: "#a1a1aa", fontSize: 12 }} />
-                    <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fill: "#52525b", fontSize: 10 }} />
-                    <Radar name="Score" dataKey="value" stroke="#6366f1" fill="#6366f1" fillOpacity={0.3} />
-                  </RadarChart>
-                </ResponsiveContainer>
+                <StockRadarChart data={radarData} />
               </div>
             </ClientOnly>
           </div>
+          )}
         </div>
       )}
 
       {/* Technical Analysis Tab */}
-      {activeTab === "technical" && (
+      {activeTab === "technical" && !analysisReady && (
+        <AnalysisBlockSkeleton />
+      )}
+
+      {activeTab === "technical" && analysisReady && indicators && signal && (
         <div className="space-y-6">
           {/* Indicators Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1030,7 +1080,9 @@ export default function StockPage() {
       )}
 
       {/* AI Analysis Tab */}
-      {activeTab === "ai-analysis" && (
+      {activeTab === "ai-analysis" && !analysisReady && <AnalysisBlockSkeleton />}
+
+      {activeTab === "ai-analysis" && analysisReady && aiAnalysis && signal && (
         <div className="space-y-6">
           {/* AI Summary */}
           <div className="glass-card rounded-xl p-6 glow-border">
@@ -1180,7 +1232,9 @@ export default function StockPage() {
       )}
 
       {/* Red Flags Tab */}
-      {activeTab === "red-flags" && (
+      {activeTab === "red-flags" && !analysisReady && <AnalysisBlockSkeleton />}
+
+      {activeTab === "red-flags" && analysisReady && (
         <div className="space-y-6 animate-fadeIn">
           {/* Risk Score Overview */}
           {riskScore && (
@@ -1361,7 +1415,9 @@ export default function StockPage() {
       )}
 
       {/* Competitors Tab */}
-      {activeTab === "competitors" && (
+      {activeTab === "competitors" && !analysisReady && <AnalysisBlockSkeleton />}
+
+      {activeTab === "competitors" && analysisReady && aiAnalysis && (
         <div className="space-y-6">
           <div className="glass-card rounded-xl p-6">
             <h3 className="text-lg font-bold text-white mb-3">Competitor Analysis</h3>
@@ -1423,36 +1479,19 @@ export default function StockPage() {
           </div>
 
           {/* Competitor Comparison Chart */}
-          <div className="glass-card rounded-xl p-6">
-            <h3 className="text-lg font-bold text-white mb-4">Market Cap Comparison</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={[{ symbol: quote.symbol, value: quote.marketCap, isCurrent: true }, ...competitors.map((c) => ({ symbol: c.symbol, value: c.marketCap, isCurrent: false }))]}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-                <XAxis dataKey="symbol" stroke="#52525b" />
-                <YAxis stroke="#52525b" tickFormatter={(v) => `$${(v / 1e9).toFixed(0)}B`} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "8px" }}
-                  formatter={(value) => [formatLargeNumber(Number(value)), "Market Cap"]}
-                />
-                <Bar dataKey="value" fill="#6366f1" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          <CompetitorMetricChart
+            title="Market Cap Comparison"
+            rows={[{ symbol: quote.symbol, value: quote.marketCap }, ...competitors.map((c) => ({ symbol: c.symbol, value: c.marketCap }))]}
+            formatValue={formatLargeNumber}
+          />
 
-          {/* P/E Comparison */}
-          <div className="glass-card rounded-xl p-6">
-            <h3 className="text-lg font-bold text-white mb-4">P/E Ratio Comparison</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={[{ symbol: quote.symbol, value: quote.peRatio }, ...competitors.map((c) => ({ symbol: c.symbol, value: c.peRatio }))]}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-                <XAxis dataKey="symbol" stroke="#52525b" />
-                <YAxis stroke="#52525b" />
-                <Tooltip contentStyle={{ backgroundColor: "#18181b", border: "1px solid #27272a", borderRadius: "8px" }} />
-                <ReferenceLine y={competitors.reduce((s, c) => s + c.peRatio, quote.peRatio) / (competitors.length + 1)} stroke="#f59e0b" strokeDasharray="3 3" label={{ value: "Avg", fill: "#f59e0b", fontSize: 12 }} />
-                <Bar dataKey="value" fill="#8b5cf6" radius={[4, 4, 0, 0]} name="P/E Ratio" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          <CompetitorMetricChart
+            title="P/E Ratio Comparison"
+            rows={[{ symbol: quote.symbol, value: quote.peRatio }, ...competitors.map((c) => ({ symbol: c.symbol, value: c.peRatio }))]}
+            formatValue={(v) => v.toFixed(1)}
+            avgLine={competitors.reduce((s, c) => s + c.peRatio, quote.peRatio) / (competitors.length + 1)}
+            barFill="#8b5cf6"
+          />
         </div>
       )}
 
@@ -1467,7 +1506,7 @@ export default function StockPage() {
         };
 
         // Group by time
-        const now = clientNow || 0;
+        const now = Date.now();
         const groups: { label: string; items: typeof filteredNews }[] = [
           { label: "Last Hour", items: [] },
           { label: "Today", items: [] },
@@ -1570,7 +1609,7 @@ export default function StockPage() {
                     </div>
                     <div className="space-y-3">
                       {group.items.map((item, i) => {
-                        const ageMs = (clientNow || 0) - new Date(item.publishedAt).getTime();
+                        const ageMs = Date.now() - new Date(item.publishedAt).getTime();
                         const ageStr = ageMs < 3600000 ? `${Math.floor(ageMs / 60000)}m ago` :
                                        ageMs < 86400000 ? `${Math.floor(ageMs / 3600000)}h ago` :
                                        ageMs < 604800000 ? `${Math.floor(ageMs / 86400000)}d ago` :
